@@ -3036,3 +3036,140 @@
   line-height: 1.5;
   color: var(--sf-menu-ink-mid, #444);
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Responsive web layout (replaces the desktop phone mock-up).
+   The cards template stays an app-style shell (sticky toolbar, scrolling body,
+   cart dock) but fills the viewport; content is centred and the dish list
+   becomes a grid. Minimal template: see .mf-min-page below.
+   ════════════════════════════════════════════════════════════════════════════ */
+.mf-phone-bar { display: none; }
+
+@media (min-width: 768px) {
+  .mf-root.theme-menufast-cards { padding: 0; background: #fafaf8; }
+  .theme-menufast-cards .mf-phone,
+  .theme-menufast-cards .mf-phone-wrap .mf-phone {
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .theme-menufast-cards .mf-cards-toolbar,
+  .theme-menufast-cards .mf-cards-sticky > *,
+  .theme-menufast-cards .mf-cards-dock > * {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1180px;
+    margin-inline: auto;
+  }
+  .theme-menufast-cards .mf-cards-body { padding: 1.5rem 2rem 2.5rem; }
+  .theme-menufast-cards .mf-cards-body > * { max-width: 1180px; margin-inline: auto; }
+  .theme-menufast-cards .mf-item-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
+  .theme-menufast-cards .mf-item-card {
+    margin-bottom: 0;
+    height: 100%;
+    transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  }
+  .theme-menufast-cards .mf-item-card:hover {
+    border-color: transparent;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
+  .theme-menufast-cards .mf-cat-title { font-size: 1.35rem; margin-bottom: 0.85rem; }
+
+  /* Cart becomes a right-hand sheet instead of a bottom sheet. */
+  .theme-menufast-cards .mf-cards-cart-panel {
+    top: 0;
+    left: auto;
+    width: min(440px, 100%);
+    max-height: none;
+    border-radius: 0;
+    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.12);
+    animation: sf-slide-in-right 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+}
+@media (min-width: 1200px) {
+  .theme-menufast-cards .mf-item-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ── Minimal template: full-width page ── */
+.mf-root.mf-min-page {
+  --sf-brand: #1a1a1a;
+  --sf-brand-hover: #000;
+  --sf-brand-soft: #f5f3f0;
+  --sf-accent: #1d9e75;
+  --sf-surface: #fff;
+  --sf-surface-muted: #f5f3f0;
+  --sf-border: #ece8e1;
+  --sf-border-strong: #d9d4cc;
+  --sf-font-display: 'Fraunces', Georgia, serif;
+  --sf-font-body: 'DM Sans', system-ui, sans-serif;
+  padding: 0;
+  background: #fafaf8;
+  display: flex;
+  flex-direction: column;
+}
+.mf-min-shell { flex: 1; padding-bottom: var(--sf-section-y); }
+.mf-min-intro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-block: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+}
+.mf-min-page .mf-min-logo { width: 64px; height: 64px; border-radius: 16px; font-size: 1.5rem; font-weight: 600; color: #1d9e75; }
+.mf-min-page .mf-min-biz-name {
+  margin: 0;
+  font-family: var(--sf-font-display);
+  font-size: var(--sf-text-3xl);
+  font-weight: 400;
+  line-height: 1.1;
+}
+.mf-min-page .mf-min-tagline { margin: 0.35rem 0 0.5rem; font-size: var(--sf-text-base); color: var(--sf-text-muted); }
+.mf-min-grid { display: grid; gap: 1.5rem; align-items: start; }
+@media (min-width: 1024px) { .mf-min-grid { grid-template-columns: minmax(0, 1fr) 380px; gap: 2.5rem; } }
+.mf-min-menu .mf-min-body {
+  overflow: visible;
+  padding: 1.25rem clamp(1rem, 0.5rem + 2vw, 2rem);
+  border: 1px solid var(--sf-border);
+  border-radius: var(--sf-radius-lg);
+  background: #fff;
+}
+.mf-min-page .mf-min-cat-label { margin-top: 1.75rem; font-size: 12px; color: #8a847c; }
+.mf-min-page .mf-min-row { padding: 1rem 0; border-bottom-color: #f2efea; }
+.mf-min-page .mf-min-item-name { font-size: 15px; font-weight: 500; }
+.mf-min-page .mf-min-item-desc { font-size: 13px; color: #8a847c; }
+.mf-min-page .mf-min-footer {
+  scroll-margin-top: calc(var(--sf-header-h) + 1rem);
+  padding: 1.5rem;
+  border: 1px solid var(--sf-border);
+  border-radius: var(--sf-radius-lg);
+  background: #fff;
+}
+@media (min-width: 1024px) {
+  .mf-min-page .mf-min-footer { position: sticky; top: calc(var(--sf-header-h) + 1rem); }
+}
+.mf-min-order-title { margin: 0; font-family: var(--sf-font-display); font-size: var(--sf-text-xl); font-weight: 400; }
+.mf-min-order-summary { margin: 0.35rem 0 1rem; color: var(--sf-text-muted); font-size: var(--sf-text-sm); }
+.mf-min-success { display: grid; justify-items: center; gap: 0.75rem; padding-block: 6rem; text-align: center; }
+.mf-min-success h2 { margin: 0.5rem 0 0; font-family: var(--sf-font-display); font-size: var(--sf-text-2xl); font-weight: 400; }
+.mf-min-success p { margin: 0 0 1rem; color: var(--sf-text-muted); }
+.mf-min-success__icon { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 999px; background: #e1f5ee; color: #1d9e75; }
+
+/* Portaled overlays (ui/portal.ts) mount on the tenant wrapper: mirror .mf-root.mf-min-page's variables there. */
+[data-tenant].theme-menufast-minimal {
+  --sf-brand: #1a1a1a;
+  --sf-brand-hover: #000;
+  --sf-brand-soft: #f5f3f0;
+  --sf-accent: #1d9e75;
+  --sf-surface: #fff;
+  --sf-surface-muted: #f5f3f0;
+  --sf-border: #ece8e1;
+  --sf-border-strong: #d9d4cc;
+  --sf-font-display: 'Fraunces', Georgia, serif;
+  --sf-font-body: 'DM Sans', system-ui, sans-serif;
+}

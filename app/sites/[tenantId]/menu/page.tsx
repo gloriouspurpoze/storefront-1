@@ -2,6 +2,7 @@ import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { SiteHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter } from '@/themes/restaurant/SiteFooter'
 import { MenuSectionInteractive } from '@/themes/restaurant/MenuSectionInteractive'
+import { PageHeader } from '@/ui'
 import { toThemeTenant } from '@/themes/restaurant/types'
 import { fetchMenu, fetchProducts, fetchStorefrontConfig } from '@/lib/storefront-api'
 import type { StorefrontConfig } from '@/lib/storefront-api'
@@ -56,20 +57,20 @@ export default async function MenuPage() {
   return (
     <RestaurantShell tenantId={tenant.id}>
       <SiteHeader tenant={themeTenant} config={cfg} />
-      <main className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+      <main>
         <Suspense fallback={null}>
           <QrTableContext tenantId={tenant.id} />
         </Suspense>
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-800/80">Menu</p>
-        <h1 className="mt-3 font-serif text-4xl font-bold text-stone-900 sm:text-5xl">Our menu</h1>
-        <p className="mt-3 max-w-lg text-stone-600">
-          Seasonal ingredients, thoughtfully prepared. Dietary tags shown where applicable.
-        </p>
-        <div className="mt-12">
+        <PageHeader title="Our menu" crumbs={[{ label: 'Home', href: '/' }, { label: 'Menu' }]}>
+          <p className="sf-subtle" style={{ marginTop: '0.5rem', maxWidth: '36rem' }}>
+            Seasonal ingredients, thoughtfully prepared. Dietary tags shown where applicable.
+          </p>
+        </PageHeader>
+        <div className="sf-container" style={{ paddingBottom: 'var(--sf-section-y)' }}>
           <MenuSectionInteractive categories={menu} />
         </div>
       </main>
-      <SiteFooter tenant={themeTenant} />
+      <SiteFooter tenant={themeTenant} config={cfg} />
     </RestaurantShell>
   )
 }

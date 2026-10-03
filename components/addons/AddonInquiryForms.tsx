@@ -112,10 +112,10 @@ export function B2bInquiryForm({ tenantId }: { tenantId: string }) {
         <Field label="GSTIN" name="gstin" hint="Add it for GST invoices." />
         <Field label="Contact person" name="contactName" required />
         <Field label="Phone" name="phone" required>
-          <input id="phone" name="phone" type="tel" required className={inputCls} />
+          <input id="phone" name="phone" type="tel" required className={inputCls} autoComplete="tel" inputMode="tel" />
         </Field>
         <Field label="Email" name="email">
-          <input id="email" name="email" type="email" className={inputCls} />
+          <input id="email" name="email" type="email" className={inputCls} autoComplete="email" inputMode="email" />
         </Field>
         <Field label="City" name="city" />
       </div>
@@ -127,8 +127,9 @@ export function B2bInquiryForm({ tenantId }: { tenantId: string }) {
       <button
         type="submit"
         disabled={status.kind === 'submitting'}
-        className="inline-flex rounded-full px-6 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+        className="sf-btn"
         style={submitBtnStyle}
+        aria-busy={status.kind === 'submitting'}
       >
         {status.kind === 'submitting' ? 'Sending…' : 'Request a quote'}
       </button>
@@ -201,11 +202,11 @@ export function AmcEnquiryForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Your name" name="name" required />
         <Field label="Phone" name="phone" required>
-          <input id="phone" name="phone" type="tel" required className={inputCls} />
+          <input id="phone" name="phone" type="tel" required className={inputCls} autoComplete="tel" inputMode="tel" />
         </Field>
       </div>
       <Field label="Email" name="email">
-        <input id="email" name="email" type="email" className={inputCls} />
+        <input id="email" name="email" type="email" className={inputCls} autoComplete="email" inputMode="email" />
       </Field>
       <Field label="Address / pincode" name="address" required />
       <Field label="Anything we should know?" name="message">
@@ -215,8 +216,9 @@ export function AmcEnquiryForm({
       <button
         type="submit"
         disabled={status.kind === 'submitting'}
-        className="inline-flex rounded-full px-6 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+        className="sf-btn"
         style={submitBtnStyle}
+        aria-busy={status.kind === 'submitting'}
       >
         {status.kind === 'submitting' ? 'Sending…' : 'Request this plan'}
       </button>

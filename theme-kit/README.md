@@ -8,12 +8,12 @@ wrapper, and account-shell factories respectively.
 
 ## Scope note: CSS design tokens
 
-`storefront/themes/shared/tokens.css` defines role-based tokens (`--shadow-sm/md`,
-`--font-display/body`, `--radius-sm/md/lg`). Only `luxe-essence.css` currently
-exposes its values under these shared names (see the `--shadow-sm: var(--le-shadow-sm)`
-style mappings near the top of that file) — additive only, each theme's own
-prefixed tokens (`--le-*`, `--mf-*`, `--ss-*`, ...) remain the source of truth
-for its own CSS.
+`storefront/themes/shared/tokens.css` defines the `--sf-*` tokens (brand-derived
+colors, type scale, radius, shadow, motion, layout) used by the shared primitives in
+`storefront/ui/` and the shared chrome/commerce/section components in
+`storefront/components/{chrome,commerce,sections}/`. A theme re-skins those shared
+components by overriding `--sf-*` on its root class; its own prefixed tokens
+(`--le-*`, `--mf-*`, `--ss-*`, ...) remain the source of truth for its own CSS.
 
 Rewriting the ~11,000 lines of duplicated structural CSS (headers, drawers,
 modals, cart, grid patterns) shared across theme files is explicitly **out of

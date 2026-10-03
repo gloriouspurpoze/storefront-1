@@ -76,7 +76,7 @@ export default async function CheckoutPage() {
       <RestaurantShell tenantId={tenant.id}>
         <RestHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
         {main}
-        <RestFooter tenant={themeTenant} navLinks={footerNavLinks} />
+        <RestFooter tenant={themeTenant} navLinks={footerNavLinks} config={config} />
       </RestaurantShell>
     )
   }
@@ -143,7 +143,7 @@ export default async function CheckoutPage() {
       <RetailShell tenantId={tenant.id}>
         <RetailHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
         {main}
-        <RetailFooter tenant={themeTenant} navLinks={footerNavLinks} />
+        <RetailFooter tenant={themeTenant} navLinks={footerNavLinks} config={config} />
       </RetailShell>
     )
   }

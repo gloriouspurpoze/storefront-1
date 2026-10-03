@@ -2,7 +2,13 @@ import React from 'react'
 import Link from 'next/link'
 import type { ResolvedTenant } from '@/lib/types'
 import type { StorefrontConfig } from '@/lib/storefront-api'
-import { fetchMenu, fetchProducts, fetchServices, fetchStorefrontCategories } from '@/lib/storefront-api'
+import {
+  fetchMenu,
+  fetchProducts,
+  fetchServices,
+  fetchStorefrontCategories,
+  fetchStorefrontSliders,
+} from '@/lib/storefront-api'
 import {
   fetchStorefrontCmsChrome,
   fetchStorefrontFaqs,
@@ -14,26 +20,32 @@ import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
 import { Hero as HsHero } from '@/themes/home-services/Hero'
 import { ServiceGrid } from '@/themes/home-services/ServiceGrid'
-import { TrustSection } from '@/themes/home-services/TrustSection'
 import { CallToAction } from '@/themes/home-services/CallToAction'
 import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
 import { SiteHeader as RestHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter as RestFooter } from '@/themes/restaurant/SiteFooter'
-import { Hero as RestHero } from '@/themes/restaurant/Hero'
 import { MenuSectionInteractive } from '@/themes/restaurant/MenuSectionInteractive'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
 import { isRestaurantLayoutTheme, RestaurantLayoutPage } from '@/themes/restaurant/restaurantLayoutRouter'
 import { RestaurantShell } from '@/themes/restaurant/RestaurantShell'
 import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
-import { Hero as RetailHero } from '@/themes/retail/Hero'
-import { ProductGrid } from '@/themes/retail/ProductGrid'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { isRetailLayoutTheme, RetailLayoutPage } from '@/themes/retail/retailLayoutRouter'
 import { isHomeServicesLayoutTheme, HomeServicesLayoutPage } from '@/themes/home-services/homeServicesLayoutRouter'
 import { loadStorefrontAddonBlocks } from '@/components/addons/StorefrontAddonBlocks'
 import { homepageSectionOn, homepageSectionOrder, themeSectionDefaults } from '@/lib/storefrontSections'
+import { AboutSection } from '@/components/sections/AboutSection'
+import { CategoryTiles } from '@/components/sections/CategoryTiles'
+import { FaqSection } from '@/components/sections/FaqSection'
+import { HeroCarousel } from '@/components/sections/HeroCarousel'
+import { ProductRail } from '@/components/sections/ProductRail'
+import { PromoBand } from '@/components/sections/PromoBand'
+import { Testimonials } from '@/components/sections/Testimonials'
+import { UspStrip } from '@/components/sections/UspStrip'
+import { buildHeroSlides } from '@/components/sections/slides'
+import { IconPhone, IconShield, IconTruck } from '@/ui'
 
 function flagOn(cfg: StorefrontConfig | null, key: string): boolean {
   const flags = cfg?.featureFlags as Record<string, boolean | undefined> | undefined
@@ -43,14 +55,7 @@ function flagOn(cfg: StorefrontConfig | null, key: string): boolean {
 }
 
 function AboutBlock({ cfg }: { cfg: StorefrontConfig | null }) {
-  const c = cfg?.content
-  if (!c?.aboutTitle && !c?.aboutBody) return null
-  return (
-    <section className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
-      {c.aboutTitle && <h2 className="text-2xl font-semibold">{c.aboutTitle}</h2>}
-      {c.aboutBody && <p className="mt-4 text-muted-foreground whitespace-pre-wrap">{c.aboutBody}</p>}
-    </section>
-  )
+  return <AboutSection title={cfg?.content?.aboutTitle} body={cfg?.content?.aboutBody} />
 }
 
 function FaqBlock({
@@ -63,19 +68,7 @@ function FaqBlock({
   // CMS `/cms/faqs` is SSoT; Studio faqItems only if CMS empty.
   const items = faqs?.length ? faqs : (cfg?.content?.faqItems ?? [])
   if (!items.length || !flagOn(cfg, 'showFaq')) return null
-  return (
-    <section className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-      <h2 className="text-2xl font-semibold text-center mb-8">FAQ</h2>
-      <div className="space-y-4">
-        {items.map((item, i) => (
-          <details key={i} className="rounded-lg border border-border p-4">
-            <summary className="font-medium cursor-pointer">{item.question}</summary>
-            <p className="mt-2 text-sm text-muted-foreground">{item.answer}</p>
-          </details>
-        ))}
-      </div>
-    </section>
-  )
+  return <FaqSection items={items} />
 }
 
 export async function HomePageSections({
@@ -139,7 +132,7 @@ export async function HomePageSections({
       hero: flagOn(cfg, 'showHero') && on('hero') ? <HsHero tenant={themeTenant} /> : null,
       trust:
         flagOn(cfg, 'showTestimonials') && on('trust') ? (
-          <TrustSection testimonials={testimonials} />
+          <Testimonials testimonials={testimonials} title="What customers say" />
         ) : null,
       services:
         services.length > 0 ? (
@@ -195,14 +188,27 @@ export async function HomePageSections({
     }
     // ──────────────────────────────────────────────────────────────────────────
 
-    const [menu, chrome] = await Promise.all([
+    const [menu, chrome, sliders] = await Promise.all([
       flagOn(cfg, 'showMenu') && on('menu')
         ? fetchMenu(tenant.id)
         : Promise.resolve([]),
       fetchStorefrontCmsChrome(tenant.id, vertical),
+      flagOn(cfg, 'showHero') && on('hero')
+        ? fetchStorefrontSliders(tenant.id, { placement: 'home_page_hero' })
+        : Promise.resolve([]),
     ])
     const preview = menu.slice(0, 2)
     const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
+    const reservationsOn = flagOn(cfg, 'showReservations') && on('reservations')
+    const heroSlides = buildHeroSlides(sliders, cfg, {
+      eyebrow: 'Welcome',
+      title: tenant.name,
+      subtitle: themeTenant.tagline,
+      ctaLabel: 'Order now',
+      ctaHref: '/menu',
+    }).map((slide, i) =>
+      i === 0 && reservationsOn ? { ...slide, secondaryLabel: 'Book a table', secondaryHref: '/reserve' } : slide,
+    )
 
     return (
       <RestaurantShell tenantId={tenant.id}>
@@ -210,19 +216,20 @@ export async function HomePageSections({
         <main>
           {order.map((t) => {
             if (t === 'hero' && flagOn(cfg, 'showHero') && on('hero'))
-              return <RestHero key={t} tenant={themeTenant} />
+              return <HeroCarousel key={t} slides={heroSlides} />
             if (t === 'menu' && preview.length > 0)
               return (
-                <section key={t} className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-                  <div className="flex items-end justify-between gap-4">
-                    <h2 className="font-serif text-2xl font-semibold text-stone-900">From our kitchen</h2>
-                    <Link href="/menu" className="text-sm font-medium text-amber-800 hover:underline">
-                      Full menu →
+                <section key={t} className="sf-section sf-container">
+                  <div className="sf-section-head">
+                    <div>
+                      <p className="sf-eyebrow">Fresh today</p>
+                      <h2 className="sf-heading">From our kitchen</h2>
+                    </div>
+                    <Link href="/menu" className="sf-btn sf-btn--link">
+                      Full menu
                     </Link>
                   </div>
-                  <div className="mt-8">
-                    <MenuSectionInteractive categories={preview} compact />
-                  </div>
+                  <MenuSectionInteractive categories={preview} compact />
                 </section>
               )
             if (
@@ -231,22 +238,17 @@ export async function HomePageSections({
               on('trust') &&
               testimonials.length > 0
             )
-              return <TrustSection key={t} testimonials={testimonials} />
-            if (t === 'reservations' && flagOn(cfg, 'showReservations') && on('reservations'))
+              return <Testimonials key={t} testimonials={testimonials} />
+            if (t === 'reservations' && reservationsOn)
               return (
-                <section key={t} className="bg-amber-50/50 py-16">
-                  <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
-                    <h2 className="font-serif text-2xl font-semibold text-stone-900">Reserve your table</h2>
-                    <p className="mt-2 text-stone-600">We will confirm by email within a few hours.</p>
-                    <Link
-                      href="/reserve"
-                      className="mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold text-white"
-                      style={{ backgroundColor: 'var(--site-brand)' }}
-                    >
-                      Book now
-                    </Link>
-                  </div>
-                </section>
+                <PromoBand
+                  key={t}
+                  eyebrow="Reservations"
+                  title="Reserve your table"
+                  text="We will confirm by email within a few hours."
+                  ctaLabel="Book now"
+                  ctaHref="/reserve"
+                />
               )
             if (t === 'about' && on('about')) return <AboutBlock key={t} cfg={cfg} />
             if (t === 'faq' && on('faq'))
@@ -255,7 +257,7 @@ export async function HomePageSections({
           })}
           {addonsSlot}
         </main>
-        <RestFooter tenant={themeTenant} navLinks={footerNavLinks} />
+        <RestFooter tenant={themeTenant} navLinks={footerNavLinks} config={cfg} />
       </RestaurantShell>
     )
   }
@@ -285,34 +287,52 @@ export async function HomePageSections({
       )
     }
 
-    const [products, chrome] = await Promise.all([
-      flagOn(cfg, 'showProducts') && on('products')
-        ? fetchProducts(tenant.id, 6)
+    const showProducts = flagOn(cfg, 'showProducts') && on('products')
+    const [products, categories, sliders, chrome] = await Promise.all([
+      showProducts ? fetchProducts(tenant.id, 24) : Promise.resolve([]),
+      fetchStorefrontCategories(tenant.id),
+      flagOn(cfg, 'showHero') && on('hero')
+        ? fetchStorefrontSliders(tenant.id, { placement: 'home_page_hero' })
         : Promise.resolve([]),
       fetchStorefrontCmsChrome(tenant.id, vertical),
     ])
     const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
+    const heroSlides = buildHeroSlides(sliders, cfg, {
+      eyebrow: 'New arrivals',
+      title: tenant.name,
+      subtitle: themeTenant.tagline,
+      ctaLabel: 'Shop collection',
+      ctaHref: '/products',
+    })
+    const onSale = products.filter((p) => p.inStock && p.originalPrice && p.originalPrice > p.price)
 
     return (
       <RetailShell tenantId={tenant.id}>
-        <RetailHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} />
+        <RetailHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} categories={categories} />
         <main>
           {order.map((t) => {
             if (t === 'hero' && flagOn(cfg, 'showHero') && on('hero'))
-              return <RetailHero key={t} tenant={themeTenant} />
+              return (
+                <React.Fragment key={t}>
+                  <HeroCarousel slides={heroSlides} />
+                  <UspStrip
+                    items={[
+                      { icon: <IconShield />, title: 'Secure checkout', text: 'Safe, encrypted payments' },
+                      { icon: <IconTruck />, title: 'Track every order', text: 'Live status from cart to door' },
+                      { icon: <IconPhone />, title: 'Real support', text: `Help from the ${tenant.name} team` },
+                    ]}
+                  />
+                </React.Fragment>
+              )
             if (t === 'products' && products.length > 0)
               return (
-                <section key={t} className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-                  <div className="flex items-end justify-between gap-4">
-                    <h2 className="text-2xl font-bold text-slate-900">Featured</h2>
-                    <Link href="/products" className="text-sm font-medium text-indigo-700 hover:underline">
-                      Shop all →
-                    </Link>
-                  </div>
-                  <div className="mt-8">
-                    <ProductGrid products={products} />
-                  </div>
-                </section>
+                <React.Fragment key={t}>
+                  <CategoryTiles categories={categories} products={products} />
+                  <ProductRail eyebrow="Just in" title="New arrivals" products={products.slice(0, 12)} />
+                  {onSale.length >= 2 && (
+                    <ProductRail eyebrow="Limited time" title="On sale" products={onSale.slice(0, 12)} />
+                  )}
+                </React.Fragment>
               )
             if (
               t === 'trust' &&
@@ -320,30 +340,26 @@ export async function HomePageSections({
               on('trust') &&
               testimonials.length > 0
             )
-              return <TrustSection key={t} testimonials={testimonials} />
+              return <Testimonials key={t} testimonials={testimonials} />
             if (t === 'about' && on('about')) return <AboutBlock key={t} cfg={cfg} />
             if (t === 'faq' && on('faq'))
               return <FaqBlock key={t} cfg={cfg} faqs={faqs} />
             if (t === 'giftMatch')
               return (
-                <section key={t} className="border-t border-border bg-muted/30 py-14">
-                  <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
-                    <h2 className="text-2xl font-bold text-slate-900">Not sure what to gift?</h2>
-                    <p className="mt-2 text-slate-600">Tell us who it&apos;s for and we&apos;ll suggest a few handcrafted picks.</p>
-                    <Link
-                      href="/gifts"
-                      className="mt-6 inline-flex rounded-full bg-indigo-700 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-800"
-                    >
-                      Try gift match
-                    </Link>
-                  </div>
-                </section>
+                <PromoBand
+                  key={t}
+                  eyebrow="Gift match"
+                  title="Not sure what to gift?"
+                  text="Tell us who it’s for and we’ll suggest a few handcrafted picks."
+                  ctaLabel="Try gift match"
+                  ctaHref="/gifts"
+                />
               )
             return null
           })}
           {addonsSlot}
         </main>
-        <RetailFooter tenant={themeTenant} navLinks={footerNavLinks} />
+        <RetailFooter tenant={themeTenant} navLinks={footerNavLinks} config={cfg} />
       </RetailShell>
     )
   }

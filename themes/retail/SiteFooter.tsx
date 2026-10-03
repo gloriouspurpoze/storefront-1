@@ -1,43 +1,54 @@
-import Link from 'next/link'
+import { fetchStorefrontConfig, type StorefrontConfig } from '@/lib/storefront-api'
+import { StoreFooter, addonFooterLinks, splitFooterLinks } from '@/components/chrome/StoreFooter'
+import { fetchStorefrontNavLinks } from '@/lib/cms-content'
 import type { ThemeTenant } from './types'
 
-const DEFAULT_LINKS = [
+const SHOP_LINKS = [
   { href: '/products', label: 'Shop all' },
   { href: '/cart', label: 'Cart' },
-  { href: '/orders/track', label: 'Track order' },
-  { href: '/shipping-policy', label: 'Shipping' },
 ]
 
-export function SiteFooter({
+const HELP_LINKS = [
+  { href: '/orders/track', label: 'Track order' },
+  { href: '/shipping-policy', label: 'Shipping & returns' },
+  { href: '/account', label: 'My account' },
+  { href: '/contact', label: 'Contact us' },
+]
+
+export async function SiteFooter({
   tenant,
   navLinks,
+  config,
 }: {
   tenant: ThemeTenant
   navLinks?: { href: string; label: string }[]
+  config?: StorefrontConfig | null
 }) {
-  const links = navLinks?.length ? navLinks : DEFAULT_LINKS
+  const [cfg, cmsLinks] = await Promise.all([
+    config !== undefined ? config : fetchStorefrontConfig(tenant.id),
+    navLinks ?? fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
+  ])
+  const help = [...HELP_LINKS, ...addonFooterLinks(cfg, 'retail')]
+  const columns = cmsLinks.length
+    ? [...splitFooterLinks(cmsLinks, ['Shop', 'Explore']), { title: 'Help', links: help }]
+    : [
+        { title: 'Shop', links: SHOP_LINKS },
+        { title: 'Help', links: help },
+        { title: 'Company', links: [{ href: '/about', label: 'About' }, { href: '/blog', label: 'Journal' }] },
+      ]
 
   return (
-    <footer className="border-t border-indigo-100 bg-slate-50">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div>
-          <p className="text-lg font-semibold text-slate-900">{tenant.name}</p>
-          <p className="mt-1 text-sm text-slate-500">{tenant.tagline}</p>
-        </div>
-        <div className="flex flex-wrap gap-6 text-sm text-slate-600">
-          {links.map((link) => (
-            <Link key={`${link.href}-${link.label}`} href={link.href} className="hover:text-slate-900">
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-      <div className="border-t border-indigo-100/80 py-4 text-center text-xs text-slate-400">
-        Secure checkout · Powered by{' '}
-        <a href="https://torqstudio.com" className="font-medium text-slate-500 hover:underline">
-          Torq Studio
-        </a>
-      </div>
-    </footer>
+    <StoreFooter
+      name={tenant.name}
+      tagline={tenant.tagline}
+      logoUrl={cfg?.branding?.logoUrl}
+      columns={columns}
+      config={cfg}
+      bottomNote={
+        <>
+          Secure checkout · Powered by <a href="https://torqstudio.com">Torq Studio</a>
+        </>
+      }
+    />
   )
 }

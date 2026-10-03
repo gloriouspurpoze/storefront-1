@@ -140,19 +140,19 @@ export function RestaurantCheckoutClient({
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               href={trackOrderHref(status.orderNumber, status.email)}
-              className="inline-flex rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-800"
+              className="sf-btn"
             >
               Track your order
             </Link>
             <Link
               href="/account/orders"
-              className="inline-flex rounded-full border border-emerald-300 px-6 py-2.5 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
+              className="sf-btn sf-btn--secondary"
             >
               View orders
             </Link>
             <Link
               href="/menu"
-              className="inline-flex rounded-full border border-emerald-300 px-6 py-2.5 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
+              className="sf-btn sf-btn--secondary"
             >
               Back to menu
             </Link>
@@ -170,7 +170,7 @@ export function RestaurantCheckoutClient({
           <p className="text-stone-600">Your cart is empty.</p>
           <Link
             href="/menu"
-            className="mt-4 inline-flex rounded-full px-6 py-2.5 text-sm font-semibold text-white"
+            className="sf-btn mt-4"
             style={{ backgroundColor: 'var(--site-brand)' }}
           >
             Browse menu
@@ -246,6 +246,8 @@ export function RestaurantCheckoutClient({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
+              autoComplete="email"
+              inputMode="email"
             />
             <input
               name="name"
@@ -255,6 +257,7 @@ export function RestaurantCheckoutClient({
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
+              autoComplete="name"
             />
             <input
               name="phone"
@@ -263,6 +266,8 @@ export function RestaurantCheckoutClient({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm"
+              autoComplete="tel"
+              inputMode="tel"
             />
           </div>
           {status.kind === 'error' && (
@@ -271,8 +276,9 @@ export function RestaurantCheckoutClient({
           <button
             type="submit"
             disabled={status.kind === 'processing'}
-            className="mt-6 w-full rounded-full py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="sf-btn sf-btn--block mt-6"
             style={{ backgroundColor: 'var(--site-brand)' }}
+            aria-busy={status.kind === 'processing'}
           >
             {status.kind === 'processing'
               ? 'Processing…'

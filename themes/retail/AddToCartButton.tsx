@@ -15,6 +15,8 @@ import {
 import { ProductVariantSelector, type VariantSelectorTone } from '@/components/ProductVariantSelector'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCart } from './cart'
+import { openCartDrawer } from '@/components/commerce/cartDrawerBus'
+import { IconMinus, IconPlus } from '@/ui'
 import '@/themes/retail/soft-studio/soft-studio.css'
 import '@/themes/retail/luxe-essence/luxe-essence.css'
 import '@/themes/retail/retail-pdp.css'
@@ -98,7 +100,7 @@ export function QuantityStepper({
           onClick={() => onChange(clampQty(value - 1))}
           disabled={value <= 1}
         >
-          <span aria-hidden>−</span>
+          <IconMinus size={16} />
         </button>
         <input
           id={inputId}
@@ -125,7 +127,7 @@ export function QuantityStepper({
           onClick={() => onChange(clampQty(Math.min(max, value + 1)))}
           disabled={value >= max}
         >
-          <span aria-hidden>+</span>
+          <IconPlus size={16} />
         </button>
       </div>
     </div>
@@ -193,6 +195,7 @@ export function ProductPurchaseBlock({
     setAdding(true)
     addItem(product, qty, activeVariantId)
     setAdded(true)
+    openCartDrawer()
     window.setTimeout(() => setAdding(false), 400)
     window.setTimeout(() => setAdded(false), 3200)
   }, [

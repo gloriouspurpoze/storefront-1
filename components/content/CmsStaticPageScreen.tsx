@@ -36,7 +36,7 @@ export async function CmsStaticPageScreen({ page }: { page: StorefrontCmsPage })
       return (
         <>
           <HsHeader tenant={theme} />
-          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6">{article}</main>
+          <main className="sf-container sf-container--narrow py-16">{article}</main>
           <HsFooter tenant={theme} />
         </>
       )
@@ -51,7 +51,7 @@ export async function CmsStaticPageScreen({ page }: { page: StorefrontCmsPage })
       return (
         <RestaurantShell tenantId={tenant.id}>
           <RestHeader tenant={theme} />
-          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 text-stone-800">{article}</main>
+          <main className="sf-container sf-container--narrow py-16 text-stone-800">{article}</main>
           <RestFooter tenant={theme} />
         </RestaurantShell>
       )
@@ -70,7 +70,7 @@ export async function CmsStaticPageScreen({ page }: { page: StorefrontCmsPage })
       return (
         <RetailShell tenantId={tenant.id}>
           <RetailHeader tenant={theme} />
-          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 text-slate-800">{article}</main>
+          <main className="sf-container sf-container--narrow py-16 text-slate-800">{article}</main>
           <RetailFooter tenant={theme} />
         </RetailShell>
       )

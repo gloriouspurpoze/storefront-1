@@ -292,6 +292,7 @@ export function LuxeEssenceCheckoutModal({
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@email.com"
                     autoComplete="email"
+                    inputMode="email"
                   />
                 </div>
               ) : null}
@@ -304,6 +305,7 @@ export function LuxeEssenceCheckoutModal({
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
                   autoComplete="tel"
+                  inputMode="tel"
                 />
               </div>
 

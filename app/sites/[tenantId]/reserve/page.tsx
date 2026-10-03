@@ -19,15 +19,15 @@ export default async function ReservePage() {
   return (
     <RestaurantShell tenantId={tenant.id}>
       <SiteHeader tenant={themeTenant} />
-      <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
+      <main className="sf-container grid gap-12 py-16 lg:grid-cols-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-800/80">
+          <p className="sf-page-eyebrow">
             Reservations
           </p>
-          <h1 className="mt-3 font-serif text-4xl font-bold text-stone-900 sm:text-5xl">
+          <h1 className="sf-page-title">
             Book a table
           </h1>
-          <p className="mt-4 text-stone-600">
+          <p className="sf-page-lead">
             Share your preferred date and party size. Our team will confirm availability by email.
           </p>
         </div>

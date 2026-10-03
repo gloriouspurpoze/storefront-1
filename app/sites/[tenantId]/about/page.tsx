@@ -63,7 +63,7 @@ export default async function AboutPage() {
           ])
         : [undefined, undefined]
       const body = (
-        <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <main className="sf-container sf-container--narrow py-16">
           {cmsAbout ? (
             <StorefrontCmsPageArticle page={cmsAbout} eyebrow="About" />
           ) : (
@@ -111,7 +111,7 @@ export default async function AboutPage() {
       return (
         <RestaurantShell tenantId={tenant.id}>
           <RestHeader tenant={theme} />
-          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 text-stone-800">
+          <main className="sf-container sf-container--narrow py-16 text-stone-800">
             {cmsAbout ? (
               <StorefrontCmsPageArticle page={cmsAbout} eyebrow="About" />
             ) : (
@@ -146,7 +146,7 @@ export default async function AboutPage() {
       return (
         <RetailShell tenantId={tenant.id}>
           <RetailHeader tenant={theme} />
-          <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 text-slate-800">
+          <main className="sf-container sf-container--narrow py-16 text-slate-800">
             {cmsAbout ? (
               <StorefrontCmsPageArticle page={cmsAbout} eyebrow="About" />
             ) : (

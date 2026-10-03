@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import type { PublicProduct } from '@/lib/storefront-api'
-import { formatListPrice, isVariantInStock } from '@/lib/productVariants'
+import { formatListPrice, isVariantInStock, productHasVariants } from '@/lib/productVariants'
+import { Badge, Price, discountPercent } from '@/ui'
 import { formatMoney } from '../cart'
 import { LuxeEssenceAddControl } from './LuxeEssenceAddControl'
 import { LuxeEssenceCatalogSectionShell } from './LuxeEssenceCatalogEmpty'
@@ -43,6 +44,9 @@ function LuxeEssenceProductCard({
 }) {
   const description = product.shortDescription?.trim() || product.description?.trim()
   const inStock = isVariantInStock(product)
+  const hasVariants = productHasVariants(product)
+  const off = hasVariants ? 0 : discountPercent(product.price, product.originalPrice)
+  const hoverImage = (product.imageUrls ?? []).find((u) => u && u !== product.imageUrl)
 
   return (
     <article
@@ -53,6 +57,11 @@ function LuxeEssenceProductCard({
       <Link href={`/products/${product.slug}`} className="le-product-card-link">
         <div className="le-product-media">
           <LuxeEssenceProductImage product={product} />
+          {hoverImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={hoverImage} alt="" className="le-product-img-alt" loading="lazy" decoding="async" />
+          ) : null}
+          {inStock && off > 0 ? <Badge tone="sale" className="le-product-sale-badge">-{off}%</Badge> : null}
           {variantQty > 0 ? (
             <span className="le-product-qty-badge" aria-label={`${variantQty} in cart`}>
               {variantQty}
@@ -64,7 +73,11 @@ function LuxeEssenceProductCard({
           <h3 className="le-product-title">{product.name}</h3>
           {description ? <p className="le-product-desc">{description}</p> : null}
           <p className="le-product-price">
-            {formatListPrice(product, (amount) => formatMoney(amount, product.currency))}
+            {hasVariants ? (
+              formatListPrice(product, (amount) => formatMoney(amount, product.currency))
+            ) : (
+              <Price amount={product.price} compareAt={product.originalPrice} currency={product.currency} showOff={false} />
+            )}
           </p>
         </div>
       </Link>

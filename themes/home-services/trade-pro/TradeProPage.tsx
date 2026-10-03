@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import type { StorefrontCmsFaq, StorefrontCmsTestimonial, StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
-import { TrustSection } from '../TrustSection'
+import { Testimonials } from '@/components/sections/Testimonials'
 import type { PublicService, ThemeTenant } from '../types'
 import { TradeProAbout } from './TradeProAbout'
 import { TradeProFaq } from './TradeProFaq'
@@ -70,7 +70,7 @@ export function TradeProPage({
     ),
     howItWorks: <TradeProHowItWorks />,
     whyChooseUs: <TradeProWhyChooseUs />,
-    trust: testimonials.length > 0 ? <TrustSection testimonials={testimonials} /> : null,
+    trust: testimonials.length > 0 ? <Testimonials testimonials={testimonials} title="What customers say" /> : null,
     about: <TradeProAbout title={config?.content?.aboutTitle} body={config?.content?.aboutBody} />,
     faq: <TradeProFaq faqs={faqs} />,
     cta: <TradeProFinalCta phone={phone} />,

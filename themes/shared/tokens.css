@@ -1,23 +1,98 @@
 /**
- * Shared, role-based design tokens for theme CSS to map onto.
+ * Shared design tokens for the storefront: `--sf-*` vars consumed by the
+ * `storefront/ui/*` primitives and shared chrome/commerce components. Colors
+ * derive from the tenant brand vars injected by `app/sites/[tenantId]/layout.tsx`
+ * (`--site-brand`, `--site-accent`, `--brand-primary-contrast`), so every
+ * tenant gets an on-brand palette without per-theme CSS. A theme re-skins by
+ * overriding `--sf-*` on its root class.
  *
- * Purely additive: nothing here is consumed unless a theme's own CSS opts in
- * by referencing one of these vars (typically as a `var(--shared, <its own
- * current value>)` fallback), so importing this file changes no visual output
- * on its own. Themes keep their own prefixed token names (`--le-shadow-sm`,
- * `--mf-*`, `--ss-*`, ...) as the source of truth for their CSS; this file
- * exists so future themes/tokens can converge without a full rewrite of the
- * ~11k lines of existing per-theme structural CSS (explicitly out of scope
- * here — see storefront/templates/README.md).
+ * Brand-derived tokens are declared on `[data-tenant]` too: that wrapper is
+ * where layout.tsx injects `--site-brand` etc. (and where theme root classes
+ * override them), and a custom property is resolved where it is declared.
+ * Overlays portal into `[data-tenant]` (ui/portal.ts) for the same reason.
+ *
+ * Legacy role names (`--radius-*`, `--shadow-sm/md`, `--font-display/body`) are
+ * deliberately NOT set globally — Tailwind v4 uses the same names for its
+ * `rounded-*` / `shadow-*` utilities. Luxe Essence still sets them on `.le-root`
+ * for its own CSS; a theme that wants the shared components to match its look
+ * sets `--sf-*` on its root class.
  */
+:root,
+[data-tenant] {
+  /* ── Color roles ── */
+  --sf-brand: var(--site-brand, #0f172a);
+  --sf-brand-contrast: var(--brand-primary-contrast, #fff);
+  --sf-brand-hover: color-mix(in srgb, var(--sf-brand) 85%, #000);
+  --sf-brand-soft: color-mix(in srgb, var(--sf-brand) 10%, #fff);
+  --sf-accent: var(--site-accent, var(--sf-brand));
+
+  --sf-bg: #fff;
+  --sf-surface: #fff;
+  --sf-surface-muted: #f6f6f4;
+  --sf-text: #121212;
+  --sf-text-muted: #5f6368;
+  --sf-text-subtle: #8a8f98;
+  --sf-border: #e7e7e4;
+  --sf-border-strong: #cfcfca;
+  --sf-ring: color-mix(in srgb, var(--sf-brand) 45%, transparent);
+  --sf-overlay: rgba(10, 10, 12, 0.45);
+
+  --sf-sale: #c0392b;
+  --sf-sale-soft: #fdecea;
+  --sf-success: #1e7f4f;
+  --sf-success-soft: #e7f5ee;
+  --sf-warning: #b7791f;
+  --sf-new: #1f4fd1;
+
+  /* ── Type ── */
+  --sf-font-body: var(--font-body, system-ui), ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --sf-font-display: var(--font-display, Georgia), ui-serif, serif;
+}
+
 :root {
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --sf-text-xs: 0.75rem;
+  --sf-text-sm: 0.875rem;
+  --sf-text-base: 1rem;
+  --sf-text-lg: 1.125rem;
+  --sf-text-xl: 1.375rem;
+  --sf-text-2xl: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  --sf-text-3xl: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
+  --sf-text-hero: clamp(2.25rem, 1.5rem + 3.6vw, 4.25rem);
+  --sf-tracking-caps: 0.08em;
 
-  --shadow-sm: 0 1px 2px rgba(15, 15, 25, 0.04);
-  --shadow-md: 0 12px 40px rgba(15, 15, 25, 0.08);
+  /* ── Shape & depth ── */
+  --sf-radius-sm: 6px;
+  --sf-radius: 10px;
+  --sf-radius-lg: 16px;
+  --sf-radius-pill: 999px;
+  --sf-shadow-sm: 0 1px 2px rgba(15, 15, 25, 0.06);
+  --sf-shadow: 0 6px 20px rgba(15, 15, 25, 0.08);
+  --sf-shadow-lg: 0 24px 60px rgba(15, 15, 25, 0.16);
 
-  --font-display: Georgia, serif;
-  --font-body: system-ui, sans-serif;
+  /* ── Layout ── */
+  --sf-container: 1200px; /* one page width everywhere (matches .hs-container / .tp-container) */
+  --sf-container-narrow: 760px;
+  --sf-gutter: clamp(1rem, 0.6rem + 1.6vw, 2rem);
+  --sf-section-y: clamp(2.5rem, 1.8rem + 3vw, 5rem);
+  --sf-header-h: 68px;
+
+  /* ── Motion ── */
+  --sf-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --sf-dur-fast: 150ms;
+  --sf-dur: 260ms;
+  --sf-dur-slow: 420ms;
+
+  /* ── Layers ── */
+  --sf-z-header: 40;
+  --sf-z-drawer: 60;
+  --sf-z-modal: 70;
+  --sf-z-toast: 80;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sf-dur-fast: 0ms;
+    --sf-dur: 0ms;
+    --sf-dur-slow: 0ms;
+  }
 }

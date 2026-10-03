@@ -272,6 +272,7 @@ export function MenuOrderCheckoutBlock({
             onChange={(e) => setEmail(e.target.value)}
             {...inputProps}
             autoComplete="email"
+            inputMode="email"
           />
           <input
             type="text"
@@ -288,6 +289,7 @@ export function MenuOrderCheckoutBlock({
             onChange={(e) => setPhone(e.target.value)}
             {...inputProps}
             autoComplete="tel"
+            inputMode="tel"
           />
           {error ? (
             <p className={isCards ? 'mf-cards-checkout-error' : undefined} style={isCards ? undefined : { fontSize: '12px', color: '#c62828', margin: 0 }}>

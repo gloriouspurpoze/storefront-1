@@ -41,7 +41,9 @@ export async function middleware(req: NextRequest) {
   if (!tenant) {
     const url = req.nextUrl.clone()
     url.pathname = '/unknown-host'
-    const res = NextResponse.rewrite(url)
+    const requestHeaders = new Headers(req.headers)
+    requestHeaders.set('x-storefront-host', host)
+    const res = NextResponse.rewrite(url, { request: { headers: requestHeaders } })
     res.headers.set('x-storefront-resolved', 'miss')
     res.headers.set('x-storefront-host', host)
     return res

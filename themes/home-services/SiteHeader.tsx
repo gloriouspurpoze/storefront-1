@@ -1,5 +1,5 @@
-import Link from 'next/link'
-import { AccountNavLink } from '@/components/account/AccountNavLink'
+import { ServiceHeader } from '@/components/chrome/ServiceHeader'
+import { fetchStorefrontNavLinks } from '@/lib/cms-content'
 import type { ThemeTenant } from './types'
 import { bookingCta, resolveBookingAddon, withoutBookingLinks } from './bookingAddon'
 
@@ -19,49 +19,12 @@ export async function SiteHeader({
   /** Service booking add-on; resolved from the storefront config when omitted. */
   bookingEnabled?: boolean
 }) {
-  const booking = await resolveBookingAddon(tenant.id, bookingEnabled)
-  const links = withoutBookingLinks(navLinks?.length ? navLinks : DEFAULT_LINKS, booking)
+  const [booking, cmsLinks] = await Promise.all([
+    resolveBookingAddon(tenant.id, bookingEnabled),
+    navLinks ?? fetchStorefrontNavLinks(tenant.id, 'header', 'home_services'),
+  ])
+  const links = withoutBookingLinks(cmsLinks.length ? cmsLinks : DEFAULT_LINKS, booking)
   const cta = bookingCta(booking, 'Book now')
 
-  return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-      <nav className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 text-slate-900"
-          aria-label={`${tenant.name} home`}
-        >
-          {tenant.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={tenant.logoUrl} alt="" className="h-8 w-8 rounded-lg object-cover" />
-          ) : (
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white"
-              style={{ backgroundColor: 'var(--site-brand)' }}
-            >
-              {tenant.name.charAt(0).toUpperCase()}
-            </span>
-          )}
-          <span className="text-base font-semibold tracking-tight">{tenant.name}</span>
-        </Link>
-
-        <div className="hidden items-center gap-7 text-sm text-slate-700 md:flex">
-          {links.map((link) => (
-            <Link key={`${link.href}-${link.label}`} className="hover:text-slate-950" href={link.href}>
-              {link.label}
-            </Link>
-          ))}
-          <AccountNavLink className="hover:text-slate-950" />
-        </div>
-
-        <Link
-          href={cta.href}
-          className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
-          style={{ backgroundColor: 'var(--site-brand)' }}
-        >
-          {cta.label}
-        </Link>
-      </nav>
-    </header>
-  )
+  return <ServiceHeader name={tenant.name} logoUrl={tenant.logoUrl} links={links} cta={cta} />
 }

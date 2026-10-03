@@ -6,10 +6,9 @@ import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant } from '@/themes/retail/types'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
-import {
-  ShippingPolicyPageContent,
-  ShippingPolicyPageShell,
-} from '@/components/ShippingPolicyPageContent'
+import { ShippingPolicyPageContent } from '@/components/ShippingPolicyPageContent'
+import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
+import { SiteHeader } from '@/themes/retail/SiteHeader'
 import { LuxeEssenceShippingPolicyPage } from '@/themes/retail/luxe-essence/LuxeEssenceShippingPolicyPage'
 
 export const dynamic = 'force-dynamic'
@@ -47,21 +46,18 @@ export default async function ShippingPolicyPage() {
   if (isRetailLayoutTheme(config?.themeKey)) {
     return (
       <RetailShell tenantId={tenant.id}>
-        <div className="min-h-screen bg-[#faf9fc]">
-          <ShippingPolicyPageShell tenant={theme} config={config} variant="retail">
-            {content}
-          </ShippingPolicyPageShell>
-        </div>
+        <LayoutThemePageShell config={config} siteName={siteName} tagline={branding.tagline} wide>
+          {content}
+        </LayoutThemePageShell>
       </RetailShell>
     )
   }
 
   return (
     <RetailShell tenantId={tenant.id}>
-      <ShippingPolicyPageShell tenant={theme} config={config} variant="retail">
-        {content}
-      </ShippingPolicyPageShell>
-      <SiteFooter tenant={theme} />
+      <SiteHeader tenant={theme} config={config} />
+      {content}
+      <SiteFooter tenant={theme} config={config} />
     </RetailShell>
   )
 }

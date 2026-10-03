@@ -1,8 +1,7 @@
 'use client'
 import { Fragment, type ReactNode } from 'react'
 
-import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
@@ -17,54 +16,35 @@ import {
 import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
 import { formatMoney, useCart } from '../cart'
 import type { ThemeTenant } from '../types'
-import { AccountProfileLink } from '@/components/account/AccountProfileLink'
-import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
+import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
+import { StoreFooter } from '@/components/chrome/StoreFooter'
+import { ProductCard } from '@/components/commerce/ProductCard'
+import { useCartDrawerState } from '@/components/commerce/cartDrawerBus'
+import { IconBag, IconCheck, IconClose, IconStar, IconTruck } from '@/ui'
 import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
 import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
-import { WishlistHeartButton, WishlistNavLink } from '@/components/wishlist/WishlistHeartButton'
 import { useRegisterWishlistAddon } from '@/components/wishlist/useWishlist'
 import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import './soft-studio.css'
 
 const SOFT_STUDIO_SECTIONS = THEME_SECTIONS['soft-studio']
 
-const THUMB_CLASSES = ['ss-product-thumb-1', 'ss-product-thumb-2', 'ss-product-thumb-3', 'ss-product-thumb-4']
 const FREE_SHIPPING_MIN = 1500
 const SHIPPING_FEE = 120
 
 const STRIP_ITEMS = [
-  { icon: '🌿', text: 'Natural & Organic Fibers' },
-  { icon: '✂️', text: 'Handmade with care' },
-  { icon: '📦', text: `Free Shipping over ₹${FREE_SHIPPING_MIN.toLocaleString('en-IN')}` },
-  { icon: '🎨', text: 'Custom orders welcome' },
+  { icon: <IconStar size={18} />, text: 'Thoughtfully made' },
+  { icon: <IconCheck size={18} />, text: 'Handpicked quality' },
+  { icon: <IconTruck size={18} />, text: `Free shipping over ₹${FREE_SHIPPING_MIN.toLocaleString('en-IN')}` },
+  { icon: <IconBag size={18} />, text: 'Custom orders welcome' },
 ]
 
 function shippingCost(subtotal: number): number {
   return subtotal >= FREE_SHIPPING_MIN ? 0 : SHIPPING_FEE
 }
 
-function ProductThumb({
-  product,
-  index,
-  className,
-}: {
-  product?: PublicProduct
-  index: number
-  className?: string
-}) {
-  const thumbClass = THUMB_CLASSES[index % THUMB_CLASSES.length]
-  if (product?.imageUrl) {
-    return (
-      <div className={`ss-product-thumb ${className ?? ''}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={product.imageUrl} alt={product.name} />
-      </div>
-    )
-  }
-  return <div className={`ss-product-thumb ${thumbClass} ${className ?? ''}`}>🛍️</div>
-}
 
 const DEFAULT_FOOTER_SHOP_LINKS: StorefrontNavLink[] = [
   { href: '#products', label: 'Featured' },
@@ -98,16 +78,15 @@ export function SoftStudioPage({
   const orderingHours = useMemo(() => getOrderingHoursFromConfig(config), [config])
   const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
 
-  const { lines, itemCount, subtotal, addItem, setQuantity, removeLine, clear } = useCart()
+  const { lines, itemCount, subtotal, setQuantity, removeLine, clear } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
   const { accessToken } = useCheckoutCustomerPrefill()
 
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [cartOpen, setCartOpen] = useState(false)
+  // Shared drawer bus: product-card quick add opens this theme's own cart sidebar.
+  const [cartOpen, setCartOpen] = useCartDrawerState()
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [shippingPolicyOpen, setShippingPolicyOpen] = useState(false)
   const [policyAcknowledged, setPolicyAcknowledged] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
@@ -119,21 +98,6 @@ export function SoftStudioPage({
   const ship = useMemo(() => shippingCost(subtotal), [subtotal])
   const total = subtotal + ship
   const heroProducts = products.slice(0, 4)
-
-  const showToast = useCallback((msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 2600)
-  }, [])
-
-  const handleAdd = useCallback(
-    (product: PublicProduct) => {
-      if (!product.inStock) return
-      if (!requireAuthForCart()) return
-      addItem(product)
-      showToast(`${product.name} added to cart`)
-    },
-    [addItem, requireAuthForCart, showToast],
-  )
 
   const openCheckout = () => {
     if (!requireAuthForCart()) return
@@ -278,7 +242,7 @@ export function SoftStudioPage({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={p.imageUrl} alt={p.name} />
                     ) : (
-                      '🛍️'
+                      <IconBag size={28} />
                     )}
                   </div>
                   <div className="ss-mock-name">{p.name}</div>
@@ -311,40 +275,13 @@ export function SoftStudioPage({
             Products coming soon — add items in your admin dashboard under Store / Products.
           </p>
         ) : (
-          <div className="ss-products-grid">
+          <ul className="sf-product-grid">
             {products.map((product, index) => (
-              <article key={product.id} className="ss-product-card sf-wishlist-anchor">
-                <Link href={`/products/${product.slug}`} className="ss-product-card-link">
-                  <ProductThumb product={product} index={index} />
-                  {index === 0 && <span className="ss-product-tag">Featured</span>}
-                  <div className="ss-product-info">
-                    <div className="ss-product-name">{product.name}</div>
-                    {(product.shortDescription || product.description) && (
-                      <div className="ss-product-desc">
-                        {product.shortDescription || product.description}
-                      </div>
-                    )}
-                    <div className="ss-product-footer">
-                      <span className="ss-product-price">
-                        {formatMoney(product.price, product.currency)}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-                <WishlistHeartButton productId={product.id} productName={product.name} enabled={wishlistOn} />
-                <div className="ss-product-actions">
-                  <button
-                    type="button"
-                    className="ss-add-btn"
-                    disabled={!product.inStock}
-                    onClick={() => handleAdd(product)}
-                  >
-                    {product.inStock ? 'Add to cart' : 'Out of stock'}
-                  </button>
-                </div>
-              </article>
+              <li key={product.id}>
+                <ProductCard product={product} wishlistEnabled={wishlistOn} priority={index < 4} />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
     ),
@@ -352,42 +289,17 @@ export function SoftStudioPage({
 
   return (
     <div className="ss-root">
-      <StorefrontMenuDrawer
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        config={config}
-        navLinks={navLinks}
-      />
       <ShippingPolicyModal open={shippingPolicyOpen} onClose={onShippingPolicyClose} config={config} />
-      <nav className="ss-nav">
-        <Link href="/" className="ss-nav-logo">
-          {siteName}
-        </Link>
-        <div className="ss-nav-right">
-          <button
-            type="button"
-            className="sf-menu-toggle-btn"
-            onClick={() => setMenuOpen(true)}
-            aria-expanded={menuOpen}
-            aria-label="Open menu"
-          >
-            ☰
-          </button>
-          {wishlistOn ? (
-            <WishlistNavLink enabled className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
-          ) : null}
-          <AccountProfileLink className="inline-flex items-center justify-center opacity-90 hover:opacity-100" />
-          <button
-            type="button"
-            className="ss-cart-btn"
-            onClick={() => {
-              if (requireAuthForCart()) setCartOpen(true)
-            }}
-          >
-            🛍 Cart <span className="ss-cart-count">{itemCount}</span>
-          </button>
-        </div>
-      </nav>
+      <StandardStorefrontNav
+        tenant={{ name: siteName, logoUrl: config?.branding?.logoUrl ?? tenant.logoUrl }}
+        config={config}
+        itemCount={itemCount}
+        variant="retail"
+        navLinks={navLinks}
+        onCartClick={() => {
+          if (requireAuthForCart()) setCartOpen(true)
+        }}
+      />
 
       {homepageSectionOrder(config, SOFT_STUDIO_SECTIONS).map((type) => (
         <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
@@ -395,55 +307,16 @@ export function SoftStudioPage({
 
       {addonsSlot}
 
-      <footer className="ss-footer">
-        <div className="ss-footer-brand">
-          <div className="ss-footer-logo">{siteName}</div>
-          <p className="ss-footer-tagline">{tagline}</p>
-        </div>
-        <div>
-          <div className="ss-footer-col-title">Shop</div>
-          <ul className="ss-footer-links">
-            {(footerLinks?.length ? footerLinks : DEFAULT_FOOTER_SHOP_LINKS).map((link) => (
-              <li key={`${link.href}-${link.label}`}>
-                <a href={link.href}>{link.label}</a>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <div className="ss-footer-col-title">Help</div>
-          <ul className="ss-footer-links">
-            <li>
-              <a href="/orders/track">Track order</a>
-            </li>
-            {contactEmail && (
-              <li>
-                <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
-              </li>
-            )}
-          </ul>
-        </div>
-        <div>
-          <div className="ss-footer-col-title">Connect</div>
-          <ul className="ss-footer-links">
-            {config?.branding?.socials?.instagram && (
-              <li>
-                <a href={config.branding.socials.instagram} target="_blank" rel="noreferrer">
-                  Instagram
-                </a>
-              </li>
-            )}
-            {config?.branding?.socials?.whatsapp && (
-              <li>
-                <a href={`https://wa.me/${config.branding.socials.whatsapp.replace(/\D/g, '')}`}>
-                  WhatsApp
-                </a>
-              </li>
-            )}
-          </ul>
-        </div>
-      </footer>
-      <div className="ss-footer-bottom">© {new Date().getFullYear()} {siteName}. All rights reserved.</div>
+      <StoreFooter
+        name={siteName}
+        tagline={tagline}
+        logoUrl={config?.branding?.logoUrl}
+        config={config}
+        columns={[
+          { title: 'Shop', links: footerLinks?.length ? footerLinks : DEFAULT_FOOTER_SHOP_LINKS },
+          { title: 'Help', links: [{ href: '/orders/track', label: 'Track order' }, { href: '/shipping-policy', label: 'Shipping policy' }, { href: '/account', label: 'My account' }] },
+        ]}
+      />
 
       <div
         className={`ss-overlay ${cartOpen ? 'open' : ''}`}
@@ -454,13 +327,13 @@ export function SoftStudioPage({
         <div className="ss-cart-header">
           <span className="ss-cart-title">Your Cart</span>
           <button type="button" className="ss-close-btn" onClick={() => setCartOpen(false)} aria-label="Close cart">
-            ✕
+            <IconClose size={18} />
           </button>
         </div>
         <div className="ss-cart-items">
           {lines.length === 0 ? (
             <div className="ss-cart-empty">
-              <span className="ss-cart-empty-icon">🧺</span>
+              <span className="ss-cart-empty-icon"><IconBag size={32} /></span>
               <div>Your cart is empty</div>
               <div style={{ fontSize: '0.78rem', marginTop: '8px', color: 'var(--ss-muted)' }}>
                 Add some lovely pieces from the shop!
@@ -474,7 +347,7 @@ export function SoftStudioPage({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={line.imageUrl} alt={line.name} />
                   ) : (
-                    '🛍️'
+                    <IconBag size={22} />
                   )}
                 </div>
                 <div className="ss-cart-item-details">
@@ -577,6 +450,7 @@ export function SoftStudioPage({
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your name"
+                      autoComplete="name"
                     />
                   </div>
                 </div>
@@ -589,6 +463,8 @@ export function SoftStudioPage({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@email.com"
+                      autoComplete="email"
+                      inputMode="email"
                     />
                   </div>
                   <div className="ss-form-group">
@@ -599,6 +475,8 @@ export function SoftStudioPage({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+91 98765 43210"
+                      autoComplete="tel"
+                      inputMode="tel"
                     />
                   </div>
                 </div>
@@ -633,7 +511,7 @@ export function SoftStudioPage({
             </div>
           ) : (
             <div className="ss-success-screen show">
-              <span className="ss-success-icon">🎉</span>
+              <span className="ss-success-icon"><IconCheck size={40} /></span>
               <h2 className="ss-success-title">Order Placed!</h2>
               <p className="ss-success-sub">Thank you for your order. We will email you confirmation shortly.</p>
               <div className="ss-success-order">
@@ -660,7 +538,6 @@ export function SoftStudioPage({
         </div>
       </div>
 
-      <div className={`ss-toast ${toast ? 'show' : ''}`}>{toast}</div>
     </div>
   )
 }

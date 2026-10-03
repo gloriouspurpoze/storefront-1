@@ -24,6 +24,12 @@ function stripPortAndWww(host: string): string {
   return noPort.startsWith('www.') ? noPort.slice(4) : noPort
 }
 
+/** True for hosts with no tenant subdomain when running locally. */
+export function isLocalHost(host: string): boolean {
+  const clean = stripPortAndWww(host.toLowerCase())
+  return clean === 'localhost' || clean === '127.0.0.1' || clean === 'lvh.me'
+}
+
 /** Extract a slug from a `*.<platform-suffix>` host, or `null`. */
 export function slugFromPlatformHost(host: string): string | null {
   const clean = stripPortAndWww(host.toLowerCase())
@@ -84,7 +90,13 @@ async function resolveViaEdgeConfig(host: string): Promise<ResolvedTenant | null
  */
 export async function resolveTenant(host: string): Promise<ResolvedTenant | null> {
   if (!host) return null
-  const clean = stripPortAndWww(host.toLowerCase())
+  let clean = stripPortAndWww(host.toLowerCase())
+  // Dev convenience: bare `localhost` has no subdomain, so map it to
+  // `<STOREFRONT_DEV_TENANT_SLUG>.localhost` instead of the unknown-host page.
+  const devSlug = process.env.STOREFRONT_DEV_TENANT_SLUG?.trim().toLowerCase()
+  if (process.env.NODE_ENV !== 'production' && devSlug && isLocalHost(clean)) {
+    clean = `${devSlug}.localhost`
+  }
   const edge = await resolveViaEdgeConfig(clean)
   if (edge) return edge
   return resolveTenantViaApi(clean)

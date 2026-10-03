@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ServiceCard } from './ServiceCard'
 import type { PublicService } from './types'
+import { IconArrowRight } from '@/ui'
 import './home-services-shell.css'
 
 export function ServiceGrid({
@@ -20,8 +21,8 @@ export function ServiceGrid({
     <section className="hs-container hs-services-section">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-xl">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{title}</h2>
-          {subtitle ? <p className="mt-3 text-base leading-7 text-slate-600">{subtitle}</p> : null}
+          <h2 className="sf-heading">{title}</h2>
+          {subtitle ? <p className="sf-subtle" style={{ marginTop: '0.75rem', lineHeight: 1.7 }}>{subtitle}</p> : null}
         </div>
         {showSeeAll && services.length > 0 ? (
           <Link
@@ -29,7 +30,7 @@ export function ServiceGrid({
             className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold hover:underline"
             style={{ color: 'var(--brand-primary, var(--site-brand))' }}
           >
-            See all <span aria-hidden>→</span>
+            See all <IconArrowRight size={16} />
           </Link>
         ) : null}
       </div>
@@ -59,7 +60,7 @@ function EmptyState({ phone }: { phone?: string }) {
       {phone ? (
         <a
           href={`tel:${phone}`}
-          className="mt-8 inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white"
+          className="sf-btn mt-8 shrink-0"
           style={{ backgroundColor: 'var(--brand-primary, var(--site-brand))' }}
         >
           Call {phone}
@@ -67,7 +68,7 @@ function EmptyState({ phone }: { phone?: string }) {
       ) : (
         <Link
           href="/contact"
-          className="mt-8 inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white"
+          className="sf-btn mt-8 shrink-0"
           style={{ backgroundColor: 'var(--brand-primary, var(--site-brand))' }}
         >
           Contact us

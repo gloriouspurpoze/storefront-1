@@ -26,8 +26,8 @@ export default async function AmcPlansPage({ searchParams }: { searchParams: Pro
 
   return (
     <AddonPageScreen resolved={resolved} config={config}>
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Annual maintenance plans</h1>
+      <div className="sf-container py-16">
+        <h1 className="sf-page-title">Annual maintenance plans</h1>
         <p className="mt-3 max-w-2xl text-slate-600">
           Scheduled visits, priority support and one predictable price for the year.
         </p>

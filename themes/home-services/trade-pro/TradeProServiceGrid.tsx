@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type { PublicService } from '../types'
 import { formatPrice } from '../ServiceCard'
 import { TradeProAddToCartButton } from './TradeProAddToCartButton'
+import { IconArrowRight } from '@/ui'
 import '../home-services-shell.css'
 import './trade-pro.css'
 
@@ -79,7 +80,7 @@ export function TradeProServiceGrid({
           {title || subtitle ? (
             <div className="max-w-xl">
               {title ? (
-                <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{title}</h2>
+                <h2 className="sf-heading">{title}</h2>
               ) : null}
               {subtitle ? <p className="mt-3 text-base leading-7 text-slate-600">{subtitle}</p> : null}
             </div>
@@ -92,7 +93,7 @@ export function TradeProServiceGrid({
               className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold hover:underline"
               style={{ color: 'var(--brand-primary, var(--site-brand))' }}
             >
-              See all <span aria-hidden>→</span>
+              See all <IconArrowRight size={16} />
             </Link>
           ) : null}
         </div>

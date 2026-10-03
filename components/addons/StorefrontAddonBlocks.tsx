@@ -8,6 +8,7 @@ import {
   type StorefrontAmcPackage,
   type StorefrontLoyaltySettings,
 } from '@/lib/storefrontAddonsApi'
+import { IconCheck } from '@/ui'
 
 /**
  * Paid add-on homepage blocks (AMC offers, B2B / wholesale CTA, loyalty teaser).
@@ -44,20 +45,20 @@ export function AmcPlanCard({ pkg, ctaHref }: { pkg: StorefrontAmcPackage; ctaHr
       <ul className="mt-4 flex-1 space-y-2 text-sm text-slate-700">
         {pkg.visitsIncluded > 0 && (
           <li className="flex gap-2">
-            <span aria-hidden style={brandText}>✓</span>
+            <span aria-hidden style={brandText}><IconCheck size={16} /></span>
             {pkg.visitsIncluded} scheduled visit{pkg.visitsIncluded === 1 ? '' : 's'}
           </li>
         )}
         {pkg.inclusions.slice(0, 6).map((inc) => (
           <li key={inc} className="flex gap-2">
-            <span aria-hidden style={brandText}>✓</span>
+            <span aria-hidden style={brandText}><IconCheck size={16} /></span>
             {inc}
           </li>
         ))}
       </ul>
       <Link
         href={ctaHref}
-        className="mt-6 inline-flex justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+        className="sf-btn mt-6"
         style={brandBg}
       >
         Get this plan
@@ -70,7 +71,7 @@ export function AmcOffersBlock({ packages }: { packages: StorefrontAmcPackage[] 
   if (!packages.length) return null
   return (
     <section className="sf-addon-amc bg-slate-50 py-16 text-slate-900" aria-labelledby="sf-amc-title">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="sf-container">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={brandText}>
             Annual maintenance
@@ -101,8 +102,8 @@ export function AmcOffersBlock({ packages }: { packages: StorefrontAmcPackage[] 
 
 export function B2bPortalBlock() {
   return (
-    <section className="sf-addon-b2b bg-white py-14 text-slate-900" aria-labelledby="sf-b2b-title">
-      <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 rounded-3xl border border-slate-200 px-6 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-10">
+    <section className="sf-addon-b2b sf-container py-14 text-slate-900" aria-labelledby="sf-b2b-title">
+      <div className="flex flex-col items-start gap-6 rounded-3xl border border-slate-200 px-6 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-10">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={brandText}>
             For businesses
@@ -117,7 +118,7 @@ export function B2bPortalBlock() {
         </div>
         <Link
           href="/wholesale"
-          className="inline-flex shrink-0 rounded-full px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
+          className="sf-btn shrink-0"
           style={brandBg}
         >
           Request a bulk quote
@@ -147,7 +148,7 @@ export function LoyaltyTeaserBlock({ loyalty }: { loyalty?: StorefrontLoyaltySet
 
   return (
     <section className="sf-addon-loyalty py-16 text-white" style={brandBg} aria-labelledby="sf-loyalty-title">
-      <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
+      <div className="sf-container text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">Rewards</p>
         <h2 id="sf-loyalty-title" className="mt-2 text-2xl font-bold sm:text-3xl">
           {l.headline || 'Earn rewards every time you shop'}
@@ -171,7 +172,7 @@ export function LoyaltyTeaserBlock({ loyalty }: { loyalty?: StorefrontLoyaltySet
         )}
         <Link
           href="/account/login"
-          className="mt-8 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-white/90"
+          className="sf-btn sf-btn--inverse mt-8"
         >
           Join &amp; start earning
         </Link>

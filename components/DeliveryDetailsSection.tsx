@@ -168,6 +168,7 @@ export function DeliveryDetailsSection({
                 : fieldInputProps({ flex: '0 0 88px' }))}
               autoComplete="postal-code"
               required
+              inputMode="numeric"
             />
           </div>
         </>

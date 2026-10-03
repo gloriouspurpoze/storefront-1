@@ -61,7 +61,7 @@ export default async function WishlistPage() {
     <RetailShell tenantId={tenant.id}>
       <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
       {main}
-      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} />
+      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} config={config} />
     </RetailShell>
   )
 }

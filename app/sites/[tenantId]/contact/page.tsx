@@ -59,11 +59,11 @@ export default async function ContactPage() {
               phone={config?.branding?.contactPhone}
               serviceArea={config?.branding?.address}
             />
-            <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
+            <main className="sf-container grid gap-12 py-16 lg:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
-                <h1 className="mt-3 text-4xl font-bold text-slate-900">Let&apos;s talk.</h1>
-                <p className="mt-4 text-slate-600">
+                <p className="sf-page-eyebrow">Contact</p>
+                <h1 className="sf-page-title">Let&apos;s talk.</h1>
+                <p className="sf-page-lead">
                   Add the services you need, then send one enquiry from your cart. We&apos;ll call
                   you back within 2 hours.
                 </p>
@@ -77,10 +77,10 @@ export default async function ContactPage() {
       return (
         <>
           <HsHeader tenant={theme} />
-          <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
+          <main className="sf-container grid gap-12 py-16 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
-              <h1 className="mt-3 text-4xl font-bold text-slate-900">Let&apos;s talk.</h1>
+              <p className="sf-page-eyebrow">Contact</p>
+              <h1 className="sf-page-title">Let&apos;s talk.</h1>
             </div>
             <BookingForm tenantId={tenant.id} source="contact-page" />
           </main>
@@ -100,11 +100,11 @@ export default async function ContactPage() {
       return (
         <RestaurantShell tenantId={tenant.id}>
           <RestHeader tenant={theme} />
-          <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
+          <main className="sf-container grid gap-12 py-16 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-800/80">Contact</p>
-              <h1 className="mt-3 font-serif text-4xl font-bold text-stone-900">Get in touch</h1>
-              <p className="mt-4 text-stone-600">Questions, events, or large parties — we read every message.</p>
+              <p className="sf-page-eyebrow">Contact</p>
+              <h1 className="sf-page-title">Get in touch</h1>
+              <p className="sf-page-lead">Questions, events, or large parties — we read every message.</p>
             </div>
             <ReservationForm tenantId={tenant.id} />
           </main>
@@ -127,11 +127,11 @@ export default async function ContactPage() {
       return (
         <RetailShell tenantId={tenant.id}>
           <RetailHeader tenant={theme} />
-          <main className="mx-auto grid w-full max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2">
+          <main className="sf-container grid gap-12 py-16 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Contact</p>
-              <h1 className="mt-3 text-4xl font-bold text-slate-900">We&apos;re here to help</h1>
-              <p className="mt-4 text-slate-600">Orders, shipping, or product questions.</p>
+              <p className="sf-page-eyebrow">Contact</p>
+              <h1 className="sf-page-title">We&apos;re here to help</h1>
+              <p className="sf-page-lead">Orders, shipping, or product questions.</p>
             </div>
             <RetailContactForm tenantId={tenant.id} source="storefront-retail-contact" />
           </main>

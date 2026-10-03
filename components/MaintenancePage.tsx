@@ -24,8 +24,11 @@ export function MaintenancePage({
       : null
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white px-4 py-16 text-neutral-900">
-      <div className="w-full max-w-md text-center">
+    <main
+      className="flex min-h-screen items-center justify-center px-4 py-16 text-neutral-900"
+      style={{ background: 'radial-gradient(80% 60% at 50% 0%, var(--sf-brand-soft, #f5f5f5) 0%, #fff 70%)' }}
+    >
+      <div className="w-full max-w-md rounded-[var(--sf-radius-lg)] border border-[var(--sf-border)] bg-white p-8 text-center shadow-sm sm:p-10">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoUrl} alt={siteName} className="mx-auto mb-6 h-14 w-auto max-w-[200px] object-contain" />
@@ -37,7 +40,7 @@ export function MaintenancePage({
             {siteName.trim().charAt(0).toUpperCase()}
           </div>
         )}
-        <h1 className="text-2xl font-semibold tracking-tight">{siteName} will be back soon</h1>
+        <h1 className="font-sf-display text-3xl font-semibold tracking-tight">{siteName} will be back soon</h1>
         <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-neutral-600">
           {message || 'We’re making some improvements to our store. Please check back shortly.'}
         </p>

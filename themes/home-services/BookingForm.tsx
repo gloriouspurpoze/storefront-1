@@ -189,7 +189,7 @@ export function BookingForm({
         <p className="text-sm text-slate-700">{status.message}</p>
         <a
           href="/contact"
-          className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white shadow-sm"
+          className="sf-btn"
           style={{ backgroundColor: 'var(--site-brand)' }}
         >
           Contact us
@@ -316,7 +316,7 @@ export function BookingForm({
               min={dateBounds?.min}
               max={dateBounds?.max}
               defaultValue={dateBounds?.initial}
-              className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              className="sf-input mt-1.5"
             />
           </label>
           <fieldset>
@@ -358,7 +358,7 @@ export function BookingForm({
         <textarea
           name="message"
           rows={4}
-          className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="sf-input mt-1.5"
           placeholder={
             isBooking
               ? 'Describe the issue, access instructions, or anything the pro should bring.'
@@ -374,8 +374,9 @@ export function BookingForm({
       <button
         type="submit"
         disabled={status.kind === 'submitting'}
-        className="inline-flex w-full items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-60"
+        className="sf-btn sf-btn--block"
         style={{ backgroundColor: 'var(--site-brand)' }}
+        aria-busy={status.kind === 'submitting'}
       >
         {status.kind === 'submitting' ? 'Sending…' : isBooking ? 'Request booking' : 'Request a callback'}
       </button>
@@ -409,7 +410,7 @@ function Field({
         type={type}
         required={required}
         autoComplete={autoComplete}
-        className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+        className="sf-input mt-1.5"
       />
     </label>
   )

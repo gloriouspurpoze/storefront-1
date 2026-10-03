@@ -16,12 +16,14 @@ import {
 import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
 import { isMenuItemInStock } from '@/lib/storefront-api'
 import { productHasVariants, formatListPrice } from '@/lib/productVariants'
-import { AccountProfileLink } from '@/components/account/AccountProfileLink'
-import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
+import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
+import { StoreFooter } from '@/components/chrome/StoreFooter'
+import { IconBag, IconCheck } from '@/ui'
 import { StoreStatusBadge } from '@/components/StoreStatusBadge'
 import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
 import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import './menufast.css'
+import '@/components/commerce/menu-board.css'
 
 const MENUFAST_MINIMAL_SECTIONS = THEME_SECTIONS['menufast-minimal']
 
@@ -58,7 +60,6 @@ export function MenuFastMinimalPage({
   const { cart, entries, itemCount, subtotal, addItem, removeItem, qtyFor, clearCart } =
     useMenuCart(initialCategories)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [modalVariantId, setModalVariantId] = useState<string | undefined>()
 
@@ -78,17 +79,16 @@ export function MenuFastMinimalPage({
 
   if (orderNumber) {
     return (
-      <div className="mf-root">
-        <div className="mf-phone-wrap">
-          <div className="mf-phone" style={{ justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '48px' }}>🎉</div>
-              <h2 style={{ marginTop: '1rem', fontSize: '20px' }}>Order confirmed</h2>
-              <p style={{ color: '#666', fontSize: '14px', marginTop: '0.5rem' }}>
-                Order {orderNumber} — receipt sent to your email.
-              </p>
-            </div>
-          </div>
+      <div className="mf-root mf-min-page">
+        <div className="mf-min-success sf-container sf-container--narrow">
+          <span className="mf-min-success__icon">
+            <IconCheck size={32} />
+          </span>
+          <h2>Order confirmed</h2>
+          <p>Order {orderNumber} — receipt sent to your email.</p>
+          <Link href="/" className="sf-btn">
+            Back to menu
+          </Link>
         </div>
       </div>
     )
@@ -182,15 +182,7 @@ export function MenuFastMinimalPage({
   }
 
   return (
-    <div className="mf-root">
-      <StorefrontMenuDrawer
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        config={config}
-        showShippingPolicy
-        shippingPolicyLabel="Delivery policy"
-        navLinks={navLinks}
-      />
+    <div className="mf-root mf-min-page">
       <MenuItemDetailModal
         item={selectedItem}
         open={selectedItem != null}
@@ -212,54 +204,48 @@ export function MenuFastMinimalPage({
           }
         }}
       />
-      <div className="mf-phone-wrap">
-        <div className="mf-phone">
-          <div className="mf-phone-bar">
-            <div className="mf-phone-notch" />
-          </div>
+      <StandardStorefrontNav
+        tenant={{ name: siteName, logoUrl }}
+        config={config}
+        itemCount={itemCount}
+        variant="restaurant"
+        navLinks={navLinks}
+        onCartClick={() => document.getElementById('mf-order')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+      />
 
-          <div className="mf-min-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
-              <StoreStatusBadge config={config} compact />
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  className="sf-menu-toggle-btn"
-                  onClick={() => setMenuOpen(true)}
-                  aria-expanded={menuOpen}
-                  aria-label="Open menu"
-                >
-                  ☰
-                </button>
-                <AccountProfileLink className="inline-flex items-center justify-center hover:opacity-80" />
-              </div>
-            </div>
-            <div className="mf-min-logo-row">
-              <div className="mf-min-logo">
-                {logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  '🍽️'
-                )}
-              </div>
-              <div>
-                <div className="mf-min-biz-name">{siteName}</div>
-                {tagline && <div className="mf-min-tagline">{tagline}</div>}
-              </div>
-            </div>
-            {itemCount > 0 && (
-              <div className="mf-min-tagline" style={{ marginTop: '0.5rem' }}>
-                Cart: {itemCount} item{itemCount !== 1 ? 's' : ''} · {formatMenuPrice(subtotal, currency)}
-              </div>
+      <div className="mf-min-shell sf-container">
+        <header className="mf-min-intro">
+          <div className="mf-min-logo">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span aria-hidden>{siteName.charAt(0)}</span>
             )}
           </div>
+          <div>
+            <h1 className="mf-min-biz-name">{siteName}</h1>
+            {tagline && <p className="mf-min-tagline">{tagline}</p>}
+            <StoreStatusBadge config={config} compact />
+          </div>
+        </header>
 
-          {homepageSectionOrder(config, MENUFAST_MINIMAL_SECTIONS).map((type) => (
-            <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
-          ))}
+        <div className="mf-min-grid">
+          <div className="mf-min-menu">
+            {homepageSectionOrder(config, MENUFAST_MINIMAL_SECTIONS).map((type) => (
+              <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
+            ))}
+          </div>
 
-          <div className="mf-min-footer">
+          <aside id="mf-order" className="mf-min-footer" aria-label="Your order">
+            <h2 className="mf-min-order-title">Your order</h2>
+            {itemCount > 0 ? (
+              <p className="mf-min-order-summary">
+                {itemCount} item{itemCount !== 1 ? 's' : ''} · {formatMenuPrice(subtotal, currency)}
+              </p>
+            ) : (
+              <p className="mf-min-order-summary">Add dishes from the menu to start your order.</p>
+            )}
             <MenuOrderCheckoutBlock
               tenant={tenant}
               config={config}
@@ -281,24 +267,34 @@ export function MenuFastMinimalPage({
                 Or order via WhatsApp
               </a>
             )}
-            {addonsSlot}
-            {footerLinks?.length ? (
-              <nav className="mf-min-footer-pages" aria-label="Site pages">
-                {footerLinks.map((link) => (
-                  <Link
-                    key={`${link.href}-${link.label}`}
-                    href={link.href}
-                    className="mf-min-footer-page-link"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
-            ) : null}
-            <div className="mf-powered">Powered by Profixer</div>
-          </div>
+          </aside>
         </div>
+        {addonsSlot}
       </div>
+
+      {itemCount > 0 && (
+        <div className="sf-menu-cartbar" data-storefront-bottom-bar="">
+          <button
+            type="button"
+            className="sf-menu-cartbar__btn"
+            onClick={() => document.getElementById('mf-order')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          >
+            <span className="sf-menu-cartbar__count">
+              <IconBag size={18} /> {itemCount} item{itemCount !== 1 ? 's' : ''}
+            </span>
+            <span>View order · {formatMenuPrice(subtotal, currency)}</span>
+          </button>
+        </div>
+      )}
+
+      <StoreFooter
+        name={siteName}
+        tagline={tagline}
+        logoUrl={logoUrl}
+        config={config}
+        columns={footerLinks?.length ? [{ title: 'Explore', links: footerLinks }] : []}
+        bottomNote={<>Powered by Profixer</>}
+      />
     </div>
   )
 }

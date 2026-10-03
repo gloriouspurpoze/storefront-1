@@ -1,11 +1,13 @@
-'use client'
-
-import type { StorefrontConfig } from '@/lib/storefront-api'
-import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
+import { fetchStorefrontNavLinks } from '@/lib/cms-content'
+import { fetchStorefrontConfig, type StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from './types'
-import { useCart } from './cart'
+import { SiteHeaderClient } from './SiteHeaderClient'
 
-export function SiteHeader({
+/**
+ * Restaurant header for every page; fetches config / CMS links when a page
+ * doesn't pass them (cached + deduped) so the header is identical everywhere.
+ */
+export async function SiteHeader({
   tenant,
   config,
   navLinks,
@@ -14,17 +16,9 @@ export function SiteHeader({
   config?: StorefrontConfig | null
   navLinks?: { href: string; label: string }[]
 }) {
-  const { itemCount } = useCart()
-
-  return (
-    <StandardStorefrontNav
-      tenant={tenant}
-      config={config}
-      itemCount={itemCount}
-      variant="restaurant"
-      cartHref="/checkout"
-      showShippingPolicy
-      navLinks={navLinks}
-    />
-  )
+  const [cfg, links] = await Promise.all([
+    config !== undefined ? config : fetchStorefrontConfig(tenant.id),
+    navLinks ?? fetchStorefrontNavLinks(tenant.id, 'header', 'restaurant'),
+  ])
+  return <SiteHeaderClient tenant={tenant} config={cfg} navLinks={links} />
 }

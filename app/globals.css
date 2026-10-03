@@ -1,6 +1,25 @@
 @import 'tailwindcss';
+@import '../ui/ui.css';
 @import './account-ui.css';
 @import '../themes/retail/retail-page-shell.css';
+
+/* Storefront tokens as Tailwind utilities (bg-brand, text-muted-fg, border-line, rounded-sf, font-sf-display ...). */
+@theme inline {
+  --color-brand: var(--sf-brand);
+  --color-brand-contrast: var(--sf-brand-contrast);
+  --color-brand-soft: var(--sf-brand-soft);
+  --color-accent: var(--sf-accent);
+  --color-surface: var(--sf-surface);
+  --color-surface-muted: var(--sf-surface-muted);
+  --color-ink: var(--sf-text);
+  --color-muted-fg: var(--sf-text-muted);
+  --color-line: var(--sf-border);
+  --color-sale: var(--sf-sale);
+  --color-success: var(--sf-success);
+  --radius-sf: var(--sf-radius);
+  --radius-sf-lg: var(--sf-radius-lg);
+  --font-sf-display: var(--sf-font-display);
+}
 
 /**
  * Per-tenant brand colors are injected by `sites/[tenantId]/layout.tsx` as
@@ -52,6 +71,22 @@ html, body {
   --saf-border-strong: rgba(26, 23, 20, 0.2);
   --saf-radius: 12px;
   --saf-radius-sm: 6px;
+
+  /* Skin the shared storefront components (themes/shared/tokens.css). */
+  --sf-brand: var(--ink);
+  --sf-brand-contrast: var(--cream);
+  --sf-brand-hover: #000;
+  --sf-brand-soft: var(--terracotta-light);
+  --sf-accent: var(--terracotta);
+  --sf-surface: #fff;
+  --sf-surface-muted: var(--cream-dark);
+  --sf-text: var(--ink);
+  --sf-text-muted: var(--ink-muted);
+  --sf-border: var(--saf-border);
+  --sf-border-strong: var(--saf-border-strong);
+  --sf-ring: rgba(196, 99, 58, 0.4);
+  --sf-radius: var(--saf-radius-sm);
+  --sf-radius-lg: var(--saf-radius);
 
   background: var(--cream);
   color: var(--ink);

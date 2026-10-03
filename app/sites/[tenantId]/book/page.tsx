@@ -75,9 +75,9 @@ export default async function BookPage({ searchParams }: BookPageProps) {
           serviceArea={config?.branding?.address}
         />
         <main className="bg-[var(--tp-canvas-soft,#f4f6f9)] py-16 sm:py-20">
-          <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr]">
+          <div className="sf-container grid gap-12 lg:grid-cols-[1.2fr_1fr]">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+              <p className="sf-page-eyebrow">
                 Book a service
               </p>
               <h1 className="mt-3 text-balance text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
@@ -106,9 +106,9 @@ export default async function BookPage({ searchParams }: BookPageProps) {
     <>
       <SiteHeader tenant={themeTenant} bookingEnabled />
       <main className="bg-slate-50 py-16 sm:py-20">
-        <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr]">
+        <div className="sf-container grid gap-12 lg:grid-cols-[1.2fr_1fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+            <p className="sf-page-eyebrow">
               Book a service
             </p>
             <h1 className="mt-3 text-balance text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">

@@ -271,6 +271,7 @@ export function AccountProfilePanel({ tenantId }: { tenantId: string }) {
                 disabled
                 readOnly
                 autoComplete="email"
+                inputMode="email"
               />
               <p className={`${t.textMuted} mt-1 text-xs`}>
                 Email comes from your sign-in and cannot be changed here.

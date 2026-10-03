@@ -10,6 +10,7 @@ import {
 } from '@/lib/orderingHours'
 import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from '../types'
+import { IconMenu } from '@/ui'
 
 interface SaffronHeaderProps {
   tenant: ThemeTenant
@@ -62,7 +63,7 @@ export function SaffronHeader({
             aria-label="Open menu"
             onClick={onMenuOpen}
           >
-            ☰
+            <IconMenu />
           </button>
         ) : null}
         <Link
@@ -124,6 +125,7 @@ export function SaffronHeader({
         />
 
         <button
+          type="button"
           onClick={onCartClick}
           aria-label={`Your cart, ${cartCount} item${cartCount !== 1 ? 's' : ''}`}
           style={{

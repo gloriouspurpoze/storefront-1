@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { IconClose } from '@/ui'
 
 export type PopupBannerProps = {
   storageKey: string
@@ -93,7 +94,7 @@ export function PopupBanner({
           onClick={dismiss}
           aria-label={closeLabel}
         >
-          <span aria-hidden>×</span>
+          <IconClose size={18} />
         </button>
         <div id={titleId}>{children}</div>
       </div>

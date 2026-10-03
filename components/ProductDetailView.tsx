@@ -2,21 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
+import { SiteHeaderClient as SiteHeader } from '@/themes/retail/SiteHeaderClient'
+import { StickyBuyBar } from '@/components/commerce/StickyBuyBar'
+import { Accordion, Breadcrumb, IconRefresh, IconShield, IconTruck } from '@/ui'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { StorefrontFaqsSection } from '@/components/StorefrontFaqsSection'
 import {
   ProductPriceBlock,
   ProductPurchaseBlock,
 } from '@/themes/retail/AddToCartButton'
-import { useCart } from '@/themes/retail/cart'
 import type { StorefrontCmsFaq } from '@/lib/cms-content'
-import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
+import type { PublicProduct, StorefrontConfig, StorefrontProductCategory } from '@/lib/storefront-api'
 import type { ThemeTenant } from '@/themes/retail/types'
 import '@/themes/retail/soft-studio/soft-studio.css'
 import '@/themes/retail/luxe-essence/luxe-essence.css'
 import '@/themes/retail/retail-pdp.css'
 import '@/themes/retail/retail-cart.css'
+import '@/components/commerce/pdp.css'
 import { containsHtml } from '@/lib/product-seo'
 import { ProductImageGallery } from '@/components/ProductImageGallery'
 import { getDefaultVariant, isVariantInStock } from '@/lib/productVariants'
@@ -51,6 +53,7 @@ export function ProductDetailView({
   themeKey,
   navLinks,
   faqs,
+  categories,
 }: {
   product: PublicProduct
   tenant: ThemeTenant
@@ -58,8 +61,9 @@ export function ProductDetailView({
   themeKey?: string
   navLinks?: { href: string; label: string }[]
   faqs?: StorefrontCmsFaq[] | null
+  /** Header mega-menu categories (default theme only). */
+  categories?: StorefrontProductCategory[]
 }) {
-  const { itemCount } = useCart()
   const wishlistEnabled = useRegisterWishlistAddon(config)
   const isSoftStudio = themeKey === 'soft-studio'
   const isLuxe = themeKey === 'luxe-essence'
@@ -73,114 +77,117 @@ export function ProductDetailView({
     setSelectedVariantId(defaultVariant?.id ?? null)
   }, [product.id, defaultVariant?.id])
 
-  const detailBody = (
-  <>
-    <nav className="sf-pdp-breadcrumbs" aria-label="Breadcrumb">
-      <Link href="/">Home</Link>
-      <span aria-hidden>›</span>
-      <Link href="/products">Shop</Link>
-      <span aria-hidden>›</span>
-      <span aria-current="page">{product.name}</span>
-    </nav>
+  const isModern = !isSoftStudio && !isLuxe
+  const inStockNow = isVariantInStock(product, selectedVariantId)
+  const descriptionText = product.description ?? product.shortDescription ?? ''
 
-    <div className="sf-pdp-grid">
-      <ProductImageGallery
-        key={`${product.id}:${selectedVariantId ?? 'base'}`}
-        product={product}
-        variantId={selectedVariantId}
-      />
-
-      <div className="sf-pdp-info">
-        {product.categoryName ? <p className="sf-pdp-category">{product.categoryName}</p> : null}
-        <h1>{product.name}</h1>
-        <span
-          className={`sf-pdp-stock ${
-            isVariantInStock(product, selectedVariantId) ? 'sf-pdp-stock--in' : 'sf-pdp-stock--out'
-          }`}
-        >
-          {isVariantInStock(product, selectedVariantId) ? 'In stock' : 'Out of stock'}
-        </span>
-
-        <ProductPriceBlock product={product} selectedVariantId={selectedVariantId} />
-
-        {product.description || product.shortDescription ? (
-          <ProductDescription text={product.description ?? product.shortDescription ?? ''} />
-        ) : null}
-
-        <ProductPurchaseBlock
-          product={product}
-          variantTone={isLuxe ? 'luxe' : isSoftStudio ? 'soft-studio' : 'default'}
-          selectedVariantId={selectedVariantId}
-          onSelectedVariantIdChange={setSelectedVariantId}
+  const body = (
+    <main className="sf-pdp--modern sf-container">
+      <div className="sf-pdp-crumbs">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Shop', href: '/products' },
+            ...(product.categorySlug && product.categoryName
+              ? [{ label: product.categoryName, href: `/categories/${product.categorySlug}` }]
+              : []),
+            { label: product.name },
+          ]}
         />
-
-        <WishlistHeartButton
-          productId={product.id}
-          productName={product.name}
-          enabled={wishlistEnabled}
-          variant="inline"
-          className="sf-pdp-wishlist"
-        />
-
-        <p className="sf-pdp-trust">
-          <Link href="/shipping-policy">Shipping policy</Link>
-          {' · '}
-          <Link href="/orders/track">Track an order</Link>
-        </p>
       </div>
-    </div>
-
-    <StorefrontFaqsSection
-      faqs={faqs}
-      fallbackItems={config?.content?.faqItems}
-      enabled={faqSectionEnabled(config)}
-      className="sf-pdp-faq"
-    />
-  </>
+      <div className="sf-pdp-grid">
+        <ProductImageGallery
+          key={`${product.id}:${selectedVariantId ?? 'base'}`}
+          product={product}
+          variantId={selectedVariantId}
+        />
+        <div className="sf-pdp-info">
+          {product.categoryName ? <p className="sf-pdp-category">{product.categoryName}</p> : null}
+          <h1>{product.name}</h1>
+          <ProductPriceBlock product={product} selectedVariantId={selectedVariantId} />
+          <span className={`sf-pdp-stock ${inStockNow ? 'sf-pdp-stock--in' : 'sf-pdp-stock--out'}`}>
+            {inStockNow ? 'In stock' : 'Out of stock'}
+          </span>
+          {product.shortDescription && product.description ? (
+            <p className="sf-pdp-short">{product.shortDescription}</p>
+          ) : null}
+          <ProductPurchaseBlock
+            product={product}
+            variantTone="default"
+            selectedVariantId={selectedVariantId}
+            onSelectedVariantIdChange={setSelectedVariantId}
+          />
+          <WishlistHeartButton
+            productId={product.id}
+            productName={product.name}
+            enabled={wishlistEnabled}
+            variant="inline"
+            className="sf-pdp-wishlist"
+          />
+          <ul className="sf-pdp-perks">
+            <li>
+              <IconShield size={18} /> Secure checkout
+            </li>
+            <li>
+              <IconTruck size={18} /> <Link href="/orders/track">Track your order</Link>
+            </li>
+            <li>
+              <IconRefresh size={18} /> <Link href="/shipping-policy">Shipping &amp; returns</Link>
+            </li>
+          </ul>
+          <Accordion
+            className="sf-pdp-accordion"
+            items={[
+              ...(descriptionText
+                ? [{ id: 'desc', title: 'Description', content: <ProductDescription text={descriptionText} />, defaultOpen: true }]
+                : []),
+              {
+                id: 'ship',
+                title: 'Shipping & returns',
+                content: (
+                  <p style={{ margin: 0 }}>
+                    Delivery times and return terms are listed in our{' '}
+                    <Link href="/shipping-policy">shipping policy</Link>. You can follow any order from{' '}
+                    <Link href="/orders/track">order tracking</Link>.
+                  </p>
+                ),
+              },
+            ]}
+          />
+        </div>
+      </div>
+      <StorefrontFaqsSection
+        faqs={faqs}
+        fallbackItems={config?.content?.faqItems}
+        enabled={faqSectionEnabled(config)}
+        className="sf-pdp-faq"
+      />
+    </main>
   )
 
-  if (isSoftStudio) {
+  if (isModern) {
     return (
-      <div className={`${rootClass} min-h-screen`}>
-        <LayoutThemePageShell
-          config={config}
-          siteName={tenant.name}
-          tagline={tenant.tagline}
-          navLinks={navLinks}
-        >
-          <main className="sf-page-shell">{detailBody}</main>
-        </LayoutThemePageShell>
-      </div>
+      <>
+        <SiteHeader tenant={tenant} config={config} navLinks={navLinks} categories={categories} />
+        {body}
+        <StickyBuyBar product={product} variantId={selectedVariantId} />
+      </>
     )
   }
 
-  if (isLuxe) {
-    return (
-      <div className={`${rootClass} min-h-screen`}>
-        <LayoutThemePageShell
-          config={config}
-          siteName={tenant.name}
-          tagline={tenant.tagline}
-          wide
-          navLinks={navLinks}
-        >
-          <main className="sf-page-shell">{detailBody}</main>
-        </LayoutThemePageShell>
-      </div>
-    )
-  }
-
+  // Layout themes keep their own page shell + palette; the PDP body is shared.
   return (
-    <>
-      <StandardStorefrontNav
-        tenant={tenant}
+    <div className={`${rootClass} min-h-screen`}>
+      <LayoutThemePageShell
         config={config}
-        variant="retail"
-        cartHref="/cart"
-        itemCount={itemCount}
+        siteName={tenant.name}
+        tagline={tenant.tagline}
+        wide={isLuxe}
         navLinks={navLinks}
-      />
-      <main className="sf-page-shell">{detailBody}</main>
-    </>
+      >
+        {body}
+      </LayoutThemePageShell>
+      <StickyBuyBar product={product} variantId={selectedVariantId} />
+    </div>
   )
 }
