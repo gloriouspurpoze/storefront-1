@@ -6,11 +6,11 @@ import type { StorefrontConfig } from '@/lib/storefront-api'
 import {
   getOrderingAvailabilityFromConfig,
   getOrderingHoursFromConfig,
-  getTodayOrderingLabel,
-  isStoreOpenNow,
+  getStoreStatusText,
 } from '@/lib/orderingHours'
 import { AccountNavLink } from '@/components/account/AccountNavLink'
 import type { ThemeTenant } from '../types'
+import { IconMenu } from '@/ui'
 
 interface SaffronHeaderProps {
   tenant: ThemeTenant
@@ -36,13 +36,9 @@ export function SaffronHeader({
 }: SaffronHeaderProps) {
   const hours = useMemo(() => getOrderingHoursFromConfig(config), [config])
   const availability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
-  const isOpen = isOpenProp ?? isStoreOpenNow(hours)
-  const hoursLabel = getTodayOrderingLabel(hours)
-  const statusText = availability.slotsNote
-    ? availability.slotsNote
-    : isOpen
-      ? `Open · ${hoursLabel}`
-      : `Closed · ${hoursLabel}`
+  const status = getStoreStatusText(hours, availability)
+  const isOpen = isOpenProp ?? status.isOpen
+  const statusText = status.text
 
   return (
     <header
@@ -67,7 +63,7 @@ export function SaffronHeader({
             aria-label="Open menu"
             onClick={onMenuOpen}
           >
-            ☰
+            <IconMenu />
           </button>
         ) : null}
         <Link
@@ -129,6 +125,7 @@ export function SaffronHeader({
         />
 
         <button
+          type="button"
           onClick={onCartClick}
           aria-label={`Your cart, ${cartCount} item${cartCount !== 1 ? 's' : ''}`}
           style={{

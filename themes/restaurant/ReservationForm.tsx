@@ -83,7 +83,8 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
           <input
             name="firstName"
             required
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
+            className="sf-input mt-1"
+            autoComplete="given-name"
           />
         </label>
         <label className="block text-sm">
@@ -91,7 +92,9 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
           <input
             name="email"
             type="email"
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
+            className="sf-input mt-1"
+            autoComplete="email"
+            inputMode="email"
           />
         </label>
         <label className="block text-sm">
@@ -100,7 +103,9 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
             name="phone"
             type="tel"
             required
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
+            className="sf-input mt-1"
+            autoComplete="tel"
+            inputMode="tel"
           />
         </label>
         <label className="block text-sm">
@@ -108,7 +113,7 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
           <select
             name="partySize"
             defaultValue="2"
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
+            className="sf-input mt-1"
           >
             {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
               <option key={n} value={String(n)}>
@@ -122,7 +127,7 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
           <input
             name="date"
             type="date"
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
+            className="sf-input mt-1"
           />
         </label>
         <label className="block text-sm">
@@ -130,7 +135,7 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
           <input
             name="time"
             type="time"
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
+            className="sf-input mt-1"
           />
         </label>
       </div>
@@ -139,7 +144,7 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
         <textarea
           name="notes"
           rows={3}
-          className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-stone-900 outline-none ring-amber-200 focus:ring-2"
+          className="sf-input mt-1"
           placeholder="Allergies, celebrations, seating preference…"
         />
       </label>
@@ -158,8 +163,9 @@ export function ReservationForm({ tenantId }: ReservationFormProps) {
       <button
         type="submit"
         disabled={status.kind === 'submitting'}
-        className="w-full rounded-full py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+        className="sf-btn sf-btn--block"
         style={{ backgroundColor: 'var(--site-brand)' }}
+        aria-busy={status.kind === 'submitting'}
       >
         {status.kind === 'submitting' ? 'Sending…' : 'Request reservation'}
       </button>

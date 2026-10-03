@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicProduct, StorefrontConfig, StorefrontProductCategory } from '@/lib/storefront-api'
 import type { ThemeTenant } from './types'
@@ -15,6 +16,8 @@ type RetailLayoutProps = {
   navLinks?: StorefrontNavLink[]
   /** CMS footer menu links (empty → theme hardcoded fallback). */
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks (AMC / loyalty / B2B), rendered above the theme footer. */
+  addonsSlot?: ReactNode
 }
 
 const router = createLayoutRouter<RetailLayoutProps, 'soft-studio' | 'luxe-essence'>({
@@ -29,6 +32,7 @@ const router = createLayoutRouter<RetailLayoutProps, 'soft-studio' | 'luxe-essen
           config={p.config}
           navLinks={p.navLinks}
           footerLinks={p.footerLinks}
+          addonsSlot={p.addonsSlot}
         />
       </RetailShell>
     ),
@@ -41,6 +45,7 @@ const router = createLayoutRouter<RetailLayoutProps, 'soft-studio' | 'luxe-essen
           config={p.config}
           navLinks={p.navLinks}
           footerLinks={p.footerLinks}
+          addonsSlot={p.addonsSlot}
         />
       </RetailShell>
     ),

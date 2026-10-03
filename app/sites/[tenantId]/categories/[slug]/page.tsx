@@ -16,7 +16,8 @@ import {
   fetchStorefrontConfig,
   type PublicProduct,
 } from '@/lib/storefront-api'
-import { ProductGrid } from '@/themes/retail/ProductGrid'
+import { CatalogView } from '@/components/commerce/CatalogView'
+import { PageHeader } from '@/ui'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
 import { SiteHeader } from '@/themes/retail/SiteHeader'
@@ -146,15 +147,25 @@ export default async function CategorySlugPage({ params }: PageProps) {
   const tagline = config?.branding?.tagline || themeTenant.tagline
 
   const main = (
-    <main className="sf-page-shell">
-      <p className="sf-page-eyebrow">Category</p>
-      <h1 className="sf-page-title">{categoryName}</h1>
-      {marketing ? <CategoryMarketingBlocks config={marketing} /> : null}
-      <div className="sf-page-body sf-page-body--tight">
+    <main>
+      <PageHeader
+        title={categoryName}
+        crumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Shop', href: '/products' },
+          { label: categoryName },
+        ]}
+      />
+      {marketing ? (
+        <div className="sf-container">
+          <CategoryMarketingBlocks config={marketing} />
+        </div>
+      ) : null}
+      <div className="sf-container">
         {filtered.length === 0 ? (
-          <p className="sf-page-lead">No products in this category yet.</p>
+          <p className="sf-product-empty">No products in this category yet.</p>
         ) : (
-          <ProductGrid products={filtered} />
+          <CatalogView products={filtered} categories={navCategories} activeCategory={slug} />
         )}
       </div>
     </main>
@@ -178,9 +189,9 @@ export default async function CategorySlugPage({ params }: PageProps) {
 
   return (
     <RetailShell tenantId={tenant.id}>
-      <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
+      <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} categories={navCategories} />
       {main}
-      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} />
+      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} config={config} />
     </RetailShell>
   )
 }

@@ -11,6 +11,24 @@
   --ss-muted: #8c7e8c;
   --ss-r: 10px;
 
+  /* Skin the shared storefront components (themes/shared/tokens.css). */
+  --sf-brand: var(--ss-plum);
+  --sf-brand-contrast: #fff;
+  --sf-brand-hover: #2c1f2c;
+  --sf-brand-soft: var(--ss-warm);
+  --sf-accent: var(--ss-rose);
+  --sf-surface: #fffdfa;
+  --sf-surface-muted: var(--ss-warm);
+  --sf-text: var(--ss-text);
+  --sf-text-muted: var(--ss-muted);
+  --sf-border: rgba(61, 43, 61, 0.1);
+  --sf-border-strong: rgba(61, 43, 61, 0.22);
+  --sf-ring: rgba(196, 120, 106, 0.45);
+  --sf-font-display: 'Cormorant Garamond', Georgia, serif;
+  --sf-font-body: 'DM Sans', system-ui, sans-serif;
+  --sf-radius: var(--ss-r);
+  --sf-radius-lg: 18px;
+
   font-family: 'DM Sans', sans-serif;
   background: var(--ss-ivory);
   color: var(--ss-text);
@@ -21,88 +39,6 @@
 .ss-root *::before,
 .ss-root *::after {
   box-sizing: border-box;
-}
-
-.ss-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 48px;
-  background: var(--ss-ivory);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  border-bottom: 1px solid rgba(61, 43, 61, 0.08);
-}
-
-.ss-nav-logo {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.7rem;
-  font-weight: 600;
-  color: var(--ss-plum);
-  letter-spacing: 0.5px;
-}
-
-.ss-nav-links {
-  display: flex;
-  gap: 32px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.ss-nav-links a {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--ss-muted);
-  text-decoration: none;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  transition: color 0.2s;
-}
-
-.ss-nav-links a:hover {
-  color: var(--ss-plum);
-}
-
-.ss-nav-right {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-}
-
-.ss-cart-btn {
-  background: var(--ss-plum);
-  color: #fff;
-  border: none;
-  border-radius: 50px;
-  padding: 10px 22px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background 0.2s, transform 0.15s;
-}
-
-.ss-cart-btn:hover {
-  background: var(--ss-rose);
-  transform: translateY(-1px);
-}
-
-.ss-cart-count {
-  background: var(--ss-blush);
-  color: var(--ss-plum);
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
 }
 
 .ss-hero {
@@ -325,126 +261,6 @@
   font-weight: 300;
   color: var(--ss-plum);
   margin: 0 0 48px;
-}
-
-.ss-products-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 28px;
-}
-
-.ss-product-card {
-  background: #fff;
-  border-radius: var(--ss-r);
-  overflow: hidden;
-  transition: transform 0.25s, box-shadow 0.25s;
-  box-shadow: 0 2px 12px rgba(61, 43, 61, 0.06);
-  position: relative;
-}
-
-.ss-product-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 36px rgba(61, 43, 61, 0.12);
-}
-
-.ss-product-thumb {
-  aspect-ratio: 1;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 4rem;
-  position: relative;
-}
-
-.ss-product-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.ss-product-thumb-1 {
-  background: linear-gradient(135deg, #edd5c5, #d9bba8);
-}
-
-.ss-product-thumb-2 {
-  background: linear-gradient(135deg, #d0e0d0, #b5c9b5);
-}
-
-.ss-product-thumb-3 {
-  background: linear-gradient(135deg, #e8d5e8, #cdb5cd);
-}
-
-.ss-product-thumb-4 {
-  background: linear-gradient(135deg, #f2e0d0, #e0c9b8);
-}
-
-.ss-product-tag {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: var(--ss-plum);
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  padding: 4px 10px;
-  border-radius: 50px;
-}
-
-.ss-product-info {
-  padding: 18px;
-}
-
-.ss-product-name {
-  font-size: 0.92rem;
-  font-weight: 500;
-  color: var(--ss-text);
-  margin-bottom: 4px;
-}
-
-.ss-product-desc {
-  font-size: 0.78rem;
-  color: var(--ss-muted);
-  margin-bottom: 14px;
-  line-height: 1.5;
-}
-
-.ss-product-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.ss-product-price {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--ss-plum);
-}
-
-.ss-add-btn {
-  background: var(--ss-blush);
-  color: var(--ss-plum);
-  border: none;
-  border-radius: 50px;
-  padding: 7px 16px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  white-space: nowrap;
-}
-
-.ss-add-btn:hover:not(:disabled) {
-  background: var(--ss-plum);
-  color: #fff;
-}
-
-.ss-add-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .ss-strip {
@@ -919,90 +735,6 @@
   text-align: left;
 }
 
-.ss-footer {
-  background: var(--ss-plum);
-  color: rgba(255, 255, 255, 0.7);
-  padding: 60px 48px 32px;
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 40px;
-}
-
-.ss-footer-brand {
-  color: #fff;
-}
-
-.ss-footer-logo {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.8rem;
-  margin-bottom: 12px;
-}
-
-.ss-footer-tagline {
-  font-size: 0.82rem;
-  opacity: 0.7;
-  line-height: 1.6;
-}
-
-.ss-footer-col-title {
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 16px;
-}
-
-.ss-footer-links {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-}
-
-.ss-footer-links a {
-  color: rgba(255, 255, 255, 0.6);
-  text-decoration: none;
-  font-size: 0.82rem;
-  transition: color 0.2s;
-}
-
-.ss-footer-links a:hover {
-  color: #fff;
-}
-
-.ss-footer-bottom {
-  background: var(--ss-plum);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 20px 48px;
-  text-align: center;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.ss-toast {
-  position: fixed;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%) translateY(80px);
-  background: var(--ss-plum);
-  color: #fff;
-  padding: 14px 28px;
-  border-radius: 50px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  z-index: 400;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.ss-toast.show {
-  transform: translateX(-50%) translateY(0);
-}
-
 .ss-checkout-error {
   color: var(--ss-rose);
   font-size: 0.82rem;
@@ -1014,24 +746,7 @@
   font-size: 0.95rem;
 }
 
-@media (max-width: 1024px) {
-  .ss-products-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .ss-footer {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
 @media (max-width: 768px) {
-  .ss-nav {
-    padding: 16px 20px;
-  }
-
-  .ss-nav-links {
-    display: none;
-  }
 
   .ss-hero {
     grid-template-columns: 1fr;
@@ -1049,17 +764,8 @@
     padding: 48px 24px;
   }
 
-  .ss-products-grid {
-    grid-template-columns: 1fr;
-  }
-
   .ss-strip {
     padding: 24px;
-  }
-
-  .ss-footer {
-    grid-template-columns: 1fr;
-    padding: 40px 24px 24px;
   }
 
   .ss-checkout-box {
@@ -1330,10 +1036,6 @@
   .ss-account-nav { flex-wrap: wrap; padding: 14px 20px; }
 }
 
-.ss-nav-logo {
-  text-decoration: none;
-}
-
 .ss-nav-status {
   display: none;
 }
@@ -1350,12 +1052,31 @@
   max-width: 320px;
 }
 
-.ss-product-card-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-
-.ss-product-actions {
-  padding: 0 16px 16px;
+/* Portaled overlays (ui/portal.ts) mount on the tenant wrapper: mirror .ss-root's variables there. */
+[data-tenant].theme-soft-studio {
+  --ss-ivory: #f9f5f0;
+  --ss-blush: #edd5c5;
+  --ss-plum: #3d2b3d;
+  --ss-sage: #8a9e8a;
+  --ss-rose: #c4786a;
+  --ss-warm: #f2eae0;
+  --ss-text: #2a1f2a;
+  --ss-muted: #8c7e8c;
+  --ss-r: 10px;
+  --sf-brand: var(--ss-plum);
+  --sf-brand-contrast: #fff;
+  --sf-brand-hover: #2c1f2c;
+  --sf-brand-soft: var(--ss-warm);
+  --sf-accent: var(--ss-rose);
+  --sf-surface: #fffdfa;
+  --sf-surface-muted: var(--ss-warm);
+  --sf-text: var(--ss-text);
+  --sf-text-muted: var(--ss-muted);
+  --sf-border: rgba(61, 43, 61, 0.1);
+  --sf-border-strong: rgba(61, 43, 61, 0.22);
+  --sf-ring: rgba(196, 120, 106, 0.45);
+  --sf-font-display: 'Cormorant Garamond', Georgia, serif;
+  --sf-font-body: 'DM Sans', system-ui, sans-serif;
+  --sf-radius: var(--ss-r);
+  --sf-radius-lg: 18px;
 }

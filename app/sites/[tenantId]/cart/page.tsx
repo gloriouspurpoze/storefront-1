@@ -80,9 +80,9 @@ export default async function CartPage() {
 
   return (
     <RetailShell tenantId={tenant.id}>
-      <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
+      <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} categories={categories} />
       {main}
-      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} />
+      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} config={config} />
     </RetailShell>
   )
 }

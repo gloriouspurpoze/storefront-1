@@ -20,6 +20,7 @@ import { formatMoney, useCart } from './cart'
 import type { ThemeTenant } from './types'
 import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
 import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
+import { IconBag } from '@/ui'
 import './retail-cart.css'
 
 type Status =
@@ -58,7 +59,7 @@ function LuxeCartEmptyIcon() {
 function themeRootClass(themeKey?: string): string {
   if (themeKey === 'soft-studio') return 'ss-root sf-checkout-page'
   if (themeKey === 'luxe-essence') return 'le-root sf-checkout-page'
-  return 'sf-checkout-page'
+  return 'sf-checkout-page sf-checkout-page--modern'
 }
 
 export function CheckoutClient({
@@ -187,7 +188,7 @@ export function CheckoutClient({
   const isLuxe = themeKey === 'luxe-essence'
   const trustCopy = isLuxe
     ? 'Secure payment via Razorpay · Prices verified on our server'
-    : '🔒 Secure payment via Razorpay · Prices verified on our server'
+    : 'Secure payment via Razorpay · Prices verified on our server'
 
   if (status.kind === 'success') {
     return (
@@ -235,7 +236,7 @@ export function CheckoutClient({
           {modal}
           <div className={`${rootClass} sf-cart-empty`}>
             <div className="sf-cart-empty-icon" aria-hidden>
-              {isLuxe ? <LuxeCartEmptyIcon /> : '🛒'}
+              {isLuxe ? <LuxeCartEmptyIcon /> : <IconBag size={30} />}
             </div>
             <h2 className="sf-cart-empty-title">Nothing to checkout</h2>
             <p className="sf-cart-empty-sub">Your cart is empty. Add items before checking out.</p>
@@ -253,6 +254,17 @@ export function CheckoutClient({
       <>
         {modal}
         <div className={rootClass}>
+        {!themeKey || (themeKey !== 'soft-studio' && themeKey !== 'luxe-essence') ? (
+          <ol className="sf-checkout-steps" aria-label="Checkout progress">
+            <li data-state="done">
+              <Link href="/cart">Cart</Link>
+            </li>
+            <li data-state="current" aria-current="step">
+              Details
+            </li>
+            <li>Payment</li>
+          </ol>
+        ) : null}
         <div className="sf-checkout-layout">
           <form onSubmit={onPay} className="sf-checkout-form">
             <p className="sf-checkout-back">
@@ -280,6 +292,7 @@ export function CheckoutClient({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
+                  inputMode="email"
                 />
               </label>
             ) : null}
@@ -292,6 +305,7 @@ export function CheckoutClient({
                 onChange={(e) => setPhone(e.target.value)}
                 autoComplete="tel"
                 placeholder="+91 98765 43210"
+                inputMode="tel"
               />
             </label>
 
@@ -312,6 +326,7 @@ export function CheckoutClient({
               type="submit"
               disabled={status.kind === 'processing'}
               className="sf-cart-cta-primary sf-cart-cta-block sf-checkout-pay-btn"
+              aria-busy={status.kind === 'processing'}
             >
               {status.kind === 'processing' ? 'Processing…' : `Pay ${formatMoney(subtotal, currency)}`}
             </button>

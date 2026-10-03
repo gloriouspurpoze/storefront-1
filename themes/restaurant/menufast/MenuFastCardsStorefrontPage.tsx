@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicMenuCategory, StorefrontConfig } from '@/lib/storefront-api'
 import {
@@ -59,12 +60,15 @@ export async function MenuFastCardsStorefrontPage({
   config,
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const [content, categoryMarketingRaw] = await Promise.all([
     loadMenuFastCardsStorefrontContent(tenant.id, config),
@@ -82,6 +86,7 @@ export async function MenuFastCardsStorefrontPage({
         categoryMarketing={categoryMarketing}
         navLinks={navLinks}
         footerLinks={footerLinks}
+        addonsSlot={addonsSlot}
       />
     </Suspense>
   )

@@ -5,6 +5,7 @@ import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAut
 import { cartLineKey } from '@/lib/productVariants'
 import { cartLineProductName, formatMoney, useCart } from './cart'
 import { LuxeEssenceCartOptionChip } from './luxe-essence/LuxeEssenceCartOptionChip'
+import { IconBag } from '@/ui'
 import './retail-cart.css'
 
 function LuxeCartEmptyIcon() {
@@ -30,7 +31,7 @@ function LuxeCartEmptyIcon() {
 function themeRootClass(themeKey?: string): string {
   if (themeKey === 'soft-studio') return 'ss-root sf-cart-page'
   if (themeKey === 'luxe-essence') return 'le-root sf-cart-page'
-  return 'sf-cart-page'
+  return 'sf-cart-page sf-cart-page--modern'
 }
 
 export function CartClient({ themeKey }: { themeKey?: string }) {
@@ -40,7 +41,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
   const isLuxe = themeKey === 'luxe-essence'
   const trustCopy = isLuxe
     ? 'Secure checkout · Prices verified on our server'
-    : '🔒 Secure checkout · Prices verified on our server'
+    : 'Secure checkout · Prices verified on our server'
 
   return (
     <RequireStorefrontAuth returnPath="/cart" title="Sign in to view your cart">
@@ -48,7 +49,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
         <div className={rootClass}>
           <div className="sf-cart-empty">
             <div className="sf-cart-empty-icon" aria-hidden>
-              {isLuxe ? <LuxeCartEmptyIcon /> : '🛍️'}
+              {isLuxe ? <LuxeCartEmptyIcon /> : <IconBag size={30} />}
             </div>
             <h2 className="sf-cart-empty-title">Your cart is empty</h2>
             <p className="sf-cart-empty-sub">Add items from the shop to get started.</p>

@@ -1,5 +1,6 @@
 import type { StorefrontCmsFaq } from '@/lib/cms-content'
 import './trade-pro.css'
+import { IconPlus } from '@/ui'
 
 export function TradeProFaq({ faqs }: { faqs: StorefrontCmsFaq[] }) {
   if (!faqs.length) return null
@@ -16,7 +17,7 @@ export function TradeProFaq({ faqs }: { faqs: StorefrontCmsFaq[] }) {
               <summary className="cursor-pointer list-none font-semibold text-[var(--tp-ink)] marker:content-none">
                 <span className="flex items-center justify-between gap-4">
                   {item.question}
-                  <span className="text-lg leading-none text-[var(--tp-mute)] group-open:rotate-45">+</span>
+                  <span className="inline-flex text-[var(--tp-mute)] transition-transform group-open:rotate-45" aria-hidden><IconPlus size={18} /></span>
                 </span>
               </summary>
               <p className="mt-2 max-w-[65ch] text-sm text-[var(--tp-body)]">{item.answer}</p>

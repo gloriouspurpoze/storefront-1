@@ -40,7 +40,7 @@ export function DeliveryDetailsSection({
 
   const timeBounds =
     showPreferredTime && orderingHours && value.preferredDate
-      ? getDeliveryTimeBounds(orderingHours, value.preferredDate)
+      ? getDeliveryTimeBounds(orderingHours, value.preferredDate, new Date(), orderingAvailability)
       : null
 
   const isMenufast = variant === 'menufast'
@@ -168,6 +168,7 @@ export function DeliveryDetailsSection({
                 : fieldInputProps({ flex: '0 0 88px' }))}
               autoComplete="postal-code"
               required
+              inputMode="numeric"
             />
           </div>
         </>

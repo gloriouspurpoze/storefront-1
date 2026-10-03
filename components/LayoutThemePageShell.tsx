@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
+import { CartDrawer } from '@/components/commerce/CartDrawer'
+import { useCartDrawerState } from '@/components/commerce/cartDrawerBus'
 import { useCart as useRetailCart } from '@/themes/retail/cart'
 import { useCart as useRestaurantCart } from '@/themes/restaurant/cart'
 
@@ -23,23 +25,36 @@ function RetailLayoutNav({
   showShippingPolicy?: boolean
   navLinks?: { href: string; label: string }[]
 }) {
-  const { itemCount } = useRetailCart()
+  const { itemCount, lines, subtotal, setQuantity, removeLine } = useRetailCart()
+  const [drawerOpen, setDrawerOpen] = useCartDrawerState()
   return (
-    <StandardStorefrontNav
-      tenant={{
-        name: siteName,
-        logoUrl: tenantLogoUrl ?? config?.branding?.logoUrl,
-        brand: config?.branding?.primaryColor,
-      }}
-      config={config}
-      itemCount={itemCount}
-      variant="retail"
-      cartHref="/cart"
-      showShippingPolicy={showShippingPolicy}
-      accountMode="profile"
-      className={wide ? 'sf-standard-nav--wide' : undefined}
-      navLinks={navLinks}
-    />
+    <>
+      <StandardStorefrontNav
+        tenant={{
+          name: siteName,
+          logoUrl: tenantLogoUrl ?? config?.branding?.logoUrl,
+          brand: config?.branding?.primaryColor,
+        }}
+        config={config}
+        itemCount={itemCount}
+        variant="retail"
+        onCartClick={() => setDrawerOpen(true)}
+        showShippingPolicy={showShippingPolicy}
+        accountMode="profile"
+        className={wide ? 'sf-standard-nav--wide' : undefined}
+        navLinks={navLinks}
+      />
+      <CartDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        lines={lines}
+        subtotal={subtotal}
+        setQuantity={setQuantity}
+        removeLine={removeLine}
+        cartHref="/cart"
+        productHref={(l) => (l.slug ? `/products/${l.slug}` : undefined)}
+      />
+    </>
   )
 }
 
@@ -60,23 +75,38 @@ function RestaurantLayoutNav({
   showShippingPolicy?: boolean
   navLinks?: { href: string; label: string }[]
 }) {
-  const { itemCount } = useRestaurantCart()
+  const { itemCount, lines, subtotal, setQuantity, removeLine } = useRestaurantCart()
+  const [drawerOpen, setDrawerOpen] = useCartDrawerState()
   return (
-    <StandardStorefrontNav
-      tenant={{
-        name: siteName,
-        logoUrl: tenantLogoUrl ?? config?.branding?.logoUrl,
-        brand: config?.branding?.primaryColor,
-      }}
-      config={config}
-      itemCount={itemCount}
-      variant="restaurant"
-      cartHref="/cart"
-      showShippingPolicy={showShippingPolicy}
-      accountMode="profile"
-      className={wide ? 'sf-standard-nav--wide' : undefined}
-      navLinks={navLinks}
-    />
+    <>
+      <StandardStorefrontNav
+        tenant={{
+          name: siteName,
+          logoUrl: tenantLogoUrl ?? config?.branding?.logoUrl,
+          brand: config?.branding?.primaryColor,
+        }}
+        config={config}
+        itemCount={itemCount}
+        variant="restaurant"
+        onCartClick={() => setDrawerOpen(true)}
+        showShippingPolicy={showShippingPolicy}
+        accountMode="profile"
+        className={wide ? 'sf-standard-nav--wide' : undefined}
+        navLinks={navLinks}
+      />
+      <CartDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        lines={lines}
+        subtotal={subtotal}
+        setQuantity={setQuantity}
+        removeLine={removeLine}
+        checkoutHref="/checkout"
+        continueLabel="Browse the menu"
+        continueHref="/menu"
+        note="Delivery fee and taxes calculated at checkout."
+      />
+    </>
   )
 }
 
@@ -106,16 +136,16 @@ export function LayoutThemePageShell({
 
   return (
     <>
-      <Nav
-        config={config}
-        siteName={siteName}
-        tagline={tagline}
-        tenantLogoUrl={tenantLogoUrl}
-        wide={wide}
-        showShippingPolicy={showShippingPolicy}
-        navLinks={navLinks}
-      />
-      {children}
+        <Nav
+          config={config}
+          siteName={siteName}
+          tagline={tagline}
+          tenantLogoUrl={tenantLogoUrl}
+          wide={wide}
+          showShippingPolicy={showShippingPolicy}
+          navLinks={navLinks}
+        />
+        {children}
     </>
   )
 }

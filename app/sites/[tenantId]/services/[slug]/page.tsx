@@ -14,6 +14,8 @@ import { TradeProAddToCartButton } from '@/themes/home-services/trade-pro/TradeP
 import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProShellClient'
 import { fetchServiceBySlug, fetchServices, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
+import { bookingAddonActive } from '@/themes/home-services/bookingAddon'
+import { IconArrowLeft, IconStar } from '@/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,6 +56,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       ])
     : [undefined, undefined]
   const phone = config?.branding?.contactPhone
+  const booking = bookingAddonActive(config)
+  // Booking mode needs the current service in the picker (`related` is just the first few).
+  const bookingServices = [service, ...related.filter((r) => r.id !== service.id)]
 
   const price = formatPrice(service.basePrice, service.currency)
   const duration =
@@ -62,13 +67,13 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       : null
 
   const article = (
-    <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.3fr_1fr]">
+    <section className="sf-container grid gap-10 py-12 sm:py-16 lg:grid-cols-[1.3fr_1fr]">
       <article>
         <Link
           href="/services"
           className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"
         >
-          <span aria-hidden>←</span> All services
+          <IconArrowLeft size={16} /> All services
         </Link>
         <h1 className="mt-5 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
           {service.name}
@@ -86,7 +91,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
           {duration && <Badge>{duration}</Badge>}
           {typeof service.rating === 'number' && service.rating > 0 && (
             <Badge>
-              ★ {service.rating.toFixed(1)}
+              <IconStar size={14} /> {service.rating.toFixed(1)}
               {service.reviewCount ? ` · ${service.reviewCount} reviews` : ''}
             </Badge>
           )}
@@ -117,15 +122,26 @@ export default async function ServiceDetailPage({ params }: PageProps) {
               send from your cart.
             </p>
             <TradeProAddToCartButton service={service} className="tp-btn-primary w-full" />
+            {booking ? (
+              <Link
+                href={`/book?service=${encodeURIComponent(service.slug)}`}
+                className="sf-btn sf-btn--secondary sf-btn--block mt-3"
+              >
+                Book a visit instead
+              </Link>
+            ) : null}
           </div>
         ) : (
           <>
-            <h2 className="mb-4 text-lg font-semibold text-slate-900">Request this service</h2>
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">
+              {booking ? 'Book this service' : 'Request this service'}
+            </h2>
             <BookingForm
               tenantId={tenant.id}
               initialServiceSlug={service.slug}
-              services={related}
+              services={booking ? bookingServices : related}
               source={`service:${service.slug}`}
+              mode={booking ? 'booking' : 'enquiry'}
             />
           </>
         )}
@@ -153,12 +169,12 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   return (
     <>
-      <SiteHeader tenant={themeTenant} />
+      <SiteHeader tenant={themeTenant} bookingEnabled={booking} />
       <main>
         {article}
-        <CallToAction />
+        <CallToAction bookingEnabled={booking} />
       </main>
-      <SiteFooter tenant={themeTenant} />
+      <SiteFooter tenant={themeTenant} bookingEnabled={booking} />
     </>
   )
 }

@@ -4,6 +4,7 @@ import { ThemedAccountShell } from '@/components/account/themes/ThemedAccountShe
 import { AccountDashboardLayout } from '@/components/account/AccountDashboardLayout'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
+import { STOREFRONT_ADDON_FLAGS, isAddonActive } from '@/lib/storefrontAddons'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,9 @@ export default async function AccountLayout({ children }: { children: ReactNode 
       logoUrl={branding.logoUrl}
       tagline={branding.tagline}
     >
-      <AccountDashboardLayout>{children}</AccountDashboardLayout>
+      <AccountDashboardLayout showWishlist={isAddonActive(config, STOREFRONT_ADDON_FLAGS.wishlist)}>
+        {children}
+      </AccountDashboardLayout>
     </ThemedAccountShell>
   )
 }

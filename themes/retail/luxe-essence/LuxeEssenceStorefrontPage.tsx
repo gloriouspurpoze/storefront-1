@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type {
   PublicProduct,
@@ -61,6 +62,7 @@ export async function LuxeEssenceStorefrontPage({
   config,
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   products: PublicProduct[]
   categories?: StorefrontProductCategory[]
@@ -68,6 +70,8 @@ export async function LuxeEssenceStorefrontPage({
   config: StorefrontConfig | null
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const content = await loadLuxeEssenceStorefrontContent(tenant.id, config)
 
@@ -80,6 +84,7 @@ export async function LuxeEssenceStorefrontPage({
       content={content}
       navLinks={navLinks}
       footerLinks={footerLinks}
+      addonsSlot={addonsSlot}
     />
   )
 }

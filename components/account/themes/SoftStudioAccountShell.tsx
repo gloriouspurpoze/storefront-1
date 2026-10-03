@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createAccountShell, type AccountShellBrandProps } from '@/theme-kit/account/GenericAccountShell'
+import { IconArrowLeft } from '@/ui'
 import '@/themes/retail/soft-studio/soft-studio.css'
 
 function renderBrand({ tenantName, tagline }: AccountShellBrandProps) {
@@ -22,7 +23,7 @@ export const SoftStudioAccountShell = createAccountShell({
   backLinkClassName: 'ss-account-store-btn',
   backLinkLabel: (
     <>
-      <span aria-hidden>←</span> Back to store
+      <IconArrowLeft size={16} /> Back to store
     </>
   ),
   renderBrand,

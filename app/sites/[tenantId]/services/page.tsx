@@ -45,14 +45,14 @@ export default async function ServicesPage() {
           serviceArea={config?.branding?.address}
         />
         <main>
-          <section className="mx-auto w-full max-w-6xl px-4 pb-2 pt-12 sm:px-6 sm:pt-16">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+          <section className="sf-container pb-2 pt-12 sm:pt-16">
+            <p className="sf-page-eyebrow">
               {themeTenant.name}
             </p>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+            <h1 className="sf-page-title">
               Everything we do.
             </h1>
-            <p className="mt-3 max-w-xl text-pretty text-slate-600">
+            <p className="sf-page-lead">
               Add services to your cart, then send one enquiry. We&apos;ll call you back within 2 hours.
             </p>
           </section>
@@ -68,14 +68,14 @@ export default async function ServicesPage() {
     <>
       <SiteHeader tenant={themeTenant} />
       <main>
-        <section className="mx-auto w-full max-w-6xl px-4 pb-2 pt-12 sm:px-6 sm:pt-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+        <section className="sf-container pb-2 pt-12 sm:pt-16">
+          <p className="sf-page-eyebrow">
             {themeTenant.name}
           </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+          <h1 className="sf-page-title">
             Everything we do.
           </h1>
-          <p className="mt-3 max-w-xl text-pretty text-slate-600">
+          <p className="sf-page-lead">
             Tap any service to learn more or book a verified pro in seconds.
           </p>
         </section>

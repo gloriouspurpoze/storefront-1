@@ -3,8 +3,6 @@
 import Link from 'next/link'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { ShippingPolicyPanel } from '@/components/ShippingPolicyPanel'
-import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
-import type { StandardNavTenant } from '@/components/StandardStorefrontNav'
 
 export function ShippingPolicyPageContent({
   config,
@@ -45,24 +43,5 @@ export function ShippingPolicyPageContent({
         </Link>
       </div>
     </main>
-  )
-}
-
-export function ShippingPolicyPageShell({
-  tenant,
-  config,
-  variant = 'retail',
-  children,
-}: {
-  tenant: StandardNavTenant
-  config?: StorefrontConfig | null
-  variant?: 'retail' | 'restaurant'
-  children: React.ReactNode
-}) {
-  return (
-    <>
-      <StandardStorefrontNav tenant={tenant} config={config} variant={variant} />
-      {children}
-    </>
   )
 }

@@ -61,8 +61,8 @@ export type AccountThemeClasses = {
 const DEFAULT: AccountThemeClasses = {
   backLink: 'mb-8 inline-flex text-sm text-neutral-500 transition hover:text-neutral-900',
   contentWrap: 'sf-page-shell sf-page-shell--narrow w-full',
-  card: 'rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8',
-  title: 'text-2xl font-semibold tracking-tight text-neutral-900',
+  card: 'rounded-[var(--sf-radius-lg)] border border-[var(--sf-border)] bg-white p-6 shadow-sm sm:p-8',
+  title: 'font-[family-name:var(--sf-font-display)] text-3xl font-semibold tracking-tight text-[var(--sf-text)]',
   subtitle: 'mt-2 text-sm text-neutral-500',
   text: 'text-sm text-neutral-600',
   textMuted: 'text-sm text-neutral-500',
@@ -70,9 +70,9 @@ const DEFAULT: AccountThemeClasses = {
   signupRow: 'text-sm text-neutral-600',
   error: 'mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700',
   btnPrimary:
-    'inline-flex rounded-xl bg-[var(--site-brand,#171717)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60',
+    'inline-flex min-h-11 items-center rounded-[var(--sf-radius)] bg-[var(--sf-brand)] px-5 text-sm font-semibold text-[var(--sf-brand-contrast)] transition hover:bg-[var(--sf-brand-hover)] disabled:opacity-60',
   btnSecondary:
-    'inline-flex rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50',
+    'inline-flex min-h-11 items-center rounded-[var(--sf-radius)] border border-[var(--sf-border-strong)] bg-white px-5 text-sm font-semibold text-[var(--sf-text)] transition hover:bg-[var(--sf-surface-muted)]',
   btnBlock: 'w-full justify-center',
   btnGoogle:
     'flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-neutral-50 hover:shadow disabled:opacity-60',
@@ -84,7 +84,7 @@ const DEFAULT: AccountThemeClasses = {
   emptyTitle: 'font-medium text-neutral-800',
   orderList: 'space-y-4',
   orderCard:
-    'w-full rounded-2xl border border-neutral-200 bg-white p-5 mb-4 text-left shadow-sm transition hover:border-neutral-300',
+    'w-full rounded-[var(--sf-radius-lg)] border border-[var(--sf-border)] bg-white p-5 mb-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
   orderCardExpanded: 'border-neutral-400 ring-2 ring-neutral-200',
   orderMeta: 'mt-0.5 text-sm text-neutral-500',
   orderItems: 'mt-4 space-y-1 border-t border-neutral-100 pt-4 text-sm text-neutral-600',
@@ -113,13 +113,13 @@ const DEFAULT: AccountThemeClasses = {
   trackingHistoryDate: 'text-neutral-500',
   signedInNote: 'rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600',
   statusLoading: 'text-sm text-neutral-500',
-  pageTitle: 'text-2xl font-semibold tracking-tight text-neutral-900',
+  pageTitle: 'font-[family-name:var(--sf-font-display)] text-3xl font-semibold tracking-tight text-[var(--sf-text)]',
   pageSubtitle: 'mt-1 text-sm text-neutral-500',
   form: 'space-y-4',
-  input: 'mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none ring-indigo-200 focus:ring-2',
-  label: 'block text-sm font-medium text-slate-700',
-  trackFooter: 'mt-8 text-center text-sm text-slate-500',
-  trackFooterLink: 'font-medium text-indigo-600 hover:underline',
+  input: 'mt-1 min-h-11 w-full rounded-[var(--sf-radius)] border border-[var(--sf-border-strong)] px-3 py-2 outline-none transition focus:border-[var(--sf-brand)] focus:ring-[3px] focus:ring-[var(--sf-ring)]',
+  label: 'block text-sm font-semibold text-[var(--sf-text)]',
+  trackFooter: 'mt-8 text-center text-sm text-[var(--sf-text-muted)]',
+  trackFooterLink: 'font-semibold text-[var(--sf-brand)] hover:underline',
 }
 
 const BB: Partial<AccountThemeClasses> = {

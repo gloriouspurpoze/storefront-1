@@ -1,6 +1,7 @@
 'use client'
+import type { ReactNode } from 'react'
 
-import { useCallback, useMemo, useState } from 'react'
+import { Fragment, useCallback, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { PublicMenuCategory, StorefrontConfig } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
@@ -33,7 +34,10 @@ import { MenuFastCardsAnnouncementBar } from './content/MenuFastCardsAnnouncemen
 import { MenuFastCardsOffersStrip } from './content/MenuFastCardsOffersStrip'
 import { MenuFastCardsPopupBanner } from './content/MenuFastCardsPopupBanner'
 import { MenuFastCardsPromoBlock } from './content/MenuFastCardsPromoBlock'
+import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import './menufast.css'
+
+const MENUFAST_CARDS_SECTIONS = THEME_SECTIONS['menufast-cards']
 
 const EMPTY_CONTENT: MenuFastCardsStorefrontContent = {
   announcement: null,
@@ -51,6 +55,7 @@ export function MenuFastCardsPage({
   categoryMarketing = {},
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
@@ -59,6 +64,8 @@ export function MenuFastCardsPage({
   categoryMarketing?: Record<string, CategoryMarketingConfig>
   navLinks?: { href: string; label: string }[]
   footerLinks?: { href: string; label: string }[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -160,6 +167,36 @@ export function MenuFastCardsPage({
 
   const { announcement, hero, offers, promo, popup } = content
 
+  // Homepage blocks inside the scroll body. The sticky toolbar/search/category nav and the
+  // brand strip stay fixed above them; announcement, popup, footer and cart are not blocks.
+  const blocks: Record<(typeof MENUFAST_CARDS_SECTIONS)[number], ReactNode> = {
+    hero: <MenuFastCardsHero config={config} heroSlides={hero} />,
+    offers: offers.length > 0 ? <MenuFastCardsOffersStrip slides={offers} /> : null,
+    promo: promo.length > 0 ? <MenuFastCardsPromoBlock slides={promo} /> : null,
+    menu: isGlobalEmpty ? (
+      <MenuFastCardsEmpty variant="global" />
+    ) : isSearchEmpty ? (
+      <MenuFastCardsEmpty variant="search" onClearSearch={() => setSearchQuery('')} />
+    ) : isCategoryEmpty ? (
+      <MenuFastCardsEmpty variant="category" onShowAll={() => onCategoryChange('all')} />
+    ) : (
+      <>
+        {activeCategoryMarketing ? (
+          <CategoryMarketingBlocks config={activeCategoryMarketing} />
+        ) : null}
+        <MenuFastCardsGrid
+          categories={visibleCategories}
+          showCategoryTitles={activeCat === 'all'}
+          cart={cart}
+          authReady={authReady}
+          onSelectItem={setSelectedItemId}
+          onAddItem={addItem}
+          onRemoveItem={removeItem}
+        />
+      </>
+    ),
+  }
+
   return (
     <div className="mf-root theme-menufast-cards">
       {popup ? <MenuFastCardsPopupBanner banner={popup} tenantId={tenant.id} /> : null}
@@ -218,30 +255,10 @@ export function MenuFastCardsPage({
 
           <div className="mf-cards-body" id="mf-menu-panel" role="tabpanel" aria-label="Menu items">
             <MenuFastCardsBrand siteName={siteName} tagline={tagline} logoUrl={logoUrl} />
-            <MenuFastCardsHero config={config} heroSlides={hero} />
-            {offers.length > 0 ? <MenuFastCardsOffersStrip slides={offers} /> : null}
-            {promo.length > 0 ? <MenuFastCardsPromoBlock slides={promo} /> : null}
-            {isGlobalEmpty ? (
-              <MenuFastCardsEmpty variant="global" />
-            ) : isSearchEmpty ? (
-              <MenuFastCardsEmpty variant="search" onClearSearch={() => setSearchQuery('')} />
-            ) : isCategoryEmpty ? (
-              <MenuFastCardsEmpty variant="category" onShowAll={() => onCategoryChange('all')} />
-            ) : (
-              <>
-                {activeCategoryMarketing ? (
-                  <CategoryMarketingBlocks config={activeCategoryMarketing} />
-                ) : null}
-                <MenuFastCardsGrid                categories={visibleCategories}
-                showCategoryTitles={activeCat === 'all'}
-                cart={cart}
-                authReady={authReady}
-                onSelectItem={setSelectedItemId}
-                onAddItem={addItem}
-                onRemoveItem={removeItem}
-              />
-              </>
-            )}
+            {homepageSectionOrder(config, MENUFAST_CARDS_SECTIONS).map((type) => (
+              <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
+            ))}
+            {addonsSlot}
             <MenuFastCardsFooter config={config} footerLinks={footerLinks} />
           </div>
 

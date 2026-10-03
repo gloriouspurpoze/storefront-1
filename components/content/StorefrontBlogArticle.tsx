@@ -15,7 +15,7 @@ type Props = {
 
 export function StorefrontBlogArticle({ post }: Props) {
   return (
-    <main className="sf-page-shell mx-auto max-w-3xl">
+    <main className="sf-page-shell sf-page-shell--narrow">
       <Link href="/blog" className="text-sm opacity-70 hover:opacity-100">
         ← Back to blog
       </Link>

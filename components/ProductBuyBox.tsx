@@ -67,7 +67,7 @@ export function ProductBuyBox({
           <button
             type="button"
             disabled
-            className="w-full rounded-full bg-slate-200 px-6 py-3 text-sm font-semibold text-slate-500"
+            className="sf-btn sf-btn--secondary sf-btn--block"
           >
             Out of stock
           </button>
@@ -75,7 +75,7 @@ export function ProductBuyBox({
           <button
             type="button"
             disabled
-            className="w-full rounded-full bg-slate-100 px-6 py-3 text-sm font-semibold text-slate-500"
+            className="sf-btn sf-btn--secondary sf-btn--block"
           >
             Select an option
           </button>
@@ -83,7 +83,7 @@ export function ProductBuyBox({
           <button
             type="button"
             onClick={handleAdd}
-            className="w-full rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            className="sf-btn sf-btn--block"
             style={{ backgroundColor: 'var(--site-brand)' }}
           >
             {added ? 'Added to cart' : 'Add to cart'}

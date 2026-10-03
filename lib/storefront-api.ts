@@ -12,6 +12,7 @@
 import { env } from './env'
 import { filterOwnedByTenant } from './storefrontContent'
 import { withTenantId } from './tenant-headers'
+import { PREVIEW_COOKIE, parsePreviewCookie, type PreviewParams } from './storefrontPreview'
 
 export interface PublicService {
   id: string
@@ -48,17 +49,22 @@ function withTenantCacheKey(path: string, tenantId: string): string {
 async function getJson<T>(
   path: string,
   tenantId: string,
-  opts: { revalidate?: number; tags?: string[] } = {},
+  opts: { revalidate?: number; tags?: string[]; noStore?: boolean } = {},
 ): Promise<T | null> {
   if (!tenantId) return null
   try {
     const res = await fetch(apiUrl(withTenantCacheKey(path, tenantId)), {
       method: 'GET',
       headers: withTenantId(tenantId, { Accept: 'application/json' }),
-      next: {
-        revalidate: opts.revalidate ?? 60,
-        tags: opts.tags ?? [`tenant:${tenantId}`],
-      },
+      // `noStore` (draft preview) bypasses the shared Data Cache entirely.
+      ...(opts.noStore
+        ? { cache: 'no-store' as const }
+        : {
+            next: {
+              revalidate: opts.revalidate ?? 60,
+              tags: opts.tags ?? [`tenant:${tenantId}`],
+            },
+          }),
     })
     if (!res.ok) return null
     const json = (await res.json().catch(() => null)) as ApiEnvelope<T> | null
@@ -478,6 +484,12 @@ export interface StorefrontOrderingAvailability {
   earliestDate?: string
   latestDate?: string
   slotsNote?: string
+  paused?: boolean
+  pausedUntil?: string
+  pausedMessage?: string
+  closedDates?: Array<{ date: string; label?: string }>
+  leadTimeMinutes?: number
+  maxDaysAhead?: number
 }
 
 export interface StorefrontShippingPolicyZone {
@@ -499,6 +511,10 @@ export interface StorefrontConfig {
   tenantId: string
   themeKey?: string
   sections?: StorefrontSection[]
+  /** Server-resolved homepage blocks for the active theme, in render order (see lib/storefrontSections.ts). */
+  effectiveSections?: Array<{ type: string; enabled: boolean }>
+  /** Set by fetchStorefrontConfig when this is a draft-preview overlay (never from the API). */
+  isPreview?: boolean
   content?: StorefrontContent
   templateSettings?: StorefrontTemplateSettings
   branding: {
@@ -541,20 +557,42 @@ export interface StorefrontConfig {
   featureFlags: Record<string, boolean | Record<string, boolean> | undefined>
   featureAddons?: Record<string, { sku: string; purchased?: boolean }>
   customCss?: string
+  /** Super-admin authored snippets (only present when set). See lib/customScripts.ts. */
+  customHeadScripts?: string
+  customBodyScripts?: string
+  /** Open / maintenance status. `maintenance` renders a holding page (previews still render the site). */
+  siteStatus?: { mode: 'live' | 'maintenance'; message?: string; reopensAt?: string }
   orderingHours?: Partial<import('@/lib/orderingHours').OrderingHoursConfig>
   orderingAvailability?: import('@/lib/orderingHours').OrderingAvailabilityConfig
   shippingPolicy?: import('@/lib/shippingPolicy').ShippingPolicyConfig
+  /** Loyalty program add-on settings (`showLoyaltyProgram`). */
+  loyalty?: import('@/lib/storefrontAddonsApi').StorefrontLoyaltySettings
 }
 
-export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {
-  // Backend returns { tenant, config } since the config endpoint was enhanced to
-  // include tenant identity. Unwrap `config` and normalise required sub-objects so
-  // callers never have to guard against missing `branding` / `seo` objects.
-  const raw = await getJson<{ tenant: unknown; config: StorefrontConfig }>(
-    '/public/storefront/config',
-    tenantId,
-    { revalidate: 60, tags: [`tenant:${tenantId}`, `tenant:${tenantId}:config`] },
-  )
+/**
+ * Read the draft-preview cookie. `next/headers` is imported lazily because this
+ * module is also imported by client components, and `cookies()` throws outside
+ * a request scope (generateStaticParams, sitemap) — both resolve to "no preview".
+ */
+async function readPreviewCookie(): Promise<PreviewParams | null> {
+  if (typeof window !== 'undefined') return null
+  try {
+    const { cookies } = await import('next/headers')
+    const store = await cookies()
+    return parsePreviewCookie(store.get(PREVIEW_COOKIE)?.value)
+  } catch {
+    return null
+  }
+}
+
+/** Whether the current request carries a well-formed draft-preview cookie. */
+export async function getStorefrontPreviewState(): Promise<{ active: boolean }> {
+  return { active: (await readPreviewCookie()) !== null }
+}
+
+type RawConfigResponse = { tenant: unknown; config: StorefrontConfig }
+
+function normaliseConfig(raw: RawConfigResponse | null): StorefrontConfig | null {
   if (!raw) return null
   const cfg = raw.config ?? (raw as unknown as StorefrontConfig)
   return {
@@ -563,6 +601,34 @@ export async function fetchStorefrontConfig(tenantId: string): Promise<Storefron
     seo: cfg.seo ?? {},
     featureFlags: cfg.featureFlags ?? {},
   }
+}
+
+export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {
+  // Backend returns { tenant, config } since the config endpoint was enhanced to
+  // include tenant identity. Unwrap `config` and normalise required sub-objects so
+  // callers never have to guard against missing `branding` / `seo` objects.
+  //
+  // Draft preview: only requests carrying `sf_preview` go uncached; on any
+  // failure (expired token, wrong tenant → 404) fall back to the live config.
+  const preview = await readPreviewCookie()
+  if (preview) {
+    const qs = new URLSearchParams({
+      previewVersion: preview.versionId,
+      previewToken: preview.token,
+    })
+    const draft = normaliseConfig(
+      await getJson<RawConfigResponse>(`/public/storefront/config?${qs}`, tenantId, {
+        noStore: true,
+      }),
+    )
+    if (draft) return { ...draft, isPreview: true }
+  }
+  return normaliseConfig(
+    await getJson<RawConfigResponse>('/public/storefront/config', tenantId, {
+      revalidate: 60,
+      tags: [`tenant:${tenantId}`, `tenant:${tenantId}:config`],
+    }),
+  )
 }
 
 export async function verifyCheckout(input: {
@@ -1172,4 +1238,199 @@ export async function fetchCategoryMarketing(
     },
   )
   return data && typeof data === 'object' && !Array.isArray(data) ? data : {}
+}
+
+// ——— Customer account: order detail, cancel, address book ———
+
+export interface CustomerOrderDetail {
+  id: string
+  orderNumber: string
+  status: string
+  paymentStatus: string
+  paymentMethod: 'razorpay' | 'cod' | 'pay_at_restaurant' | 'other'
+  items: Array<{
+    productId?: string
+    name: string
+    variantName?: string
+    quantity: number
+    price: number
+    total: number
+    imageUrl?: string
+    slug?: string
+  }>
+  itemCount: number
+  subtotal: number
+  shippingAmount: number
+  taxAmount: number
+  discountAmount: number
+  couponCode?: string
+  totalAmount: number
+  shippingAddress: {
+    name: string
+    phone?: string
+    address: string
+    city?: string
+    state?: string
+    zipCode?: string
+  } | null
+  createdAt?: string
+  cancellable: boolean
+  cancelDeadlineAt?: string
+}
+
+function customerHeaders(input: { tenantId?: string; accessToken: string }, json = false) {
+  const base: Record<string, string> = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${input.accessToken}`,
+  }
+  if (json) base['Content-Type'] = 'application/json'
+  return input.tenantId ? withTenantId(input.tenantId, base) : base
+}
+
+function normalizeAddress(addr: CustomerSavedAddress): CustomerSavedAddress {
+  return {
+    ...addr,
+    _id: String((addr as { _id?: string; id?: string })._id ?? (addr as { id?: string }).id ?? ''),
+  }
+}
+
+/** @see GET /api/public/storefront/customers/orders/:orderNumber */
+export async function fetchCustomerOrderDetail(input: {
+  tenantId: string
+  accessToken: string
+  orderNumber: string
+}): Promise<CustomerOrderDetail | null> {
+  const encoded = encodeURIComponent(input.orderNumber.trim())
+  const res = await fetch(apiUrl(`/public/storefront/customers/orders/${encoded}`), {
+    method: 'GET',
+    headers: customerHeaders(input),
+    cache: 'no-store',
+  })
+  if (res.status === 404) return null
+  const json = (await res.json().catch(() => null)) as ApiEnvelope<CustomerOrderDetail> | null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || `Failed to load order (${res.status})`)
+  }
+  return json.data
+}
+
+/** @see POST /api/public/storefront/customers/orders/:orderNumber/cancel */
+export async function cancelCustomerOrder(input: {
+  tenantId: string
+  accessToken: string
+  orderNumber: string
+  reason?: string
+}): Promise<void> {
+  const encoded = encodeURIComponent(input.orderNumber.trim())
+  const res = await fetch(apiUrl(`/public/storefront/customers/orders/${encoded}/cancel`), {
+    method: 'POST',
+    headers: customerHeaders(input, true),
+    body: JSON.stringify({ reason: input.reason?.trim() || undefined }),
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.message || `Could not cancel order (${res.status})`)
+  }
+}
+
+/** @see GET /api/addresses */
+export async function fetchCustomerAddresses(input: {
+  accessToken: string
+}): Promise<CustomerSavedAddress[]> {
+  const res = await fetch(apiUrl('/addresses'), {
+    method: 'GET',
+    headers: customerHeaders(input),
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean
+    message?: string
+    data?: { addresses?: CustomerSavedAddress[] }
+  } | null
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.message || `Failed to load addresses (${res.status})`)
+  }
+  return (json.data?.addresses ?? []).map(normalizeAddress)
+}
+
+export type CustomerAddressInput = {
+  type?: 'home' | 'work' | 'other'
+  label?: string
+  street: string
+  apartment?: string
+  landmark?: string
+  city: string
+  state: string
+  zipCode: string
+  country?: string
+  isDefault?: boolean
+}
+
+/** Create (no `addressId`) or update an address-book entry. */
+export async function upsertCustomerAddress(input: {
+  accessToken: string
+  addressId?: string | null
+  address: CustomerAddressInput
+}): Promise<CustomerSavedAddress> {
+  const a = input.address
+  const body = {
+    type: a.type ?? 'home',
+    label: a.label?.trim() || '',
+    street: a.street.trim(),
+    apartment: a.apartment?.trim() || '',
+    landmark: a.landmark?.trim() || '',
+    city: a.city.trim(),
+    state: a.state.trim(),
+    zipCode: a.zipCode.trim(),
+    country: a.country?.trim() || 'India',
+    ...(a.isDefault !== undefined ? { isDefault: a.isDefault } : {}),
+  }
+  const id = input.addressId?.trim()
+  const res = await fetch(apiUrl(id ? `/addresses/${encodeURIComponent(id)}` : '/addresses'), {
+    method: id ? 'PUT' : 'POST',
+    headers: customerHeaders(input, true),
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean
+    message?: string
+    data?: { address?: CustomerSavedAddress }
+  } | null
+  if (!res.ok || !json?.success || !json.data?.address) {
+    throw new Error(json?.message || `Failed to save address (${res.status})`)
+  }
+  return normalizeAddress(json.data.address)
+}
+
+/** @see DELETE /api/addresses/:addressId */
+export async function deleteCustomerAddress(input: {
+  accessToken: string
+  addressId: string
+}): Promise<void> {
+  const res = await fetch(apiUrl(`/addresses/${encodeURIComponent(input.addressId)}`), {
+    method: 'DELETE',
+    headers: customerHeaders(input),
+    cache: 'no-store',
+  })
+  const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.message || `Failed to delete address (${res.status})`)
+  }
+}
+
+/** @see PATCH /api/addresses/:addressId/set-default */
+export async function setDefaultCustomerAddress(input: {
+  accessToken: string
+  addressId: string
+}): Promise<void> {
+  const res = await fetch(
+    apiUrl(`/addresses/${encodeURIComponent(input.addressId)}/set-default`),
+    { method: 'PATCH', headers: customerHeaders(input), cache: 'no-store' },
+  )
+  const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.message || `Failed to set default address (${res.status})`)
+  }
 }

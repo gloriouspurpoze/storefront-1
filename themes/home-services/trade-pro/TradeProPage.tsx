@@ -1,6 +1,7 @@
+import { Fragment, type ReactNode } from 'react'
 import type { StorefrontCmsFaq, StorefrontCmsTestimonial, StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
-import { TrustSection } from '../TrustSection'
+import { Testimonials } from '@/components/sections/Testimonials'
 import type { PublicService, ThemeTenant } from '../types'
 import { TradeProAbout } from './TradeProAbout'
 import { TradeProFaq } from './TradeProFaq'
@@ -13,6 +14,9 @@ import { TradeProServiceGrid } from './TradeProServiceGrid'
 import { TradeProShell } from './TradeProShell'
 import { TradeProStatsBar } from './TradeProStatsBar'
 import { TradeProWhyChooseUs } from './TradeProWhyChooseUs'
+import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
+
+const TRADE_PRO_SECTIONS = THEME_SECTIONS['trade-pro']
 
 export function TradeProPage({
   tenant,
@@ -22,6 +26,7 @@ export function TradeProPage({
   services,
   faqs,
   testimonials,
+  addonsSlot,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
@@ -30,6 +35,7 @@ export function TradeProPage({
   services: PublicService[]
   faqs: StorefrontCmsFaq[]
   testimonials: StorefrontCmsTestimonial[]
+  addonsSlot?: ReactNode
 }) {
   const headline = config?.content?.heroHeadline || `${tenant.name}, done right the first time.`
   const subcopy = config?.content?.heroSubcopy || tenant.tagline
@@ -41,6 +47,35 @@ export function TradeProPage({
   const rating = avgRating != null && reviews > 0 ? avgRating : undefined
   const reviewCount = reviews > 0 ? reviews : undefined
 
+  const blocks: Record<(typeof TRADE_PRO_SECTIONS)[number], ReactNode> = {
+    hero: (
+      <TradeProHero
+        headline={headline}
+        subcopy={subcopy}
+        services={services}
+        rating={rating}
+        reviewCount={reviewCount}
+        ctaLabel={ctaLabel}
+        phone={phone}
+      />
+    ),
+    stats: <TradeProStatsBar />,
+    services: (
+      <TradeProServiceGrid
+        services={services}
+        title="Our services"
+        subtitle="Licensed pros for every job, big or small."
+        phone={phone}
+      />
+    ),
+    howItWorks: <TradeProHowItWorks />,
+    whyChooseUs: <TradeProWhyChooseUs />,
+    trust: testimonials.length > 0 ? <Testimonials testimonials={testimonials} title="What customers say" /> : null,
+    about: <TradeProAbout title={config?.content?.aboutTitle} body={config?.content?.aboutBody} />,
+    faq: <TradeProFaq faqs={faqs} />,
+    cta: <TradeProFinalCta phone={phone} />,
+  }
+
   return (
     <TradeProShell tenantId={tenant.id}>
       <TradeProHeader
@@ -51,36 +86,11 @@ export function TradeProPage({
       />
 
       <main>
-        <TradeProHero
-          headline={headline}
-          subcopy={subcopy}
-          services={services}
-          rating={rating}
-          reviewCount={reviewCount}
-          ctaLabel={ctaLabel}
-          phone={phone}
-        />
+        {homepageSectionOrder(config, TRADE_PRO_SECTIONS).map((type) => (
+          <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
+        ))}
 
-        <TradeProStatsBar />
-
-        <TradeProServiceGrid
-          services={services}
-          title="Our services"
-          subtitle="Licensed pros for every job, big or small."
-          phone={phone}
-        />
-
-        <TradeProHowItWorks />
-
-        <TradeProWhyChooseUs />
-
-        {testimonials.length > 0 && <TrustSection testimonials={testimonials} />}
-
-        <TradeProAbout title={config?.content?.aboutTitle} body={config?.content?.aboutBody} />
-
-        <TradeProFaq faqs={faqs} />
-
-        <TradeProFinalCta phone={phone} />
+        {addonsSlot}
       </main>
 
       <TradeProFooter tenant={tenant} config={config} navLinks={footerLinks} />

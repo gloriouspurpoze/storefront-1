@@ -1,4 +1,5 @@
 'use client'
+import { Fragment, type ReactNode } from 'react'
 
 import { useEffect, useMemo, useState } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
@@ -24,7 +25,10 @@ import { LuxeEssenceAnnouncementBar } from './content/LuxeEssenceAnnouncementBar
 import { LuxeEssenceOffersStrip } from './content/LuxeEssenceOffersStrip'
 import { LuxeEssencePromoBlock } from './content/LuxeEssencePromoBlock'
 import { LuxeEssencePopupBanner } from './content/LuxeEssencePopupBanner'
+import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import './luxe-essence.css'
+
+const LUXE_ESSENCE_SECTIONS = THEME_SECTIONS['luxe-essence']
 
 const EMPTY_CONTENT: LuxeEssenceStorefrontContent = {
   announcement: null,
@@ -42,6 +46,7 @@ export function LuxeEssencePage({
   content = EMPTY_CONTENT,
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   products: PublicProduct[]
   categories?: StorefrontProductCategory[]
@@ -50,6 +55,8 @@ export function LuxeEssencePage({
   content?: LuxeEssenceStorefrontContent
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -104,6 +111,33 @@ export function LuxeEssencePage({
 
   const { announcement, hero, offers, promo, popup } = content
 
+  const blocks: Record<(typeof LUXE_ESSENCE_SECTIONS)[number], ReactNode> = {
+    hero: (
+      <LuxeEssenceHero
+        config={config}
+        siteName={siteName}
+        products={products}
+        categories={heroCategories}
+        heroSlides={hero}
+        suppressPromoStrip={Boolean(announcement)}
+      />
+    ),
+    offers: offers.length > 0 ? <LuxeEssenceOffersStrip slides={offers} /> : null,
+    products:
+      products.length === 0 ? (
+        <LuxeEssenceCatalogEmpty />
+      ) : (
+        <LuxeEssenceProductGrid
+          products={products}
+          authReady={authReady}
+          totalQtyForProduct={totalQtyForProduct}
+          onAdd={addToCart}
+          onSelectOptions={(product) => setSelectedProductId(product.id)}
+        />
+      ),
+    promo: promo.length > 0 ? <LuxeEssencePromoBlock slides={promo} /> : null,
+  }
+
   return (
     <div className="le-root theme-luxe-essence">
       {popup ? <LuxeEssencePopupBanner banner={popup} tenantId={tenant.id} /> : null}
@@ -134,30 +168,11 @@ export function LuxeEssencePage({
         }}
       />
 
-      <LuxeEssenceHero
-        config={config}
-        siteName={siteName}
-        products={products}
-        categories={heroCategories}
-        heroSlides={hero}
-        suppressPromoStrip={Boolean(announcement)}
-      />
+      {homepageSectionOrder(config, LUXE_ESSENCE_SECTIONS).map((type) => (
+        <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
+      ))}
 
-      {offers.length > 0 ? <LuxeEssenceOffersStrip slides={offers} /> : null}
-
-      {products.length === 0 ? (
-        <LuxeEssenceCatalogEmpty />
-      ) : (
-        <LuxeEssenceProductGrid
-          products={products}
-          authReady={authReady}
-          totalQtyForProduct={totalQtyForProduct}
-          onAdd={addToCart}
-          onSelectOptions={(product) => setSelectedProductId(product.id)}
-        />
-      )}
-
-      {promo.length > 0 ? <LuxeEssencePromoBlock slides={promo} /> : null}
+      {addonsSlot}
 
       <LuxeEssenceFooter
         config={config}

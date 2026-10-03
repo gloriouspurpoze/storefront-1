@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { StorefrontCmsFaq, StorefrontCmsTestimonial, StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import type { PublicService, ThemeTenant } from './types'
@@ -9,6 +10,8 @@ type HomeServicesLayoutProps = {
   config: StorefrontConfig | null
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  /** Paid add-on homepage blocks (AMC / loyalty / B2B), rendered above the theme footer. */
+  addonsSlot?: ReactNode
   services?: PublicService[]
   faqs?: StorefrontCmsFaq[]
   testimonials?: StorefrontCmsTestimonial[]
@@ -24,6 +27,7 @@ const router = createLayoutRouter<HomeServicesLayoutProps, 'trade-pro'>({
         config={p.config}
         navLinks={p.navLinks}
         footerLinks={p.footerLinks}
+        addonsSlot={p.addonsSlot}
         services={p.services ?? []}
         faqs={p.faqs ?? []}
         testimonials={p.testimonials ?? []}

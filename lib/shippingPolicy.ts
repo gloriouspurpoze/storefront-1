@@ -17,6 +17,18 @@ export interface ShippingPolicyConfig {
   shipFeeInr?: number
   /** Free delivery when cart subtotal >= this (INR). Unset / 0 = never auto-waive. */
   freeDeliveryMinInr?: number
+  /** Items subtotal (INR) required to check out. */
+  minOrderInr?: number
+  /** COD hidden above this order total (INR). */
+  codMaxOrderInr?: number
+  /** GST / tax rate (0–28). */
+  taxRatePercent?: number
+  /** Default true — catalog prices already include tax. */
+  pricesIncludeTax?: boolean
+}
+
+function positiveOrUndefined(n: unknown): number | undefined {
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : undefined
 }
 
 export function getShippingPolicyFromConfig(
@@ -41,6 +53,10 @@ export function getShippingPolicyFromConfig(
       typeof raw.freeDeliveryMinInr === 'number' && Number.isFinite(raw.freeDeliveryMinInr)
         ? Math.max(0, raw.freeDeliveryMinInr)
         : undefined,
+    minOrderInr: positiveOrUndefined(raw.minOrderInr),
+    codMaxOrderInr: positiveOrUndefined(raw.codMaxOrderInr),
+    taxRatePercent: positiveOrUndefined(raw.taxRatePercent),
+    pricesIncludeTax: raw.pricesIncludeTax === false ? false : undefined,
   }
 }
 

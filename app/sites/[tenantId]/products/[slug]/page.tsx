@@ -5,7 +5,13 @@ import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
 import { fetchStorefrontFaqs, fetchStorefrontNavLinks } from '@/lib/cms-content'
-import { fetchProductBySlug, fetchStorefrontConfig } from '@/lib/storefront-api'
+import {
+  fetchProductBySlug,
+  fetchProducts,
+  fetchStorefrontCategories,
+  fetchStorefrontConfig,
+} from '@/lib/storefront-api'
+import { ProductRail } from '@/components/sections/ProductRail'
 import { toThemeTenant } from '@/themes/retail/types'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { ProductDetailView } from '@/components/ProductDetailView'
@@ -55,6 +61,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
   if (!product) notFound()
 
   const isLayout = isRetailLayoutTheme(config?.themeKey)
+  // Default theme: header mega menu + "You may also like" rail (same category first).
+  const [categories, catalog] = isLayout
+    ? [[], []]
+    : await Promise.all([fetchStorefrontCategories(tenant.id), fetchProducts(tenant.id, 24)])
+  const others = catalog.filter((p) => p.id !== product.id && p.inStock)
+  const related = [
+    ...others.filter((p) => product.categorySlug && p.categorySlug === product.categorySlug),
+    ...others.filter((p) => !product.categorySlug || p.categorySlug !== product.categorySlug),
+  ].slice(0, 12)
   const h = await headers()
   const baseUrl = resolveStorefrontBaseUrl(
     config,
@@ -88,8 +103,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
         themeKey={config?.themeKey}
         navLinks={headerNavLinks}
         faqs={faqs}
+        categories={categories}
       />
-      {!isLayout ? <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} /> : null}
+      {!isLayout && related.length > 1 ? (
+        <ProductRail eyebrow="Keep exploring" title="You may also like" products={related} />
+      ) : null}
+      {!isLayout ? <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} config={config} /> : null}
     </RetailShell>
   )
 }

@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import type { ReactNode } from 'react'
+import { Fragment, useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { PublicMenuCategory, PublicMenuItem, StorefrontConfig } from '@/lib/storefront-api'
 import { isMenuItemInStock } from '@/lib/storefront-api'
 import type { ThemeTenant } from '../types'
 import { SaffronHeader } from './SaffronHeader'
 import { SaffronHero } from './SaffronHero'
 import { SaffronFooter } from './SaffronFooter'
+import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { MenuOrderCheckoutBlock } from '../MenuOrderCheckoutBlock'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
@@ -34,7 +36,9 @@ import {
   coerceDeliveryMode,
   getEnabledRestaurantDeliveryModes,
 } from '@/lib/storefrontDeliveryModes'
-import { storefrontShippingAmountInr } from '@/lib/storefrontCheckoutPricing'
+import { storefrontCheckoutTotals } from '@/lib/storefrontCheckoutPricing'
+import { IconBag, IconCheck, IconClose, IconMinus, IconPlus, IconSearch, QuantityStepper } from '@/ui'
+import '@/components/commerce/menu-board.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,10 +50,12 @@ interface BadgeStyle {
   label: string
 }
 
+const SAFFRON_SECTIONS = THEME_SECTIONS.saffron
+
 const DIETARY_BADGES: Record<string, BadgeStyle> = {
   veg: { bg: '#E8F5E9', color: '#2E7D32', label: 'Veg' },
   vegan: { bg: '#E8F5E9', color: '#1B5E20', label: 'Vegan' },
-  spicy: { bg: '#FFF3E0', color: '#E65100', label: '🌶 Spicy' },
+  spicy: { bg: '#FFF3E0', color: '#E65100', label: 'Spicy' },
   popular: { bg: '#F0DDD4', color: '#9B4A27', label: 'Popular' },
   new: { bg: '#EDE7F6', color: '#4527A0', label: 'New' },
   'gluten-free': { bg: '#F3E5F5', color: '#6A1B9A', label: 'GF' },
@@ -89,89 +95,35 @@ function MenuItemCard({
       : formatListPrice(item, (amount) => formatMenuPrice(amount, currency))
     : formatMenuPrice(item.price, currency)
 
+  // Shared dish-card styles (components/commerce/menu-board.css), skinned by Saffron tokens.
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 100px',
-        gap: '1rem',
-        padding: '1.25rem 0',
-        alignItems: 'start',
-      }}
-    >
-      {/* Info */}
-      <div>
+    <div className="sf-dish saffron-dish" data-soldout={!inStock || undefined}>
+      {onOpenDetail ? (
+        <button type="button" className="sf-dish__open" onClick={onOpenDetail}>
+          <span className="sf-visually-hidden">View {item.name}</span>
+        </button>
+      ) : null}
+      <div className="sf-dish__body">
         {badges.length > 0 && (
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
+          <div className="sf-dish__tags">
             {badges.map((tag) => {
               const bs = getBadgeStyle(tag)
               return (
-                <span
-                  key={tag}
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                    padding: '2px 7px',
-                    borderRadius: '3px',
-                    background: bs.bg,
-                    color: bs.color,
-                  }}
-                >
+                <span key={tag} className="saffron-diet-tag" style={{ background: bs.bg, color: bs.color }}>
                   {bs.label}
                 </span>
               )
             })}
           </div>
         )}
-        <div
-          style={{
-            fontWeight: 500,
-            fontSize: '15px',
-            marginBottom: '4px',
-            color: 'var(--ink, #1A1714)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap',
-          }}
-        >
-          {item.name}
-          {!inStock && (
-            <span
-              style={{
-                fontSize: '10px',
-                fontWeight: 600,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                padding: '2px 7px',
-                borderRadius: '3px',
-                background: '#FEF3C7',
-                color: '#92400E',
-              }}
-            >
-              Out of stock
-            </span>
-          )}
+        <div className="sf-dish__title-row">
+          <h3 className="sf-dish__name">{item.name}</h3>
+          {!inStock && <span className="saffron-oos-tag">Out of stock</span>}
         </div>
-        {item.description && (
-          <div
-            style={{
-              fontSize: '13px',
-              color: 'var(--ink-muted, #8A847C)',
-              lineHeight: 1.5,
-              marginBottom: '8px',
-            }}
-          >
-            {item.description}
-          </div>
-        )}
-        <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--ink, #1A1714)' }}>
-          {priceLabel}
-        </div>
+        <p className="sf-dish__price">{priceLabel}</p>
+        {item.description && <p className="sf-dish__desc">{item.description}</p>}
         {hasVariants && item.variants && (
-          <div style={{ marginTop: '8px' }}>
+          <div className="saffron-dish__variants">
             <ProductVariantSelector
               variants={item.variants}
               selectedId={selectedVariantId}
@@ -183,171 +135,33 @@ function MenuItemCard({
         )}
       </div>
 
-      {/* Image + add/qty control */}
-      <div style={{ position: 'relative' }}>
+      <div className="sf-dish__media">
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.imageUrl}
-            alt={item.name}
-            role={onOpenDetail ? 'button' : undefined}
-            tabIndex={onOpenDetail ? 0 : undefined}
-            onClick={onOpenDetail}
-            onKeyDown={
-              onOpenDetail
-                ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      onOpenDetail()
-                    }
-                  }
-                : undefined
-            }
-            style={{
-              width: '100px',
-              height: '80px',
-              objectFit: 'cover',
-              borderRadius: 'var(--saf-radius-sm, 6px)',
-              display: 'block',
-              cursor: onOpenDetail ? 'pointer' : undefined,
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: '100px',
-              height: '80px',
-              borderRadius: 'var(--saf-radius-sm, 6px)',
-              background: 'var(--cream-dark, #F0EDE4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '28px',
-            }}
-          >
-            🍽️
-          </div>
-        )}
-
-        {!inStock ? null : hasVariants && !selectedVariantId ? (
-          <button
-            onClick={onOpenDetail}
-            title="Choose options"
-            style={{
-              position: 'absolute',
-              bottom: '-10px',
-              right: '-10px',
-              minWidth: '30px',
-              height: '30px',
-              padding: '0 8px',
-              borderRadius: '100px',
-              background: 'var(--ink, #1A1714)',
-              color: 'var(--cream, #FAF8F3)',
-              border: '2px solid var(--cream, #FAF8F3)',
-              fontSize: '14px',
-              lineHeight: '1',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'inherit',
-              transition: 'background 0.15s, transform 0.1s',
-            }}
-          >
-            ···
-          </button>
-        ) : qty === 0 ? (
-          <button
-            onClick={onAdd}
-            title="Add to cart"
-            style={{
-              position: 'absolute',
-              bottom: '-10px',
-              right: '-10px',
-              width: '30px',
-              height: '30px',
-              borderRadius: '50%',
-              background: 'var(--ink, #1A1714)',
-              color: 'var(--cream, #FAF8F3)',
-              border: '2px solid var(--cream, #FAF8F3)',
-              fontSize: '18px',
-              lineHeight: '1',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'inherit',
-              transition: 'background 0.15s, transform 0.1s',
-            }}
-          >
-            +
-          </button>
-        ) : (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-12px',
-              right: '-12px',
-              background: 'var(--ink, #1A1714)',
-              borderRadius: '100px',
-              padding: '2px',
-              border: '2px solid var(--cream, #FAF8F3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <button
-              onClick={onRemove}
-              style={{
-                width: '22px',
-                height: '22px',
-                borderRadius: '50%',
-                background: 'transparent',
-                color: 'var(--cream, #FAF8F3)',
-                border: 'none',
-                fontSize: '15px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'inherit',
-              }}
-            >
-              −
+          <img src={item.imageUrl} alt="" loading="lazy" decoding="async" />
+        ) : null}
+        <div className="sf-dish__cta">
+          {!inStock ? (
+            <span className="sf-dish__soldout">Sold out</span>
+          ) : hasVariants && !selectedVariantId ? (
+            <button type="button" className="sf-dish__add" onClick={onOpenDetail}>
+              Options <IconPlus size={14} />
             </button>
-            <span
-              style={{
-                color: 'var(--cream, #FAF8F3)',
-                fontSize: '13px',
-                fontWeight: 500,
-                minWidth: '16px',
-                textAlign: 'center',
-              }}
-            >
-              {qty}
-            </span>
-            <button
-              onClick={onAdd}
-              style={{
-                width: '22px',
-                height: '22px',
-                borderRadius: '50%',
-                background: 'transparent',
-                color: 'var(--cream, #FAF8F3)',
-                border: 'none',
-                fontSize: '15px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'inherit',
-              }}
-            >
-              +
+          ) : qty === 0 ? (
+            <button type="button" className="sf-dish__add" onClick={onAdd}>
+              Add <IconPlus size={14} />
             </button>
-          </div>
-        )}
+          ) : (
+            <QuantityStepper
+              size="sm"
+              min={0}
+              value={qty}
+              label={`Quantity of ${item.name}`}
+              className="sf-dish__qty"
+              onChange={(next) => (next > qty ? onAdd() : onRemove())}
+            />
+          )}
+        </div>
       </div>
     </div>
   )
@@ -443,6 +257,7 @@ function CartContent({
         </div>
         {!isEmpty && (
           <button
+            type="button"
             onClick={onClear}
             style={{
               background: 'none',
@@ -495,7 +310,7 @@ function CartContent({
                 boxShadow: deliveryMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
               }}
             >
-              {mode === 'delivery' ? '🛵 Delivery' : '🏃 Pickup'}
+              {mode === 'delivery' ? 'Delivery' : 'Pickup'}
             </button>
           ))}
         </div>
@@ -507,7 +322,7 @@ function CartContent({
               color: 'var(--ink-muted, #8A847C)',
             }}
           >
-            {deliveryMode === 'delivery' ? '🛵 Delivery' : '🏃 Pickup'}
+            {deliveryMode === 'delivery' ? 'Delivery' : 'Pickup'}
           </div>
         )}
 
@@ -531,7 +346,7 @@ function CartContent({
               color: 'var(--ink-muted, #8A847C)',
             }}
           >
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🍽️</div>
+            <div style={{ marginBottom: '12px', color: 'var(--ink-muted, #8A847C)' }}><IconBag size={40} /></div>
             <p style={{ fontSize: '14px' }}>
               Your cart is empty.
               <br />
@@ -573,7 +388,7 @@ function CartContent({
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
-                      '🍽️'
+                      <IconBag size={20} />
                     )}
                   </div>
                   <div style={{ flex: 1 }}>
@@ -584,6 +399,8 @@ function CartContent({
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <button
+                        type="button"
+                        aria-label={`Decrease ${menuCartLineLabel(item, variantId)}`}
                         onClick={() => onRemove(item.id, variantId)}
                         style={{
                           width: '22px',
@@ -601,7 +418,7 @@ function CartContent({
                           transition: 'all 0.15s',
                         }}
                       >
-                        −
+                        <IconMinus size={14} />
                       </button>
                       <span
                         style={{
@@ -614,6 +431,8 @@ function CartContent({
                         {quantity}
                       </span>
                       <button
+                        type="button"
+                        aria-label={`Increase ${menuCartLineLabel(item, variantId)}`}
                         onClick={() => onAdd(item, variantId)}
                         style={{
                           width: '22px',
@@ -631,7 +450,7 @@ function CartContent({
                           transition: 'all 0.15s',
                         }}
                       >
-                        +
+                        <IconPlus size={14} />
                       </button>
                     </div>
                   </div>
@@ -696,46 +515,6 @@ function CartContent({
           flexShrink: 0,
         }}
       >
-        {/* Promo code */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '1rem' }}>
-          <input
-            type="text"
-            value={promoCode}
-            onChange={(e) => onPromoChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && onApplyPromo()}
-            placeholder="Promo code"
-            style={{
-              flex: 1,
-              padding: '8px 10px',
-              border: '1px solid var(--saf-border-strong, rgba(26,23,20,0.2))',
-              borderRadius: 'var(--saf-radius-sm, 6px)',
-              fontSize: '13px',
-              fontFamily: 'inherit',
-              color: 'var(--ink, #1A1714)',
-              outline: 'none',
-              background: 'white',
-              transition: 'border-color 0.15s',
-            }}
-          />
-          <button
-            onClick={onApplyPromo}
-            style={{
-              padding: '8px 14px',
-              border: '1px solid var(--saf-border-strong, rgba(26,23,20,0.2))',
-              borderRadius: 'var(--saf-radius-sm, 6px)',
-              fontSize: '13px',
-              fontWeight: 500,
-              background: 'transparent',
-              color: 'var(--ink, #1A1714)',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s',
-            }}
-          >
-            Apply
-          </button>
-        </div>
-
         {/* Bill summary */}
         {!isEmpty && (
           <div
@@ -744,9 +523,9 @@ function CartContent({
             <BillRow label="Item total" value={formatMenuPrice(subtotal, currency)} />
             <BillRow
               label="Delivery fee"
-              value={deliveryFee === 0 ? '🎉 Free' : formatMenuPrice(deliveryFee, currency)}
+              value={deliveryFee === 0 ? 'Free' : formatMenuPrice(deliveryFee, currency)}
             />
-            <BillRow label="Taxes & charges" value={formatMenuPrice(tax, currency)} />
+            {tax > 0 ? <BillRow label="Taxes" value={formatMenuPrice(tax, currency)} /> : null}
             {promoApplied && (
               <BillRow
                 label="Promo discount"
@@ -830,12 +609,15 @@ export function SaffronMenuPage({
   config,
   navLinks,
   footerLinks,
+  addonsSlot,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
   config: StorefrontConfig | null
   navLinks?: { href: string; label: string }[]
   footerLinks?: { href: string; label: string }[]
+  /** Paid add-on homepage blocks, rendered above the footer. */
+  addonsSlot?: ReactNode
 }) {
   const { entries, itemCount, subtotal, addItem, removeItem, clearCart, qtyFor } =
     useMenuCart(initialCategories)
@@ -929,11 +711,11 @@ export function SaffronMenuPage({
     const val = promoCode.trim().toUpperCase()
     if (['FIRST50', 'SAVE10'].includes(val)) {
       setPromoApplied(true)
-      showToast('✅ Promo applied! 10% off')
+      showToast('Promo applied! 10% off')
     } else if (!val) {
       showToast('Enter a promo code')
     } else {
-      showToast('❌ Invalid promo code')
+      showToast('Invalid promo code')
     }
   }, [promoCode, showToast])
 
@@ -942,10 +724,14 @@ export function SaffronMenuPage({
   const totalCartCount = itemCount
 
   const currency = cartEntries[0]?.item.currency ?? 'INR'
-  const deliveryFee = storefrontShippingAmountInr(deliveryMode, subtotal, config)
-  const tax = Math.round(subtotal * 0.05)
-  const discount = promoApplied ? Math.round(subtotal * 0.1) : 0
-  const total = subtotal + deliveryFee + tax - discount
+  // Same math as the server charge (tenant fees + tax settings). No client-only discounts:
+  // there is no coupon API, so a UI discount would show less than Razorpay / COD collects.
+  const {
+    shippingInr: deliveryFee,
+    taxInr: tax,
+    totalInr: total,
+  } = storefrontCheckoutTotals(deliveryMode, subtotal, config)
+  const discount = 0
 
   // Filtered categories for display
   const filteredCategories = useMemo(() => {
@@ -998,65 +784,14 @@ export function SaffronMenuPage({
     },
   }
 
-  const offers =
-    config?.content?.heroHeadline
-      ? ['🎉 50% off first order', 'Free delivery over ₹499']
-      : ['🎉 50% off first order', 'Free delivery over ₹499']
+  // No hardcoded promos: offers shown here must be ones checkout actually honours.
+  const offers: string[] = []
 
-  return (
-    <div
-      style={{
-        fontFamily: "var(--font-dm-sans, 'DM Sans', sans-serif)",
-        background: 'var(--cream, #FAF8F3)',
-        color: 'var(--ink, #1A1714)',
-        minHeight: '100vh',
-        fontSize: '15px',
-        lineHeight: '1.6',
-      }}
-    >
-      <StorefrontMenuDrawer
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        config={config}
-        showShippingPolicy={false}
-        navLinks={navLinks}
-      />
-      <MenuItemDetailModal
-        item={selectedItem}
-        open={selectedItem != null}
-        tone="saffron"
-        onClose={() => {
-          setSelectedItemId(null)
-          setModalVariantId(undefined)
-        }}
-        quantity={selectedItem ? qtyFor(selectedItem.id, modalVariantId) : 0}
-        onAdd={(variantId) => {
-          if (selectedItem) {
-            setModalVariantId(variantId)
-            if (variantId) setItemVariant(selectedItem.id, variantId)
-            addToCart(selectedItem, variantId)
-          }
-        }}
-        onRemove={(variantId) => {
-          if (selectedItem) {
-            setModalVariantId(variantId)
-            removeFromCart(selectedItem.id, variantId)
-          }
-        }}
-      />
-      {/* Sticky header with live cart count */}
-      <SaffronHeader
-        tenant={tenant}
-        config={config}
-        cartCount={totalCartCount}
-        onCartClick={() => setMobileCartOpen(true)}
-        onMenuOpen={() => setMenuOpen(true)}
-      />
-
-      {/* Dark hero banner */}
-      <SaffronHero tenant={tenant} config={config} offers={offers} />
-
-      {/* Two-column layout: menu + cart */}
+  const blocks: Record<(typeof SAFFRON_SECTIONS)[number], ReactNode> = {
+    // Dark hero banner (offers strip is embedded in the hero)
+    hero: <SaffronHero tenant={tenant} config={config} offers={offers} />,
+    // Two-column layout: menu + cart — one unit (category tabs, search, item grid, desktop cart)
+    menu: (
       <div
         className="saffron-layout"
         style={{
@@ -1097,6 +832,7 @@ export function SaffronMenuPage({
               ...initialCategories.map((cat) => ({ id: cat.id, name: cat.name })),
             ].map((cat) => (
               <button
+                type="button"
                 key={cat.id}
                 onClick={() => {
                   setActiveCategory(cat.id)
@@ -1188,7 +924,7 @@ export function SaffronMenuPage({
                 color: 'var(--ink-muted, #8A847C)',
               }}
             >
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
+              <div style={{ marginBottom: '12px' }}><IconSearch size={32} /></div>
               <p>No dishes found. Try a different search.</p>
             </div>
           ) : (
@@ -1218,19 +954,11 @@ export function SaffronMenuPage({
                 </div>
 
                 {/* Items */}
-                <div style={{ padding: '0 2rem' }}>
-                  {cat.items.map((item, idx) => {
+                <div className="saffron-dish-list">
+                  {cat.items.map((item) => {
                     const selectedVariantId = getSelectedVariantId(item)
                     return (
-                    <div
-                      key={item.id}
-                      style={{
-                        borderBottom:
-                          idx < cat.items.length - 1
-                            ? '1px solid var(--saf-border, rgba(26,23,20,0.1))'
-                            : 'none',
-                      }}
-                    >
+                    <div key={item.id}>
                       <MenuItemCard
                         item={item}
                         selectedVariantId={selectedVariantId}
@@ -1271,10 +999,67 @@ export function SaffronMenuPage({
           <CartContent {...cartProps} />
         </div>
       </div>
+    ),
+  }
+
+  return (
+    <div
+      style={{
+        fontFamily: "var(--font-dm-sans, 'DM Sans', sans-serif)",
+        background: 'var(--cream, #FAF8F3)',
+        color: 'var(--ink, #1A1714)',
+        minHeight: '100vh',
+        fontSize: '15px',
+        lineHeight: '1.6',
+      }}
+    >
+      <StorefrontMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        config={config}
+        showShippingPolicy={false}
+        navLinks={navLinks}
+      />
+      <MenuItemDetailModal
+        item={selectedItem}
+        open={selectedItem != null}
+        tone="saffron"
+        onClose={() => {
+          setSelectedItemId(null)
+          setModalVariantId(undefined)
+        }}
+        quantity={selectedItem ? qtyFor(selectedItem.id, modalVariantId) : 0}
+        onAdd={(variantId) => {
+          if (selectedItem) {
+            setModalVariantId(variantId)
+            if (variantId) setItemVariant(selectedItem.id, variantId)
+            addToCart(selectedItem, variantId)
+          }
+        }}
+        onRemove={(variantId) => {
+          if (selectedItem) {
+            setModalVariantId(variantId)
+            removeFromCart(selectedItem.id, variantId)
+          }
+        }}
+      />
+      {/* Sticky header with live cart count */}
+      <SaffronHeader
+        tenant={tenant}
+        config={config}
+        cartCount={totalCartCount}
+        onCartClick={() => setMobileCartOpen(true)}
+        onMenuOpen={() => setMenuOpen(true)}
+      />
+
+      {homepageSectionOrder(config, SAFFRON_SECTIONS).map((type) => (
+        <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
+      ))}
 
       {/* ── Mobile floating cart button ── */}
       <div className="saffron-mobile-fab">
         <button
+          type="button"
           onClick={() => setMobileCartOpen(true)}
           style={{
             width: '100%',
@@ -1375,6 +1160,7 @@ export function SaffronMenuPage({
                 Your Cart
               </span>
               <button
+                type="button"
                 onClick={() => setMobileCartOpen(false)}
                 aria-label="Close cart"
                 style={{
@@ -1390,7 +1176,7 @@ export function SaffronMenuPage({
                   justifyContent: 'center',
                 }}
               >
-                ✕
+                <IconClose size={18} />
               </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -1399,6 +1185,8 @@ export function SaffronMenuPage({
           </div>
         </div>
       )}
+
+      {addonsSlot}
 
       <SaffronFooter tenant={tenant} config={config} footerLinks={footerLinks} />
 
@@ -1462,7 +1250,7 @@ export function SaffronMenuPage({
               animation: 'saffron-pop 0.4s cubic-bezier(0.34,1.56,0.64,1)',
             }}
           >
-            <div style={{ fontSize: '52px', marginBottom: '1rem' }}>🎉</div>
+            <div style={{ marginBottom: '1rem', color: 'var(--sage, #6B7B5E)' }}><IconCheck size={52} /></div>
             <div
               style={{
                 fontFamily: "var(--font-playfair, 'Playfair Display', serif)",
@@ -1485,6 +1273,7 @@ export function SaffronMenuPage({
                 : 'Your order is confirmed. We emailed your receipt.'}
             </p>
             <button
+              type="button"
               onClick={() => {
                 setOrderPlaced(false)
                 handleClearCart()

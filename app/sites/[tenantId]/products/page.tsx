@@ -2,7 +2,8 @@ import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
-import { ProductGrid } from '@/themes/retail/ProductGrid'
+import { CatalogView } from '@/components/commerce/CatalogView'
+import { PageHeader } from '@/ui'
 import { toThemeTenant } from '@/themes/retail/types'
 import {
   fetchProducts,
@@ -50,18 +51,20 @@ export default async function ProductsPage() {
     )
   }
 
-  const [products, headerNavLinks, footerNavLinks] = await Promise.all([
-    fetchProducts(tenant.id, 48),
+  const [products, categories, headerNavLinks, footerNavLinks] = await Promise.all([
+    fetchProducts(tenant.id, 96),
+    fetchStorefrontCategories(tenant.id),
     fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
     fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
   ])
 
   const main = (
-    <main className="sf-page-shell">
-      <h1 className="sf-page-title">Shop all</h1>
-      <p className="sf-page-lead">{themeTenant.tagline}</p>
-      <div className="sf-page-body sf-page-body--tight">
-        <ProductGrid products={products} />
+    <main>
+      <PageHeader title="Shop all" crumbs={[{ label: 'Home', href: '/' }, { label: 'Shop all' }]}>
+        <p className="sf-subtle" style={{ marginTop: '0.5rem' }}>{themeTenant.tagline}</p>
+      </PageHeader>
+      <div className="sf-container">
+        <CatalogView products={products} categories={categories} />
       </div>
     </main>
   )
@@ -84,9 +87,9 @@ export default async function ProductsPage() {
 
   return (
     <RetailShell tenantId={tenant.id}>
-      <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} />
+      <SiteHeader tenant={themeTenant} config={config} navLinks={headerNavLinks} categories={categories} />
       {main}
-      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} />
+      <SiteFooter tenant={themeTenant} navLinks={footerNavLinks} config={config} />
     </RetailShell>
   )
 }

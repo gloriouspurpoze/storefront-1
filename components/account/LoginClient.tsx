@@ -13,6 +13,7 @@ import {
   signInWithGoogle,
   verifyPhoneOtp,
 } from '@/lib/storefront-auth'
+import { IconLock } from '@/ui'
 import './account-login.css'
 
 function GoogleMark() {
@@ -185,6 +186,7 @@ export function LoginClient() {
                 type="submit"
                 disabled={phoneLoading || phone.length < 10}
                 className={`${t.btnPrimary} ${t.btnBlock} sf-login-submit`}
+                aria-busy={phoneLoading}
               >
                 {phoneLoading ? (
                   <>
@@ -222,6 +224,7 @@ export function LoginClient() {
                 type="submit"
                 disabled={phoneLoading || otp.length !== 6}
                 className={`${t.btnPrimary} ${t.btnBlock} sf-login-submit`}
+                aria-busy={phoneLoading}
               >
                 {phoneLoading ? (
                   <>
@@ -265,7 +268,7 @@ export function LoginClient() {
             )}
           </p>
           <p className="sf-login-trust">
-            <span aria-hidden>🔒</span> Secure sign-in · Your data stays private
+            <IconLock size={14} /> Secure sign-in · Your data stays private
           </p>
         </footer>
       </div>

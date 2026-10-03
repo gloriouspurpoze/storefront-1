@@ -1,7 +1,8 @@
 import type { ThemeTenant } from '../types'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 
-const DEFAULT_OFFERS = ['🎉 50% off first order', 'Free delivery over ₹499']
+// Offers come from the page (config-driven); never advertise promos checkout doesn't apply.
+const DEFAULT_OFFERS: string[] = []
 
 interface SaffronHeroProps {
   tenant: ThemeTenant

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { ThemeTenant } from '../types'
 import type { StorefrontConfig } from '@/lib/storefront-api'
+import { IconMail, IconMapPin, IconPhone } from '@/ui'
 
 export function SaffronFooter({
   tenant,
@@ -93,7 +94,7 @@ export function SaffronFooter({
               href={`tel:${branding.contactPhone}`}
               style={{ color: 'inherit', textDecoration: 'none', display: 'flex', gap: '8px' }}
             >
-              <span aria-hidden>📞</span>
+              <IconPhone size={16} />
               {branding.contactPhone}
             </a>
           )}
@@ -102,13 +103,13 @@ export function SaffronFooter({
               href={`mailto:${branding.contactEmail}`}
               style={{ color: 'inherit', textDecoration: 'none', display: 'flex', gap: '8px' }}
             >
-              <span aria-hidden>✉️</span>
+              <IconMail size={16} />
               {branding.contactEmail}
             </a>
           )}
           {branding.address && (
             <div style={{ display: 'flex', gap: '8px' }}>
-              <span aria-hidden>📍</span>
+              <IconMapPin size={16} />
               {branding.address}
             </div>
           )}

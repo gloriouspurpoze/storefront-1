@@ -81,3 +81,50 @@ export function toApiFulfillmentMode(
   if (key === 'delivery' || key === 'local') return 'delivery'
   return 'pickup'
 }
+
+/**
+ * Tax added on top of items — mirrors backend `storefrontTaxAmountInr`.
+ * Tax-inclusive pricing (the default) adds nothing; rate is capped at 28% like the server.
+ */
+export function storefrontTaxAmountInr(
+  itemsTotalInr: number,
+  config: StorefrontConfig | null | undefined,
+): number {
+  const policy = getShippingPolicyFromConfig(config)
+  const rate = Math.min(28, policy.taxRatePercent ?? 0)
+  if (policy.pricesIncludeTax !== false || rate <= 0) return 0
+  const subtotal = Math.max(0, Number(itemsTotalInr) || 0)
+  return Math.round(subtotal * rate) / 100
+}
+
+export interface StorefrontCheckoutTotals {
+  shippingInr: number
+  taxInr: number
+  /** What the customer is charged — equals the server's Razorpay amount / Order total. */
+  totalInr: number
+  /** Amount still needed to reach the store minimum (0 = can check out). */
+  minOrderShortfallInr: number
+  /** Cash on delivery not allowed for this total. */
+  codOverLimit: boolean
+}
+
+/** One place for theme cart totals so the UI matches what the backend charges. */
+export function storefrontCheckoutTotals(
+  mode: StorefrontDeliveryMode | 'local' | 'takeaway' | string,
+  itemsTotalInr: number,
+  config: StorefrontConfig | null | undefined,
+): StorefrontCheckoutTotals {
+  const subtotal = Math.max(0, Number(itemsTotalInr) || 0)
+  const policy = getShippingPolicyFromConfig(config)
+  const shippingInr = storefrontShippingAmountInr(mode, subtotal, config)
+  const taxInr = storefrontTaxAmountInr(subtotal, config)
+  const totalInr = Math.round((subtotal + shippingInr + taxInr) * 100) / 100
+  return {
+    shippingInr,
+    taxInr,
+    totalInr,
+    minOrderShortfallInr:
+      policy.minOrderInr != null ? Math.max(0, policy.minOrderInr - subtotal) : 0,
+    codOverLimit: policy.codMaxOrderInr != null && totalInr > policy.codMaxOrderInr,
+  }
+}

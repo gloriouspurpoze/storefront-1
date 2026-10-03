@@ -562,3 +562,24 @@
   text-align: center;
   box-shadow: 0 16px 48px rgba(0, 20, 47, 0.2);
 }
+
+/* Skin the shared storefront components (themes/shared/tokens.css). The
+   attribute+class selector outranks the base `:root, [data-tenant]` tokens
+   regardless of stylesheet order. */
+[data-tenant].theme-trade-pro,
+.theme-trade-pro {
+  --sf-brand: var(--tp-cta);
+  --sf-brand-contrast: var(--tp-cta-contrast);
+  --sf-brand-soft: var(--tp-cta-soft);
+  --sf-accent: var(--tp-accent);
+  --sf-surface: var(--tp-canvas);
+  --sf-surface-muted: var(--tp-canvas-soft);
+  --sf-text: var(--tp-ink);
+  --sf-text-muted: var(--tp-body);
+  --sf-text-subtle: var(--tp-mute);
+  --sf-border: var(--tp-hairline);
+  --sf-success: var(--tp-success);
+  --sf-sale: var(--tp-error);
+  --sf-radius: var(--tp-radius-lg);
+  --sf-radius-lg: var(--tp-radius-xl);
+}

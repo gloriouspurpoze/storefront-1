@@ -1,7 +1,16 @@
 import Link from 'next/link'
 import type { ThemeTenant } from './types'
+import { bookingCta, resolveBookingAddon } from './bookingAddon'
 
-export function Hero({ tenant }: { tenant: ThemeTenant }) {
+export async function Hero({
+  tenant,
+  bookingEnabled,
+}: {
+  tenant: ThemeTenant
+  /** Service booking add-on; resolved from the storefront config when omitted. */
+  bookingEnabled?: boolean
+}) {
+  const cta = bookingCta(await resolveBookingAddon(tenant.id, bookingEnabled), 'Book a service', 'Request a callback')
   return (
     <section className="relative isolate overflow-hidden">
       <div
@@ -13,7 +22,7 @@ export function Hero({ tenant }: { tenant: ThemeTenant }) {
       />
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(255,255,255,0.18),transparent)]" aria-hidden />
 
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 sm:py-28 md:grid-cols-[1.2fr_1fr]">
+      <div className="sf-container grid items-center gap-12 py-20 sm:py-28 md:grid-cols-[1.2fr_1fr]">
         <div className="text-white">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/75">
             {tenant.name}
@@ -26,14 +35,14 @@ export function Hero({ tenant }: { tenant: ThemeTenant }) {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Link
-              href="/book"
-              className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-black/10 transition hover:bg-slate-100"
+              href={cta.href}
+              className="sf-btn sf-btn--inverse"
             >
-              Book a service
+              {cta.label}
             </Link>
             <Link
               href="/services"
-              className="inline-flex items-center justify-center rounded-full border border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+              className="sf-btn sf-btn--outline-inverse"
             >
               Browse services
             </Link>
