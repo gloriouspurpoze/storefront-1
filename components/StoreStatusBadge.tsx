@@ -5,8 +5,7 @@ import type { StorefrontConfig } from '@/lib/storefront-api'
 import {
   getOrderingAvailabilityFromConfig,
   getOrderingHoursFromConfig,
-  getTodayOrderingLabel,
-  isStoreOpenNow,
+  getStoreStatusText,
 } from '@/lib/orderingHours'
 import './store-status.css'
 
@@ -14,13 +13,7 @@ export function useStoreStatus(config?: StorefrontConfig | null) {
   return useMemo(() => {
     const hours = getOrderingHoursFromConfig(config)
     const availability = getOrderingAvailabilityFromConfig(config)
-    const isOpen = isStoreOpenNow(hours)
-    const hoursLabel = getTodayOrderingLabel(hours)
-    const statusText = availability.slotsNote
-      ? availability.slotsNote
-      : isOpen
-        ? `Open · ${hoursLabel}`
-        : `Closed · ${hoursLabel}`
+    const { isOpen, text: statusText } = getStoreStatusText(hours, availability)
     return { isOpen, statusText, hours, availability }
   }, [config])
 }

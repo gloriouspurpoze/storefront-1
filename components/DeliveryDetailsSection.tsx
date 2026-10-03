@@ -40,7 +40,7 @@ export function DeliveryDetailsSection({
 
   const timeBounds =
     showPreferredTime && orderingHours && value.preferredDate
-      ? getDeliveryTimeBounds(orderingHours, value.preferredDate)
+      ? getDeliveryTimeBounds(orderingHours, value.preferredDate, new Date(), orderingAvailability)
       : null
 
   const isMenufast = variant === 'menufast'

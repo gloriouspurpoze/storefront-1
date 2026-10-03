@@ -484,6 +484,12 @@ export interface StorefrontOrderingAvailability {
   earliestDate?: string
   latestDate?: string
   slotsNote?: string
+  paused?: boolean
+  pausedUntil?: string
+  pausedMessage?: string
+  closedDates?: Array<{ date: string; label?: string }>
+  leadTimeMinutes?: number
+  maxDaysAhead?: number
 }
 
 export interface StorefrontShippingPolicyZone {

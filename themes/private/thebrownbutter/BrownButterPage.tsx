@@ -359,7 +359,10 @@ export function BrownButterPage({
 
   const orderingHours = useMemo(() => getOrderingHoursFromConfig(config), [config])
   const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
-  const storeOpen = useMemo(() => isStoreOpenNow(orderingHours), [orderingHours])
+  const storeOpen = useMemo(
+    () => isStoreOpenNow(orderingHours, new Date(), orderingAvailability),
+    [orderingHours, orderingAvailability],
+  )
 
   const { entries, itemCount, subtotal, add, setQty, qtyFor, clear } = useBrownButterCart()
   const { requireAuthForCart } = useCartAuthGate()
