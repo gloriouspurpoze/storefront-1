@@ -5,7 +5,10 @@
  */
 import { fetchStorefrontBlogBySlug, fetchStorefrontBlogPosts } from '@/lib/cms-blog'
 import { fetchStorefrontPageBySlug } from '@/lib/cms-pages'
+import { env } from '@/lib/env'
+import { withTenantId } from '@/lib/tenant-headers'
 import { PLATFORM_CMS_TENANT_ID } from './config'
+import { selectFaqs, type CmsFaqRow, type FaqItem, type FaqPage } from './faqs'
 
 export function platformBlogPosts(limit = 48) {
   return PLATFORM_CMS_TENANT_ID ? fetchStorefrontBlogPosts(PLATFORM_CMS_TENANT_ID, limit) : Promise.resolve([])
@@ -30,4 +33,30 @@ export function sanitizeCmsHtml(html: string): string {
     .replace(/\s+on\w+\s*=\s*"[^"]*"/gi, '')
     .replace(/\s+on\w+\s*=\s*'[^']*'/gi, '')
     .replace(/javascript:/gi, '')
+}
+
+/** Active CMS FAQs (all categories, in Display Order). Page selection lives in `faqs.ts`. */
+async function platformCmsFaqRows(): Promise<CmsFaqRow[]> {
+  if (!PLATFORM_CMS_TENANT_ID) return []
+  try {
+    const res = await fetch(`${env.API_BASE_URL.replace(/\/+$/, '')}/cms/faqs?limit=200`, {
+      headers: withTenantId(PLATFORM_CMS_TENANT_ID, { Accept: 'application/json' }),
+      next: {
+        revalidate: 120,
+        tags: [`tenant:${PLATFORM_CMS_TENANT_ID}`, `tenant:${PLATFORM_CMS_TENANT_ID}:cms-faqs`],
+      },
+    })
+    if (!res.ok) return []
+    const json = (await res.json().catch(() => null)) as { data?: { faqs?: CmsFaqRow[] } | CmsFaqRow[] } | null
+    const data = json?.data
+    return Array.isArray(data) ? data : data?.faqs ?? []
+  } catch {
+    return []
+  }
+}
+
+/** FAQs for a page: the CMS ones when any exist, otherwise the built-in `fallback`. */
+export async function pageFaqs(page: FaqPage, fallback: readonly FaqItem[]): Promise<FaqItem[]> {
+  const fromCms = selectFaqs(await platformCmsFaqRows(), page)
+  return fromCms.length ? fromCms : [...fallback]
 }

@@ -4,6 +4,7 @@ import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
 import { FEATURES, GUARANTEES, HOME_DESCRIPTION, HOME_FAQ, HOME_TITLE, STEPS, TRUST_PILLARS } from '@/platform/content/home'
 import { launchOfferLive } from '@/platform/content/offer'
 import { pageMetadata } from '@/platform/seo'
+import { pageFaqs } from '@/platform/cms'
 import { AttributionLink } from '@/platform/components/AttributionLink'
 import { CtaBand } from '@/platform/components/CtaBand'
 import { DemoCallButton } from '@/platform/components/DemoRequest'
@@ -27,13 +28,14 @@ export const metadata = pageMetadata({
   eyebrow: 'Bookings · CRM · Storefront · Billing',
 })
 
-export default function PlatformHomePage() {
+export default async function PlatformHomePage() {
+  const faqs = await pageFaqs('home', HOME_FAQ)
   const plans = marketingPlansForVertical('home_services').slice(0, 3)
   const trialHref = signupUrl()
 
   return (
     <>
-      <JsonLd data={[plansJsonLd(plans, PLATFORM_BRAND, siteUrl('/pricing')), faqJsonLd(HOME_FAQ)]} />
+      <JsonLd data={[plansJsonLd(plans, PLATFORM_BRAND, siteUrl('/pricing')), faqJsonLd(faqs)]} />
       <Header />
       <main id="top">
         {/* Hero */}
@@ -182,7 +184,7 @@ export default function PlatformHomePage() {
         <section className="py-24" id="faq">
           <Container>
             <SectionTitle eyebrow="FAQ" title={`Questions about ${PLATFORM_BRAND}`} />
-            <Faq items={HOME_FAQ} />
+            <Faq items={faqs} />
           </Container>
         </section>
 

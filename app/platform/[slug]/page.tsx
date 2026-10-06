@@ -9,7 +9,7 @@ import {
   type MarketingVertical,
 } from '@profixer/marketing-data'
 import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
-import { platformCmsPage, sanitizeCmsHtml } from '@/platform/cms'
+import { pageFaqs, platformCmsPage, sanitizeCmsHtml } from '@/platform/cms'
 import { pageMetadata, truncate } from '@/platform/seo'
 import { AttributionLink } from '@/platform/components/AttributionLink'
 import { CtaBand } from '@/platform/components/CtaBand'
@@ -21,6 +21,7 @@ import { PlanCards, plansJsonLd } from '@/platform/components/PlanCards'
 import { ProductPreview } from '@/platform/components/ProductPreview'
 import { Container, SectionTitle, outlineButton, primaryButton } from '@/platform/components/Section'
 import { PAIN_ICONS, PILLAR_ICONS } from '@/platform/components/icons'
+import type { FaqItem } from '@/platform/faqs'
 
 /** Industry pages are prebuilt; any other slug is a CMS page (comparisons, features, legal). */
 export const revalidate = 3600
@@ -62,7 +63,10 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
 export default async function PlatformSlugPage({ params }: RouteParams) {
   const { slug } = await params
   const vertical = marketingVerticalBySlug(slug)
-  if (vertical) return <IndustryPage vertical={vertical} />
+  if (vertical) {
+    const content = getVerticalLandingContent(vertical.key)
+    return <IndustryPage vertical={vertical} faqs={await pageFaqs(`industry:${vertical.key}`, content.faq)} />
+  }
 
   const page = await platformCmsPage(slug)
   if (!page) notFound()
@@ -103,7 +107,7 @@ function breadcrumbs(items: { name: string; path: string }[]): Record<string, un
  * One page per industry pack. Testimonials and outcome stats from the shared copy are
  * deliberately not rendered: publish them only once they are real, consented customer results.
  */
-function IndustryPage({ vertical }: { vertical: MarketingVertical }) {
+function IndustryPage({ vertical, faqs }: { vertical: MarketingVertical; faqs: FaqItem[] }) {
   const content = getVerticalLandingContent(vertical.key)
   const plans = marketingPlansForVertical(vertical.key)
   const trialHref = signupUrl(vertical.key)
@@ -115,7 +119,7 @@ function IndustryPage({ vertical }: { vertical: MarketingVertical }) {
         data={[
           breadcrumbs([{ name: vertical.label, path: `/${vertical.marketingSlug}` }]),
           plansJsonLd(plans, `${PLATFORM_BRAND} for ${vertical.label}`, siteUrl(`/${vertical.marketingSlug}`)),
-          faqJsonLd(content.faq),
+          faqJsonLd(faqs),
         ]}
       />
       <DemoIndustryHint label={vertical.label} />
@@ -215,7 +219,7 @@ function IndustryPage({ vertical }: { vertical: MarketingVertical }) {
         <section className="py-20" id="faq">
           <Container>
             <SectionTitle eyebrow="Questions, answered" title={`What ${label} operators ask before they switch`} />
-            <Faq items={content.faq} />
+            <Faq items={faqs} />
           </Container>
         </section>
 

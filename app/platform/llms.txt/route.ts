@@ -1,13 +1,13 @@
 import { MARKETING_VERTICALS } from '@profixer/marketing-data'
 import { PLATFORM_BRAND, siteUrl } from '@/platform/config'
 import { HOME_DESCRIPTION, HOME_FAQ } from '@/platform/content/home'
-import { platformBlogPosts } from '@/platform/cms'
+import { pageFaqs, platformBlogPosts } from '@/platform/cms'
 
 export const revalidate = 3600
 
 /** torqerp.com/llms.txt — a plain-text map of the site for AI assistants (llmstxt.org format). */
 export async function GET() {
-  const posts = await platformBlogPosts(50)
+  const [posts, faqs] = await Promise.all([platformBlogPosts(50), pageFaqs('home', HOME_FAQ)])
   const lines = [
     `# ${PLATFORM_BRAND}`,
     '',
@@ -21,7 +21,7 @@ export async function GET() {
     ...MARKETING_VERTICALS.map((v) => `- [${PLATFORM_BRAND} for ${v.label}](${siteUrl(`/${v.marketingSlug}`)}): ${v.description}`),
     '',
     '## FAQ',
-    ...HOME_FAQ.map((f) => `- ${f.q} ${f.a}`),
+    ...faqs.map((f) => `- ${f.q} ${f.a}`),
   ]
   if (posts.length) {
     lines.push('', '## Guides', ...posts.map((p) => `- [${p.title}](${siteUrl(`/blog/${p.slug}`)})${p.description ? `: ${p.description}` : ''}`))

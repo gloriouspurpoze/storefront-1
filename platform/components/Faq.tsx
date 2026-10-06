@@ -10,7 +10,7 @@ export function Faq({ items }: { items: readonly { q: string; a: string }[] }) {
               +
             </span>
           </summary>
-          <p className="mt-3 text-sm leading-relaxed text-tq-muted">{item.a}</p>
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-tq-muted">{item.a}</p>
         </details>
       ))}
     </div>

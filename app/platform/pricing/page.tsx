@@ -2,6 +2,7 @@ import { MARKETING_VERTICALS, marketingPlansForVertical, type VerticalKey } from
 import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
 import { launchOfferLive } from '@/platform/content/offer'
 import { pageMetadata } from '@/platform/seo'
+import { pageFaqs } from '@/platform/cms'
 import { CtaBand } from '@/platform/components/CtaBand'
 import { Faq, faqJsonLd } from '@/platform/components/Faq'
 import { Header } from '@/platform/components/Header'
@@ -38,14 +39,15 @@ const PRICING_FAQ = [
   },
 ]
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const faqs = await pageFaqs('pricing', PRICING_FAQ)
   const offerLive = launchOfferLive()
   return (
     <>
       <JsonLd
         data={[
           ...PLAN_GROUPS.map((g) => plansJsonLd(marketingPlansForVertical(g.key), `${PLATFORM_BRAND} — ${g.title}`, siteUrl('/pricing'))),
-          faqJsonLd(PRICING_FAQ),
+          faqJsonLd(faqs),
         ]}
       />
       <Header />
@@ -82,7 +84,7 @@ export default function PricingPage() {
         <section className="bg-tq-wash py-20">
           <Container>
             <SectionTitle eyebrow="FAQ" title="Pricing questions" />
-            <Faq items={PRICING_FAQ} />
+            <Faq items={faqs} />
           </Container>
         </section>
         <CtaBand trialHref={signupUrl()} />
