@@ -27,8 +27,11 @@ export const PLATFORM_HOSTS = list(process.env.PLATFORM_MARKETING_HOSTS, DEFAULT
 /** Canonical origin: every other platform host 301s here, and it is used in canonical URLs + sitemap. */
 export const PLATFORM_SITE_URL = trimSlash(process.env.PLATFORM_SITE_URL?.trim() || 'https://torqerp.com')
 
-/** Where sign-in and signup live (the admin app). */
-export const PLATFORM_APP_URL = trimSlash(process.env.NEXT_PUBLIC_PLATFORM_APP_URL?.trim() || 'https://app.torqerp.com')
+/** Where sign-in and signup live (the admin app). `next dev` defaults to the local admin on :3000. */
+export const PLATFORM_APP_URL = trimSlash(
+  process.env.NEXT_PUBLIC_PLATFORM_APP_URL?.trim() ||
+    (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://app.torqerp.com'),
+)
 
 /**
  * CMS tenant that holds torqERP's own blog posts and pages. Unset → blog and CMS
