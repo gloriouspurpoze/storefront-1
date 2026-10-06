@@ -21,6 +21,20 @@
   --font-sf-display: var(--sf-font-display);
 }
 
+/* torqERP marketing site (app/platform) — DESIGN.md palette, namespaced so tenant themes never pick it up. */
+@theme {
+  --color-tq-primary: #024ad8;
+  --color-tq-primary-deep: #0e3191;
+  --color-tq-primary-bright: #296ef9;
+  --color-tq-primary-soft: #c9e0fc;
+  --color-tq-ink: #1a1a1a;
+  --color-tq-muted: #5f6368;
+  --color-tq-line: #e6e8ec;
+  --color-tq-wash: #f6f8fb;
+  --color-tq-success: #15803d;
+  --font-tq: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
 /**
  * Per-tenant brand colors are injected by `sites/[tenantId]/layout.tsx` as
  * the CSS custom property `--site-brand`. Themes read this value via
@@ -91,3 +105,18 @@ html, body {
   background: var(--cream);
   color: var(--ink);
 }
+
+/* torqERP marketing site — CMS article body (blog posts, CMS pages under app/platform). */
+.tq-prose { color: var(--color-tq-ink); font-size: 1.0625rem; line-height: 1.75; }
+.tq-prose > * + * { margin-top: 1.25em; }
+.tq-prose h2 { margin-top: 2em; font-size: 1.75rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; }
+.tq-prose h3 { margin-top: 1.6em; font-size: 1.3rem; font-weight: 600; line-height: 1.35; }
+.tq-prose a { color: var(--color-tq-primary); text-decoration: underline; text-underline-offset: 2px; }
+.tq-prose ul { list-style: disc; padding-left: 1.5em; }
+.tq-prose ol { list-style: decimal; padding-left: 1.5em; }
+.tq-prose li + li { margin-top: 0.4em; }
+.tq-prose blockquote { border-left: 3px solid var(--color-tq-line); padding-left: 1em; color: var(--color-tq-muted); }
+.tq-prose img { border-radius: 1rem; max-width: 100%; height: auto; }
+.tq-prose table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.tq-prose th, .tq-prose td { border: 1px solid var(--color-tq-line); padding: 0.5em 0.75em; text-align: left; }
+.tq-prose code { background: var(--color-tq-wash); border-radius: 0.25rem; padding: 0.1em 0.35em; font-size: 0.9em; }

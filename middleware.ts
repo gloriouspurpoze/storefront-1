@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { resolveTenant } from './lib/tenant-resolver'
 import { primaryRedirectUrl } from './lib/primaryDomainRedirect'
 import { PREVIEW_COOKIE } from './lib/storefrontPreview'
+import { PLATFORM_SITE_URL, hostWithoutPort, isLocalPlatformHost, isPlatformHost } from './platform/config'
 
 /**
  * Host-based tenant routing.
@@ -29,13 +30,53 @@ const RESERVED_PATH_PREFIXES = [
   '/unknown-host',
 ]
 
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl
-  if (RESERVED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
+/** Framework internals and API routes pass through untouched on the marketing hosts too. */
+const PLATFORM_PASSTHROUGH_PREFIXES = ['/_next', '/static', '/favicon', '/api']
+
+/** Tenant hosts keep serving these from outside the middleware, as before. */
+const TENANT_UNTOUCHED_PATHS = new Set(['/robots.txt', '/sitemap.xml'])
+
+/**
+ * torqERP marketing site: platform hosts render `app/platform/*` and never hit
+ * tenant resolution. Non-canonical hosts (www., torqerp.in) 301 to the canonical
+ * origin so Google sees one URL per page.
+ */
+function platformResponse(req: NextRequest, host: string): NextResponse {
+  const { pathname, search } = req.nextUrl
+  if (PLATFORM_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
+  const canonical = new URL(PLATFORM_SITE_URL)
+  if (!isLocalPlatformHost(host) && hostWithoutPort(host) !== canonical.hostname) {
+    return NextResponse.redirect(`${canonical.origin}${pathname}${search}`, 301)
+  }
+
+  const url = req.nextUrl.clone()
+  url.pathname = `/platform${pathname === '/' ? '' : pathname}`
+  const res = NextResponse.rewrite(url)
+  res.headers.set('x-storefront-resolved', 'platform')
+  return res
+}
+
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
   const host = (req.headers.get('host') ?? '').toLowerCase()
+
+  if (isPlatformHost(host)) {
+    return platformResponse(req, host)
+  }
+  // Marketing pages are only reachable through the platform hosts.
+  if (pathname === '/platform' || pathname.startsWith('/platform/')) {
+    const url = req.nextUrl.clone()
+    url.pathname = '/unknown-host'
+    return NextResponse.rewrite(url)
+  }
+
+  if (TENANT_UNTOUCHED_PATHS.has(pathname) || RESERVED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next()
+  }
+
   const tenant = await resolveTenant(host)
 
   if (!tenant) {
@@ -82,6 +123,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api/.*|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|woff|woff2|ttf|eot)).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/.*|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|woff|woff2|ttf|eot)).*)',
   ],
 }

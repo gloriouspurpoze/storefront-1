@@ -1,0 +1,53 @@
+import {
+  BarChart3,
+  Briefcase,
+  Calendar,
+  Clock,
+  Dumbbell,
+  FileText,
+  GraduationCap,
+  Home,
+  LayoutDashboard,
+  MessageSquare,
+  Package,
+  Receipt,
+  Repeat,
+  Scissors,
+  ShoppingBag,
+  Stethoscope,
+  Store,
+  Target,
+  Users,
+  UtensilsCrossed,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react'
+import type { PainIconKey, PillarIconKey } from '@profixer/marketing-data'
+
+export const PAIN_ICONS: Record<PainIconKey, LucideIcon> = {
+  fragmented: MessageSquare,
+  margin: ShoppingBag,
+  blind: BarChart3,
+  noshow: Clock,
+  manual: FileText,
+  churn: Repeat,
+}
+
+export const PILLAR_ICONS: Record<PillarIconKey, LucideIcon> = {
+  console: LayoutDashboard,
+  storefront: Store,
+  crm: Target,
+  team: Users,
+  booking: Calendar,
+  billing: Receipt,
+  catalog: Package,
+  home_services: Wrench,
+  restaurant: UtensilsCrossed,
+  salon: Scissors,
+  fitness: Dumbbell,
+  real_estate: Home,
+  b2b_services: Briefcase,
+  retail: ShoppingBag,
+  healthcare: Stethoscope,
+  education: GraduationCap,
+}
