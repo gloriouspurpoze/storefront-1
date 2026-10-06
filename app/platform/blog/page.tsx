@@ -1,17 +1,20 @@
 import { PLATFORM_BRAND } from '@/platform/config'
-import { platformBlogPosts } from '@/platform/cms'
+import { platformBlogPosts, platformSeoOverride } from '@/platform/cms'
 import { pageMetadata } from '@/platform/seo'
 import { Header } from '@/platform/components/Header'
 import { Container, SectionTitle } from '@/platform/components/Section'
 
 export const revalidate = 120
 
-export const metadata = pageMetadata({
-  title: 'Blog — guides for growing service and retail businesses',
-  description: `Practical guides from ${PLATFORM_BRAND} on bookings, CRM, online storefronts, GST billing and running a growing business in India.`,
-  path: '/blog',
-  ogTitle: `The ${PLATFORM_BRAND} blog`,
-})
+export async function generateMetadata() {
+  return pageMetadata({
+    title: 'Blog — guides for growing service and retail businesses',
+    description: `Practical guides from ${PLATFORM_BRAND} on bookings, CRM, online storefronts, GST billing and running a growing business in India.`,
+    path: '/blog',
+    ogTitle: `The ${PLATFORM_BRAND} blog`,
+    override: await platformSeoOverride('/blog'),
+  })
+}
 
 const dateFmt = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
 

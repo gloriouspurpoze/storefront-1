@@ -2,7 +2,7 @@ import { MARKETING_VERTICALS, marketingPlansForVertical, type VerticalKey } from
 import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
 import { launchOfferLive } from '@/platform/content/offer'
 import { pageMetadata } from '@/platform/seo'
-import { pageFaqs } from '@/platform/cms'
+import { pageFaqs, platformSeoOverride } from '@/platform/cms'
 import { CtaBand } from '@/platform/components/CtaBand'
 import { Faq, faqJsonLd } from '@/platform/components/Faq'
 import { Header } from '@/platform/components/Header'
@@ -13,13 +13,16 @@ import { Container, SectionTitle } from '@/platform/components/Section'
 
 export const revalidate = 3600
 
-export const metadata = pageMetadata({
-  title: 'Pricing — plans in INR with a 14-day free trial',
-  description: `${PLATFORM_BRAND} pricing for home services, restaurants, salons, retail and more. Simple monthly plans in INR, every plan with a 14-day free trial and no credit card.`,
-  path: '/pricing',
-  ogTitle: 'Simple plans that grow with you',
-  eyebrow: `${PLATFORM_BRAND} pricing · INR`,
-})
+export async function generateMetadata() {
+  return pageMetadata({
+    title: 'Pricing — plans in INR with a 14-day free trial',
+    description: `${PLATFORM_BRAND} pricing for home services, restaurants, salons, retail and more. Simple monthly plans in INR, every plan with a 14-day free trial and no credit card.`,
+    path: '/pricing',
+    ogTitle: 'Simple plans that grow with you',
+    eyebrow: `${PLATFORM_BRAND} pricing · INR`,
+    override: await platformSeoOverride('/pricing'),
+  })
+}
 
 /** Industries with their own plan set; every other industry uses the home-services plans. */
 const PLAN_GROUPS: { key: VerticalKey; title: string; note: string }[] = [

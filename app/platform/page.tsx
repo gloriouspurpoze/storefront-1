@@ -4,7 +4,7 @@ import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
 import { FEATURES, GUARANTEES, HOME_DESCRIPTION, HOME_FAQ, HOME_TITLE, STEPS, TRUST_PILLARS } from '@/platform/content/home'
 import { launchOfferLive } from '@/platform/content/offer'
 import { pageMetadata } from '@/platform/seo'
-import { pageFaqs } from '@/platform/cms'
+import { pageFaqs, pageTestimonials, platformSeoOverride } from '@/platform/cms'
 import { AttributionLink } from '@/platform/components/AttributionLink'
 import { CtaBand } from '@/platform/components/CtaBand'
 import { DemoCallButton } from '@/platform/components/DemoRequest'
@@ -14,22 +14,26 @@ import { JsonLd } from '@/platform/components/JsonLd'
 import { OfferCountdown } from '@/platform/components/OfferCountdown'
 import { PlanCards, plansJsonLd } from '@/platform/components/PlanCards'
 import { ProductPreview } from '@/platform/components/ProductPreview'
+import { Testimonials } from '@/platform/components/Testimonials'
 import { Container, SectionTitle, outlineButton, primaryButton } from '@/platform/components/Section'
 
 /** Static page, rebuilt hourly so the launch-offer pricing switches off on time. */
 export const revalidate = 3600
 
-export const metadata = pageMetadata({
-  title: HOME_TITLE,
-  absoluteTitle: true,
-  description: HOME_DESCRIPTION,
-  path: '/',
-  ogTitle: 'Run your entire business from one workspace',
-  eyebrow: 'Bookings · CRM · Storefront · Billing',
-})
+export async function generateMetadata() {
+  return pageMetadata({
+    title: HOME_TITLE,
+    absoluteTitle: true,
+    description: HOME_DESCRIPTION,
+    path: '/',
+    ogTitle: 'Run your entire business from one workspace',
+    eyebrow: 'Bookings · CRM · Storefront · Billing',
+    override: await platformSeoOverride('/'),
+  })
+}
 
 export default async function PlatformHomePage() {
-  const faqs = await pageFaqs('home', HOME_FAQ)
+  const [faqs, testimonials] = await Promise.all([pageFaqs('home', HOME_FAQ), pageTestimonials('home')])
   const plans = marketingPlansForVertical('home_services').slice(0, 3)
   const trialHref = signupUrl()
 
@@ -163,6 +167,8 @@ export default async function PlatformHomePage() {
             </ul>
           </Container>
         </section>
+
+        <Testimonials items={testimonials} />
 
         {/* Pricing */}
         <section className="bg-tq-wash py-24" id="pricing">

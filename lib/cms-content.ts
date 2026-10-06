@@ -13,6 +13,18 @@ export type StorefrontCmsTestimonial = {
   rating?: number
   customerRole?: string
   title?: string
+  /** Admin "Service" field — free text, used by the torqERP site to target industry pages. */
+  serviceType?: string
+}
+
+type CmsTestimonialRow = Partial<Omit<StorefrontCmsTestimonial, 'rating'>> & { rating?: unknown; tenantId?: unknown }
+
+/**
+ * The public `/cms/testimonials` route is not tenant-scoped on the backend (it returns featured
+ * testimonials across all workspaces), so keep only rows owned by the requesting tenant.
+ */
+export function ownTenantTestimonials<T extends { tenantId?: unknown }>(rows: T[], tenantId: string): T[] {
+  return rows.filter((row) => row.tenantId != null && String(row.tenantId) === tenantId)
 }
 
 type CmsMenuItem = {
@@ -205,10 +217,13 @@ export async function fetchStorefrontFaqs(tenantId: string): Promise<StorefrontC
 export async function fetchStorefrontTestimonials(
   tenantId: string,
 ): Promise<StorefrontCmsTestimonial[]> {
-  const raw = await fetchCmsJson<
-    StorefrontCmsTestimonial[] | { testimonials?: StorefrontCmsTestimonial[] }
-  >(tenantId, '/cms/testimonials', CMS_CONTENT_REVALIDATE, 'cms-testimonials')
-  const rows = Array.isArray(raw) ? raw : raw?.testimonials ?? []
+  const raw = await fetchCmsJson<CmsTestimonialRow[] | { testimonials?: CmsTestimonialRow[] }>(
+    tenantId,
+    '/cms/testimonials',
+    CMS_CONTENT_REVALIDATE,
+    'cms-testimonials',
+  )
+  const rows = ownTenantTestimonials(Array.isArray(raw) ? raw : raw?.testimonials ?? [], tenantId)
   return rows
     .map((row) => ({
       customerName: String(row.customerName ?? '').trim(),
@@ -216,6 +231,7 @@ export async function fetchStorefrontTestimonials(
       rating: typeof row.rating === 'number' ? row.rating : undefined,
       customerRole: row.customerRole?.trim() || undefined,
       title: row.title?.trim() || undefined,
+      serviceType: row.serviceType?.trim() || undefined,
     }))
     .filter((row) => row.customerName && row.content)
 }

@@ -9,7 +9,7 @@ import {
   type MarketingVertical,
 } from '@profixer/marketing-data'
 import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
-import { pageFaqs, platformCmsPage, sanitizeCmsHtml } from '@/platform/cms'
+import { pageFaqs, pageTestimonials, platformCmsPage, platformSeoOverride, sanitizeCmsHtml } from '@/platform/cms'
 import { pageMetadata, truncate } from '@/platform/seo'
 import { AttributionLink } from '@/platform/components/AttributionLink'
 import { CtaBand } from '@/platform/components/CtaBand'
@@ -22,6 +22,8 @@ import { ProductPreview } from '@/platform/components/ProductPreview'
 import { Container, SectionTitle, outlineButton, primaryButton } from '@/platform/components/Section'
 import { PAIN_ICONS, PILLAR_ICONS } from '@/platform/components/icons'
 import type { FaqItem } from '@/platform/faqs'
+import type { StorefrontCmsTestimonial } from '@/lib/cms-content'
+import { Testimonials } from '@/platform/components/Testimonials'
 
 /** Industry pages are prebuilt; any other slug is a CMS page (comparisons, features, legal). */
 export const revalidate = 3600
@@ -48,6 +50,7 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
       path: `/${slug}`,
       ogTitle: content.titleAccent,
       eyebrow: `${PLATFORM_BRAND} for ${vertical.label}`,
+      override: await platformSeoOverride(`/${slug}`),
     })
   }
   const page = await platformCmsPage(slug)
@@ -65,7 +68,9 @@ export default async function PlatformSlugPage({ params }: RouteParams) {
   const vertical = marketingVerticalBySlug(slug)
   if (vertical) {
     const content = getVerticalLandingContent(vertical.key)
-    return <IndustryPage vertical={vertical} faqs={await pageFaqs(`industry:${vertical.key}`, content.faq)} />
+    const page = `industry:${vertical.key}` as const
+    const [faqs, testimonials] = await Promise.all([pageFaqs(page, content.faq), pageTestimonials(page)])
+    return <IndustryPage vertical={vertical} faqs={faqs} testimonials={testimonials} />
   }
 
   const page = await platformCmsPage(slug)
@@ -104,10 +109,18 @@ function breadcrumbs(items: { name: string; path: string }[]): Record<string, un
 }
 
 /**
- * One page per industry pack. Testimonials and outcome stats from the shared copy are
- * deliberately not rendered: publish them only once they are real, consented customer results.
+ * One page per industry pack. Testimonials come from the CMS (real customers only);
+ * the placeholder testimonials and outcome stats in the shared copy are deliberately not rendered.
  */
-function IndustryPage({ vertical, faqs }: { vertical: MarketingVertical; faqs: FaqItem[] }) {
+function IndustryPage({
+  vertical,
+  faqs,
+  testimonials,
+}: {
+  vertical: MarketingVertical
+  faqs: FaqItem[]
+  testimonials: StorefrontCmsTestimonial[]
+}) {
   const content = getVerticalLandingContent(vertical.key)
   const plans = marketingPlansForVertical(vertical.key)
   const trialHref = signupUrl(vertical.key)
@@ -195,6 +208,8 @@ function IndustryPage({ vertical, faqs }: { vertical: MarketingVertical; faqs: F
             </div>
           </Container>
         </section>
+
+        <Testimonials items={testimonials} title={`What ${label} businesses say`} />
 
         {/* Pricing */}
         <section className="bg-tq-wash py-20" id="pricing">
