@@ -1,7 +1,7 @@
 import { siteUrl } from '@/platform/config'
 
 /**
- * torqerp.com/robots.txt. Search and AI crawlers are named explicitly so a future
+ * torqstudio.com/robots.txt. Search and AI crawlers are named explicitly so a future
  * blanket rule can't silently block them; Google-Extended / GPTBot govern AI training
  * and answer use, OAI-SearchBot / PerplexityBot / ClaudeBot power AI search citations.
  */

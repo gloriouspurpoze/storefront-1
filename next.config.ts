@@ -11,7 +11,7 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: true,
-  /** Lets the torqERP marketing site import `packages/marketing-data` (shared with the admin app). */
+  /** Lets the Torq Studio marketing site import `packages/marketing-data` (shared with the admin app). */
   experimental: { externalDir: true },
   /** Allow tenant subdomains (e.g. bazaar.lvh.me:3001) to load /_next/* in dev. */
   allowedDevOrigins: ['*.lvh.me', 'lvh.me'],

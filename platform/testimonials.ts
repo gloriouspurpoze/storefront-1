@@ -1,5 +1,5 @@
 /**
- * Testimonials on torqerp.com come from the CMS (admin → CMS → Testimonials, torqERP
+ * Testimonials on torqstudio.com come from the CMS (admin → CMS → Testimonials, Torq Studio
  * workspace). Only **Active + Featured** testimonials are published by the API.
  *
  * The admin **Service** field targets a page, like FAQ categories (see `faqs.ts`):

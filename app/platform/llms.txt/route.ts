@@ -5,7 +5,7 @@ import { pageFaqs, platformBlogPosts } from '@/platform/cms'
 
 export const revalidate = 3600
 
-/** torqerp.com/llms.txt — a plain-text map of the site for AI assistants (llmstxt.org format). */
+/** torqstudio.com/llms.txt — a plain-text map of the site for AI assistants (llmstxt.org format). */
 export async function GET() {
   const [posts, faqs] = await Promise.all([platformBlogPosts(50), pageFaqs('home', HOME_FAQ)])
   const lines = [

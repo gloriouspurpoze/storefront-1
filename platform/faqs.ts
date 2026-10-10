@@ -1,5 +1,5 @@
 /**
- * FAQs on torqerp.com come from the CMS (admin → CMS → FAQs, torqERP workspace).
+ * FAQs on torqstudio.com come from the CMS (admin → CMS → FAQs, Torq Studio workspace).
  * Each page reads the FAQs whose **Category** names that page:
  *
  *   Home page        → "Home"

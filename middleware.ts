@@ -37,8 +37,8 @@ const PLATFORM_PASSTHROUGH_PREFIXES = ['/_next', '/static', '/favicon', '/api']
 const TENANT_UNTOUCHED_PATHS = new Set(['/robots.txt', '/sitemap.xml'])
 
 /**
- * torqERP marketing site: platform hosts render `app/platform/*` and never hit
- * tenant resolution. Non-canonical hosts (www., torqerp.in) 301 to the canonical
+ * Torq Studio marketing site: platform hosts render `app/platform/*` and never hit
+ * tenant resolution. Non-canonical hosts (www., legacy torqerp.*) 301 to the canonical
  * origin so Google sees one URL per page.
  */
 function platformResponse(req: NextRequest, host: string): NextResponse {

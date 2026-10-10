@@ -10,7 +10,7 @@ function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-/** torqerp.com/sitemap.xml — hand-built pages plus every published blog post from the CMS. */
+/** torqstudio.com/sitemap.xml — hand-built pages plus every published blog post from the CMS. */
 export async function GET() {
   const posts = await platformBlogPosts(500)
   const entries: Entry[] = [

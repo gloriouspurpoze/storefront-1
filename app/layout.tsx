@@ -8,8 +8,8 @@ import './globals.css'
  * neutral fallbacks only.
  */
 export const metadata: Metadata = {
-  title: { default: 'Profixer', template: '%s' },
-  description: 'Powered by Torq Orbit - the multi-vertical SaaS platform.',
+  title: { default: 'Torq Studio', template: '%s' },
+  description: 'Powered by Torq Studio - the multi-vertical SaaS platform.',
   robots: { index: false, follow: true },
 }
 

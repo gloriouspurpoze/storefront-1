@@ -13,7 +13,7 @@ export type StorefrontCmsTestimonial = {
   rating?: number
   customerRole?: string
   title?: string
-  /** Admin "Service" field — free text, used by the torqERP site to target industry pages. */
+  /** Admin "Service" field — free text, used by the Torq Studio site to target industry pages. */
   serviceType?: string
 }
 

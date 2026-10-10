@@ -11,8 +11,8 @@ import { JsonLd } from '@/platform/components/JsonLd'
 const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' })
 
 /**
- * torqERP marketing site (torqerp.com). Reached only through the platform hosts —
- * `middleware.ts` rewrites `torqerp.com/<path>` to `/platform/<path>`.
+ * Torq Studio marketing site (torqstudio.com). Reached only through the platform hosts —
+ * `middleware.ts` rewrites `torqstudio.com/<path>` to `/platform/<path>`.
  */
 export const metadata: Metadata = {
   metadataBase: new URL(PLATFORM_SITE_URL),

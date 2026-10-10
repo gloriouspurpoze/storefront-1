@@ -1,5 +1,5 @@
 /**
- * Homepage copy for torqerp.com (ported from the admin's AdminLandingPage).
+ * Homepage copy for torqstudio.com (ported from the admin's AdminLandingPage).
  *
  * Trust claims must stay verifiable against the product — no invented customer
  * counts, ratings, testimonials or certifications. Add those only once they are real.

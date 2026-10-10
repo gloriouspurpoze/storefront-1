@@ -1,5 +1,5 @@
 /**
- * torqERP's own CMS content (blog, pages) — stored under the platform CMS tenant
+ * Torq Studio's own CMS content (blog, pages) — stored under the platform CMS tenant
  * and read through the same public API tenant storefronts use. Publishing in the
  * admin revalidates the `tenant:<id>` tag, so edits go live without a deploy.
  */

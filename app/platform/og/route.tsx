@@ -6,7 +6,7 @@ export const runtime = 'edge'
 /**
  * Open Graph image for every marketing page: `/og?title=…&eyebrow=…` (1200×630).
  * An explicit route rather than `opengraph-image.tsx`, whose URL would include the
- * internal `/platform` prefix that doesn't exist on torqerp.com.
+ * internal `/platform` prefix that doesn't exist on torqstudio.com.
  */
 export function GET(req: Request) {
   const { searchParams } = new URL(req.url)

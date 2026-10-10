@@ -21,7 +21,7 @@
   --font-sf-display: var(--sf-font-display);
 }
 
-/* torqERP marketing site (app/platform) — DESIGN.md palette, namespaced so tenant themes never pick it up. */
+/* Torq Studio marketing site (app/platform) — DESIGN.md palette, namespaced so tenant themes never pick it up. */
 @theme {
   --color-tq-primary: #024ad8;
   --color-tq-primary-deep: #0e3191;
@@ -106,7 +106,7 @@ html, body {
   color: var(--ink);
 }
 
-/* torqERP marketing site — CMS article body (blog posts, CMS pages under app/platform). */
+/* Torq Studio marketing site — CMS article body (blog posts, CMS pages under app/platform). */
 .tq-prose { color: var(--color-tq-ink); font-size: 1.0625rem; line-height: 1.75; }
 .tq-prose > * + * { margin-top: 1.25em; }
 .tq-prose h2 { margin-top: 2em; font-size: 1.75rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; }

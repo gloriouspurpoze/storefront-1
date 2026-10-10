@@ -1,6 +1,6 @@
 /**
- * First-touch marketing attribution, carried from torqerp.com to the signup page
- * on app.torqerp.com as query params (different origins can't share storage).
+ * First-touch marketing attribution, carried from torqstudio.com to the signup page
+ * on app.torqstudio.com as query params (different origins can't share storage).
  *
  * The admin signup reads the same keys — see `src/lib/signupAttribution.ts`.
  */
