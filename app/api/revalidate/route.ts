@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { revalidateTag } from 'next/cache'
+import { submitPlatformUrlsToIndexNow, touchesPlatformContent } from '@/platform/indexnow'
 
 /**
  * On-demand revalidation webhook. The backend calls this with
@@ -50,5 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   await Promise.allSettled(pingPromises)
-  return NextResponse.json({ success: true, data: { revalidated: tags, pinged: pingPromises.length / 2 } })
+  // Torq Studio's own blog/FAQ/SEO changed → tell IndexNow search engines about torqstudio.com.
+  const indexNowUrls = touchesPlatformContent(tags) ? await submitPlatformUrlsToIndexNow() : 0
+  return NextResponse.json({ success: true, data: { revalidated: tags, pinged: pingPromises.length / 2, indexNowUrls } })
 }

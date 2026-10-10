@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
 import { platformBlogPost, sanitizeCmsHtml } from '@/platform/cms'
-import { pageMetadata, truncate } from '@/platform/seo'
+import { ogImageUrl, pageMetadata, truncate } from '@/platform/seo'
 import { CtaBand } from '@/platform/components/CtaBand'
 import { Header } from '@/platform/components/Header'
 import { JsonLd } from '@/platform/components/JsonLd'
@@ -12,10 +12,16 @@ export const revalidate = 180
 
 type RouteParams = { params: Promise<{ slug: string }> }
 
+/** A real person's name, or null — an email (the CMS falls back to the login) is never published. */
+function personName(raw: unknown): string | null {
+  const name =
+    typeof raw === 'string' ? raw : raw && typeof raw === 'object' && 'name' in raw && typeof raw.name === 'string' ? raw.name : ''
+  const trimmed = name.trim()
+  return trimmed && !trimmed.includes('@') ? trimmed : null
+}
+
 function authorName(raw: unknown): string {
-  if (typeof raw === 'string' && raw.trim()) return raw.trim()
-  if (raw && typeof raw === 'object' && 'name' in raw && typeof raw.name === 'string' && raw.name.trim()) return raw.name.trim()
-  return `${PLATFORM_BRAND} team`
+  return personName(raw) ?? `${PLATFORM_BRAND} team`
 }
 
 export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
@@ -63,10 +69,12 @@ export default async function BlogPostPage({ params }: RouteParams) {
             '@type': 'Article',
             headline: post.title,
             description: post.excerpt || post.seo?.description,
-            image: post.featuredImage ? [post.featuredImage] : undefined,
+            image: [post.featuredImage || ogImageUrl(post.title, `${PLATFORM_BRAND} blog`)],
             datePublished: published,
             dateModified: updated,
-            author: { '@type': typeof post.author === 'object' ? 'Person' : 'Organization', name: author },
+            author: personName(post.author)
+              ? { '@type': 'Person', name: author }
+              : { '@type': 'Organization', name: PLATFORM_BRAND, '@id': siteUrl('/#organization') },
             publisher: { '@id': siteUrl('/#organization') },
             mainEntityOfPage: url,
           },

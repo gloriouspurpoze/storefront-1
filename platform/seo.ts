@@ -41,7 +41,8 @@ export function pageMetadata({
   // A CMS image has unknown dimensions; only the generated one is known to be 1200×630.
   const imageMeta = override?.ogImage ? { url: image, alt: shareTitle } : { url: image, width: 1200, height: 630, alt: shareTitle }
   return {
-    title: absoluteTitle ? { absolute: title } : title,
+    // A title that already names the brand (often a CMS SEO title) skips the "| Torq Studio" suffix.
+    title: absoluteTitle || title.includes(PLATFORM_BRAND) ? { absolute: title } : title,
     description,
     alternates: { canonical: url },
     openGraph: {

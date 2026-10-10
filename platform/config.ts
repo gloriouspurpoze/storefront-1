@@ -43,6 +43,16 @@ export const PLATFORM_CMS_TENANT_ID = process.env.PLATFORM_CMS_TENANT_ID?.trim()
 
 export const PLATFORM_CONTACT_EMAIL = process.env.PLATFORM_CONTACT_EMAIL?.trim() || 'hello@torqstudio.com'
 
+/**
+ * Official profiles (LinkedIn, X, Instagram, YouTube, Crunchbase, G2…) for Organization `sameAs`.
+ * Search engines and AI assistants use them to recognise Torq Studio as one entity.
+ * Comma-separated full https URLs; unset → none listed.
+ */
+export const PLATFORM_SAME_AS = (process.env.PLATFORM_SAME_AS ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter((s) => s.startsWith('https://'))
+
 export function hostWithoutPort(host: string): string {
   return host.toLowerCase().replace(/:\d+$/, '')
 }

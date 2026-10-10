@@ -69,6 +69,16 @@ Project → Settings → Environment Variables — set these for **Production + 
 
 Optional: `EDGE_CONFIG`, `UPSTASH_REDIS_REST_*`, `STOREFRONT_PING_SITEMAP_HOSTS`.
 
+Torq Studio marketing site (torqstudio.com) — see `.env.example` for details:
+
+| Key | Value |
+|---|---|
+| `PLATFORM_CMS_TENANT_ID` | Torq Studio's own CMS workspace id (blog, FAQs, testimonials, SEO) |
+| `INDEXNOW_KEY` | output of `openssl rand -hex 16` — publishing pings Bing/Yandex |
+| `PLATFORM_SAME_AS` | comma-separated official profile URLs (LinkedIn, X, …) |
+| `PLATFORM_GOOGLE_SITE_VERIFICATION` / `PLATFORM_BING_SITE_VERIFICATION` | Search Console / Bing Webmaster codes |
+| `VERCEL_DEEP_CLONE` | `true` — full git history, so sitemap `<lastmod>` dates come from git (`scripts/page-lastmod.mjs`); without it, older files keep the dates committed in `platform/content/page-lastmod.json` |
+
 ---
 
 ## 3. Deploy

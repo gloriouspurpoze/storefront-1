@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { faqCategoriesFor, normalizeFaqCategory, selectFaqs } from '../faqs'
+import { faqCategoriesFor, mergeFaqs, normalizeFaqCategory, selectFaqs } from '../faqs'
 
 const row = (category: string, q = `Q ${category}`, a = `A ${category}`) => ({ category, question: q, answer: a })
 
@@ -29,5 +29,15 @@ describe('marketing FAQ categories', () => {
   it('drops rows without a question or answer, and unknown industries match nothing', () => {
     expect(selectFaqs([row('home', ' ', 'x'), row('home', 'q', '')], 'home')).toEqual([])
     expect(faqCategoriesFor('industry:unknown')).toEqual([])
+  })
+
+  it('puts CMS FAQs first and keeps built-in ones the CMS does not already ask', () => {
+    const cms = [{ q: 'Can I use my own domain?', a: 'CMS answer' }]
+    const builtIn = [
+      { q: 'Do I need a credit card?', a: 'No.' },
+      { q: 'can I use my own domain', a: 'Built-in answer' },
+    ]
+    expect(mergeFaqs(cms, builtIn)).toEqual([cms[0], builtIn[0]])
+    expect(mergeFaqs([], builtIn)).toEqual(builtIn)
   })
 })

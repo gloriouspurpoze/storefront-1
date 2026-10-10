@@ -1,6 +1,7 @@
 import { MARKETING_VERTICALS } from '@profixer/marketing-data'
 import { siteUrl } from '@/platform/config'
-import { platformBlogPosts } from '@/platform/cms'
+import { platformBlogPosts, platformSeoOverride } from '@/platform/cms'
+import { pageLastmod } from '@/platform/pageLastmod'
 
 export const revalidate = 300
 
@@ -10,13 +11,23 @@ function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-/** torqstudio.com/sitemap.xml — hand-built pages plus every published blog post from the CMS. */
+const STATIC_PAGES = [
+  { path: '/', priority: 1 },
+  { path: '/pricing', priority: 0.9 },
+  ...MARKETING_VERTICALS.map((v) => ({ path: `/${v.marketingSlug}`, priority: 0.8 })),
+]
+
+/**
+ * torqstudio.com/sitemap.xml — hand-built pages plus every published blog post from the CMS.
+ * Hand-built pages carry their real last content change (see `platform/pageLastmod.ts`).
+ */
 export async function GET() {
-  const posts = await platformBlogPosts(500)
+  const [posts, seo] = await Promise.all([
+    platformBlogPosts(500),
+    Promise.all(STATIC_PAGES.map((p) => platformSeoOverride(p.path))),
+  ])
   const entries: Entry[] = [
-    { path: '/', priority: 1 },
-    { path: '/pricing', priority: 0.9 },
-    ...MARKETING_VERTICALS.map((v) => ({ path: `/${v.marketingSlug}`, priority: 0.8 })),
+    ...STATIC_PAGES.map((p, i) => ({ ...p, lastModified: pageLastmod(p.path, seo[i]?.updatedAt) })),
     { path: '/blog', priority: 0.7, lastModified: posts[0]?.date },
     ...posts.map((p) => ({ path: `/blog/${p.slug}`, priority: 0.6, lastModified: p.date })),
   ]

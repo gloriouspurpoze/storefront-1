@@ -3,7 +3,8 @@ import { siteUrl } from '@/platform/config'
 /**
  * torqstudio.com/robots.txt. Search and AI crawlers are named explicitly so a future
  * blanket rule can't silently block them; Google-Extended / GPTBot govern AI training
- * and answer use, OAI-SearchBot / PerplexityBot / ClaudeBot power AI search citations.
+ * and answer use, OAI-SearchBot / PerplexityBot / ClaudeBot power AI search citations, and
+ * CCBot (Common Crawl) feeds many open models.
  */
 const ALLOWED_AGENTS = [
   'Googlebot',
@@ -15,8 +16,14 @@ const ALLOWED_AGENTS = [
   'ClaudeBot',
   'Claude-SearchBot',
   'PerplexityBot',
+  'Perplexity-User',
   'Applebot',
   'Applebot-Extended',
+  'CCBot',
+  'Amazonbot',
+  'DuckAssistBot',
+  'meta-externalagent',
+  'MistralAI-User',
 ]
 
 export function GET() {

@@ -7,8 +7,8 @@
  *   Industry pages   → the industry's name or URL, e.g. "Salon & spa" or "for-salons"
  *
  * Matching ignores case, spaces and punctuation, so "pricing", "Pricing " and
- * "PRICING" all work. A page with no active CMS FAQs keeps its built-in questions,
- * so an empty or half-set-up CMS never leaves a page without an FAQ.
+ * "PRICING" all work. CMS questions come first, then the page's built-in questions that
+ * the CMS doesn't already ask — so adding one CMS FAQ never wipes out the rest.
  */
 import { MARKETING_VERTICALS } from '@profixer/marketing-data'
 
@@ -40,3 +40,9 @@ export function selectFaqs(rows: CmsFaqRow[], page: FaqPage): FaqItem[] {
     .filter((r) => r.q && r.a)
 }
 
+
+/** CMS FAQs first, then built-in ones whose question the CMS doesn't already ask. Pure — exported for tests. */
+export function mergeFaqs(fromCms: readonly FaqItem[], builtIn: readonly FaqItem[]): FaqItem[] {
+  const asked = new Set(fromCms.map((f) => normalizeFaqCategory(f.q)))
+  return [...fromCms, ...builtIn.filter((f) => !asked.has(normalizeFaqCategory(f.q)))]
+}

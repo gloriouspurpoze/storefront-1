@@ -9,7 +9,7 @@ import { fetchStorefrontTestimonials, type StorefrontCmsTestimonial } from '@/li
 import { env } from '@/lib/env'
 import { withTenantId } from '@/lib/tenant-headers'
 import { PLATFORM_CMS_TENANT_ID } from './config'
-import { selectFaqs, type CmsFaqRow, type FaqItem, type FaqPage } from './faqs'
+import { mergeFaqs, selectFaqs, type CmsFaqRow, type FaqItem, type FaqPage } from './faqs'
 import { selectTestimonials } from './testimonials'
 
 export function platformBlogPosts(limit = 48) {
@@ -57,10 +57,9 @@ async function platformCmsFaqRows(): Promise<CmsFaqRow[]> {
   }
 }
 
-/** FAQs for a page: the CMS ones when any exist, otherwise the built-in `fallback`. */
+/** FAQs for a page: the CMS ones, then the built-in `fallback` questions the CMS doesn't cover. */
 export async function pageFaqs(page: FaqPage, fallback: readonly FaqItem[]): Promise<FaqItem[]> {
-  const fromCms = selectFaqs(await platformCmsFaqRows(), page)
-  return fromCms.length ? fromCms : [...fallback]
+  return mergeFaqs(selectFaqs(await platformCmsFaqRows(), page), fallback)
 }
 
 /** Real, featured testimonials for a page (empty → the section is hidden). */
@@ -70,7 +69,7 @@ export async function pageTestimonials(page: FaqPage): Promise<StorefrontCmsTest
 }
 
 /** Fields from admin → CMS → SEO that may override a page's built-in metadata. */
-export type SeoOverride = { title?: string; description?: string; ogImage?: string; noindex: boolean }
+export type SeoOverride = { title?: string; description?: string; ogImage?: string; noindex: boolean; updatedAt?: string }
 
 /**
  * SEO entry for an exact public path (`/`, `/pricing`, `/for-salons`) from the platform tenant.
@@ -88,7 +87,7 @@ export async function platformSeoOverride(path: string): Promise<SeoOverride | n
     })
     if (!res.ok) return null
     const json = (await res.json().catch(() => null)) as {
-      data?: { title?: unknown; description?: unknown; ogImage?: unknown; robots?: unknown; isActive?: unknown } | null
+      data?: { title?: unknown; description?: unknown; ogImage?: unknown; robots?: unknown; isActive?: unknown; updatedAt?: unknown } | null
     } | null
     const row = json?.data
     if (!row || row.isActive === false) return null
@@ -99,6 +98,7 @@ export async function platformSeoOverride(path: string): Promise<SeoOverride | n
       description: text(row.description),
       ogImage: ogImage && /^https:\/\//i.test(ogImage) ? ogImage : undefined,
       noindex: typeof row.robots === 'string' && /noindex/i.test(row.robots),
+      updatedAt: text(row.updatedAt),
     }
   } catch {
     return null

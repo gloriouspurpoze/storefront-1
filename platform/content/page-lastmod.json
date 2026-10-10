@@ -1,0 +1,16 @@
+{
+  "../packages/marketing-data/src/index.ts": "2026-10-06T10:22:52.000Z",
+  "../packages/marketing-data/src/landingContent.ts": "2026-10-10T14:35:56.000Z",
+  "../packages/marketing-data/src/plans/home_services.ts": "2026-10-06T10:22:52.000Z",
+  "../packages/marketing-data/src/plans/index.ts": "2026-10-06T10:22:52.000Z",
+  "../packages/marketing-data/src/plans/restaurant.ts": "2026-10-06T10:22:52.000Z",
+  "../packages/marketing-data/src/plans/retail.ts": "2026-10-06T10:22:52.000Z",
+  "../packages/marketing-data/src/plans/salon.ts": "2026-10-06T10:22:52.000Z",
+  "../packages/marketing-data/src/plans/types.ts": "2026-10-06T10:22:52.000Z",
+  "../packages/marketing-data/src/verticals.ts": "2026-10-10T14:35:56.000Z",
+  "app/platform/[slug]/page.tsx": "2026-10-06T12:48:02.000Z",
+  "app/platform/page.tsx": "2026-10-06T12:48:02.000Z",
+  "app/platform/pricing/page.tsx": "2026-10-06T12:48:02.000Z",
+  "platform/content/home.ts": "2026-10-10T14:35:56.000Z",
+  "platform/content/offer.ts": "2026-10-06T10:22:52.000Z"
+}
