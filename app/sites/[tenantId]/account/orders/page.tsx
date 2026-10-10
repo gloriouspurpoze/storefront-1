@@ -1,6 +1,7 @@
 import { loadTenantFromRequest } from '@/lib/load-tenant'
 import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { OrderHistory } from '@/components/account/OrderHistory'
+import { MarketplaceOrdersClient } from '@/themes/marketplace/MarketplaceOrdersClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,8 @@ export async function generateMetadata() {
 export default async function AccountOrdersPage() {
   const tenant = await loadTenantFromRequest()
   if (!tenant) return null
+  // Marketplace orders are split checkouts (one parcel per seller) — not single-store orders.
+  if (tenant.verticalKey === 'marketplace') return <MarketplaceOrdersClient tenantId={tenant.id} />
 
   return <OrderHistory tenantId={tenant.id} />
 }

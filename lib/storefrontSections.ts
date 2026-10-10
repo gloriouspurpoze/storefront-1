@@ -16,12 +16,24 @@ export const THEME_SECTIONS = {
   'menufast-cards': ['hero', 'offers', 'promo', 'menu'],
   'luxe-essence': ['hero', 'offers', 'products', 'promo'],
   'soft-studio': ['hero', 'highlights', 'products'],
+  'marketplace-classic': [
+    'hero',
+    'categories',
+    'featuredSellers',
+    'products',
+    'newArrivals',
+    'howItWorks',
+    'sellCta',
+    'trust',
+    'faq',
+  ],
 } as const satisfies Record<string, readonly string[]>
 
 export const CLASSIC_SECTIONS = {
   home_services: ['hero', 'trust', 'services', 'about', 'faq', 'cta'],
   restaurant: ['hero', 'menu', 'trust', 'reservations', 'about', 'faq'],
   retail: ['hero', 'products', 'trust', 'about', 'faq', 'giftMatch'],
+  marketplace: ['hero', 'categories', 'featuredSellers', 'products', 'newArrivals', 'howItWorks', 'sellCta', 'faq'],
 } as const satisfies Record<string, readonly string[]>
 
 /** Designed order for the active theme (layout theme, else the vertical's classic layout). */
@@ -29,7 +41,9 @@ export function themeSectionDefaults(themeKey: string | undefined | null, vertic
   if (themeKey && Object.prototype.hasOwnProperty.call(THEME_SECTIONS, themeKey)) {
     return THEME_SECTIONS[themeKey as keyof typeof THEME_SECTIONS]
   }
-  return verticalKey === 'restaurant' || verticalKey === 'retail' ? CLASSIC_SECTIONS[verticalKey] : CLASSIC_SECTIONS.home_services
+  return verticalKey === 'restaurant' || verticalKey === 'retail' || verticalKey === 'marketplace'
+    ? CLASSIC_SECTIONS[verticalKey]
+    : CLASSIC_SECTIONS.home_services
 }
 
 export function homepageSectionOrder(cfg: StorefrontConfig | null | undefined, themeDefault: readonly string[]): string[] {

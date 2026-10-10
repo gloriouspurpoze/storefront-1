@@ -19,6 +19,8 @@ import { isRestaurantLayoutTheme } from '@/themes/restaurant/restaurantLayoutRou
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { LuxeEssenceCheckoutPage } from '@/themes/retail/luxe-essence/LuxeEssenceCheckoutPage'
 import { fetchStorefrontMenuLinks, fetchStorefrontNavLinks } from '@/lib/cms-content'
+import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
+import { MarketplaceCheckoutPage } from '@/themes/marketplace/MarketplaceCommercePages'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,13 +28,21 @@ export async function generateMetadata() {
   const h = await headers()
   const vertical = h.get('x-tenant-vertical')
   const tenant =
-    vertical === 'restaurant' ? await loadRestaurantTenant() : await loadRetailTenant()
+    vertical === 'restaurant'
+      ? await loadRestaurantTenant()
+      : ((await marketplaceTenantOrNull()) ?? (await loadRetailTenant()))
   return { title: 'Checkout', description: `Checkout at ${tenant.name}.` }
 }
 
 export default async function CheckoutPage() {
   const h = await headers()
   const vertical = h.get('x-tenant-vertical')
+
+  if (vertical === 'marketplace') {
+    const marketplace = await marketplaceTenantOrNull()
+    if (!marketplace) notFound()
+    return <MarketplaceCheckoutPage tenant={marketplace} />
+  }
 
   if (vertical === 'restaurant') {
     const tenant = await loadRestaurantTenant()

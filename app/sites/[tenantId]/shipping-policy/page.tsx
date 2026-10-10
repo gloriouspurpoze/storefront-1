@@ -10,6 +10,8 @@ import { ShippingPolicyPageContent } from '@/components/ShippingPolicyPageConten
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { SiteHeader } from '@/themes/retail/SiteHeader'
 import { LuxeEssenceShippingPolicyPage } from '@/themes/retail/luxe-essence/LuxeEssenceShippingPolicyPage'
+import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
+import { MarketplaceShippingPolicyPage } from '@/themes/marketplace/MarketplaceUtilityPages'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +27,7 @@ export default async function ShippingPolicyPage() {
   const resolved = await loadTenantFromRequest()
   if (!resolved) notFound()
 
+  if (resolved.verticalKey === 'marketplace') return <MarketplaceShippingPolicyPage tenant={resolved} />
   if (resolved.verticalKey !== 'retail') notFound()
 
   const tenant = await loadRetailTenant()

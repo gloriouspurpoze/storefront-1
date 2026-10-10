@@ -21,6 +21,8 @@ import {
   buildProductMetadata,
   resolveStorefrontBaseUrl,
 } from '@/lib/product-seo'
+import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
+import { MarketplaceProductPage } from '@/themes/marketplace/MarketplaceProductPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +32,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
-  const tenant = await loadRetailTenant()
+  const tenant = (await marketplaceTenantOrNull()) ?? (await loadRetailTenant())
   const [product, config] = await Promise.all([
     fetchProductBySlug(tenant.id, slug),
     fetchStorefrontConfig(tenant.id),
@@ -49,6 +51,8 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params
+  const marketplace = await marketplaceTenantOrNull()
+  if (marketplace) return <MarketplaceProductPage tenant={marketplace} slug={slug} />
   const tenant = await loadRetailTenant()
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
   const [config, product, headerNavLinks, footerNavLinks, faqs] = await Promise.all([

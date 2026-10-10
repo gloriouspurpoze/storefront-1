@@ -8,6 +8,7 @@ export type VerticalKey =
   | 'restaurant'
   | 'salon'
   | 'retail'
+  | 'marketplace'
   | 'fitness'
   | 'real_estate'
   | 'b2b_services'

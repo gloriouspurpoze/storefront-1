@@ -21,6 +21,7 @@ export default async function TenantHomePage() {
     case 'home_services':
     case 'restaurant':
     case 'retail':
+    case 'marketplace':
       return <HomePageSections tenant={tenant} cfg={cfg} />
     default:
       return <ComingSoon tenant={tenant} />

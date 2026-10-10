@@ -15,6 +15,9 @@ import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { LuxeEssenceCatalogPage } from '@/themes/retail/luxe-essence/LuxeEssenceCatalogPage'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
+import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
+import { MarketplaceCatalogPage } from '@/themes/marketplace/MarketplaceCatalogPage'
+import { parseCatalogQuery } from '@/themes/marketplace/catalogQuery'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +25,15 @@ export async function generateMetadata() {
   return storefrontPathMetadata('/products')
 }
 
-export default async function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const marketplace = await marketplaceTenantOrNull()
+  if (marketplace) {
+    return <MarketplaceCatalogPage tenant={marketplace} mode="all" query={parseCatalogQuery(await searchParams)} />
+  }
   const tenant = await loadRetailTenant()
   const config = await fetchStorefrontConfig(tenant.id)
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)

@@ -11,16 +11,21 @@ import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { STOREFRONT_ADDON_FLAGS, isAddonActive } from '@/lib/storefrontAddons'
 import { WishlistPageClient } from '@/components/wishlist/WishlistPageClient'
+import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
+import { MarketplaceWishlistPage } from '@/themes/marketplace/MarketplaceUtilityPages'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
-  const tenant = await loadRetailTenant()
+  const tenant = (await marketplaceTenantOrNull()) ?? (await loadRetailTenant())
   return { title: 'Wishlist', description: `Products you saved at ${tenant.name}.`, robots: { index: false } }
 }
 
 /** Wishlist add-on (`showWishlist`, retail). 404 when the add-on is not active. */
 export default async function WishlistPage() {
+  const marketplace = await marketplaceTenantOrNull()
+  if (marketplace) return <MarketplaceWishlistPage tenant={marketplace} />
+
   const h = await headers()
   if (h.get('x-tenant-vertical') !== 'retail') notFound()
 

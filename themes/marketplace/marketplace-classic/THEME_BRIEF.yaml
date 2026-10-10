@@ -1,0 +1,98 @@
+# marketplace-classic — Theme brief (v1)
+# Default (and only) theme of the `marketplace` vertical. Do not contradict during implement sessions.
+
+meta:
+  themeKey: marketplace-classic
+  vertical: marketplace
+  status: v1
+  referenceTenant: itsgivin # itsgivin.lvh.me:3001 in dev
+  approver: developer
+  successMetric: functional-completeness
+  notes: >
+    Multi-vendor storefront: many sellers, one cart, one payment that the API splits into a
+    sub-order per seller. UX reference: the standalone mp-handycraft app (creators, PDP "sold by",
+    sell/apply), rebuilt on the shared --sf-* design system so every marketplace tenant gets it.
+
+design:
+  personality: warm-curated
+  darkMode: false
+  wcag: AA
+  motion: subtle
+  typography:
+    source: tenant-branding # --font-display / --font-body from Studio
+  avoid:
+    - emojis
+    - theme-local-palette # colors come from --sf-* tokens only
+    - single-store-copy # never "our store ships…" — every parcel ships from a seller
+
+scope:
+  layout: full-page
+  routes:
+    - home                 # MarketplaceHome
+    - products             # MarketplaceCatalogPage mode=all
+    - categories-detail    # MarketplaceCatalogPage mode=category
+    - search               # MarketplaceCatalogPage mode=search (+ matching sellers)
+    - products-detail      # MarketplaceProductPage
+    - sellers              # SellersDirectoryPage
+    - store-detail         # SellerStorePage (/store/[sellerSlug])
+    - sell                 # SellLandingPage
+    - sell-apply           # SellerApplyForm
+    - cart                 # MarketplaceCartClient — grouped by seller
+    - checkout             # MarketplaceCheckoutClient — split checkout
+    - checkout-success     # CheckoutSuccessClient
+    - account-orders       # MarketplaceOrdersClient — checkout + sub-orders
+  homeSections: [hero, categories, featuredSellers, products, newArrivals, howItWorks, sellCta, trust, faq]
+  components:
+    - shell-header         # StandardStorefrontNav variant=marketplace (inline search, Sellers, Sell)
+    - shell-footer
+    - catalog-facets       # URL-driven: category, price band, seller; sort; pagination
+    - catalog-card         # ListingCard ("by {seller}", quick add)
+    - seller-card
+    - seller-hero
+    - pdp-sold-by
+    - commerce-cart-split
+    - commerce-checkout-split
+    - orders-suborders
+
+apis:
+  allowed:
+    # lib/marketplace-api.ts
+    - searchMarketplace
+    - fetchSellerStore
+    - fetchSellers
+    - quoteMarketplaceCheckout
+    - runMarketplaceCheckout
+    - fetchCustomerCheckouts
+    - fetchCustomerCheckout
+    - submitSellerApplication
+    - fetchReviews
+    - submitReview
+    # lib/storefront-api.ts
+    - fetchProducts
+    - fetchProductBySlug
+    - fetchStorefrontCategories
+    - fetchStorefrontConfig
+  forbiddenPatterns:
+    - inline fetch to /public/marketplace or /public/storefront from a theme file
+    - theme-local API client files
+    - retail cart (themes/retail/cart) inside marketplace components
+
+commerce:
+  cartKey: listingId # MarketplaceListing id; the API prices it and routes it to a seller
+  checkout: /public/marketplace/checkout/{quote,create,verify}
+  shipping: per-seller, from the quote (sellerGroups[].shippingInr)
+  addressRequired: true # sent on create (Razorpay notes) and verify
+  auth: required for cart add + checkout (same rule as retail)
+
+backendNotes:
+  - Variants are priced, stock-checked and decremented per option server-side; the cart line keeps variantId.
+  - Carts are snapshotted in MarketplaceCheckoutIntent at payment-order time (Razorpay notes cap values at 256 chars).
+  - Reviews are verified-purchase only (sub-order delivered/completed), one per item per order; published reviews
+    roll up into Seller.rating/reviewCount and Product.averageRating/totalReviews. Admin hides/publishes at /bazaar/store/reviews.
+  - Wishlist (add-on), gift match (platform flag) and /shipping-policy (marketplace framing) are enabled for marketplace.
+
+verify:
+  - npx vitest run
+  - npx tsc --noEmit
+  - itsgivin.lvh.me:3001 — home, search with facets, PDP sold-by, /sellers, /store/<slug>, two-seller cart, Razorpay test checkout, /checkout/success, /account/orders, /sell/apply
+  - retail / restaurant / home-services tenants unchanged; /sellers, /store/*, /sell 404 on them

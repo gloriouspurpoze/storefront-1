@@ -11,15 +11,20 @@ import { fetchStorefrontMenuLinks, fetchStorefrontNavLinks } from '@/lib/cms-con
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { LayoutThemePageShell } from '@/components/LayoutThemePageShell'
 import { LuxeEssenceCartPage } from '@/themes/retail/luxe-essence/LuxeEssenceCartPage'
+import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
+import { MarketplaceCartPage } from '@/themes/marketplace/MarketplaceCommercePages'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
-  const tenant = await loadRetailTenant()
+  const tenant = (await marketplaceTenantOrNull()) ?? (await loadRetailTenant())
   return { title: 'Cart', description: `Your cart at ${tenant.name}.` }
 }
 
 export default async function CartPage() {
+  const marketplace = await marketplaceTenantOrNull()
+  if (marketplace) return <MarketplaceCartPage tenant={marketplace} />
+
   const h = await headers()
   const vertical = h.get('x-tenant-vertical')
   if (vertical !== 'retail') notFound()

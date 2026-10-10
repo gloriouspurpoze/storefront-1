@@ -46,6 +46,7 @@ import { Testimonials } from '@/components/sections/Testimonials'
 import { UspStrip } from '@/components/sections/UspStrip'
 import { buildHeroSlides } from '@/components/sections/slides'
 import { IconPhone, IconShield, IconTruck } from '@/ui'
+import { MarketplaceHome } from '@/themes/marketplace/MarketplaceHome'
 
 function flagOn(cfg: StorefrontConfig | null, key: string): boolean {
   const flags = cfg?.featureFlags as Record<string, boolean | undefined> | undefined
@@ -86,6 +87,10 @@ export async function HomePageSections({
   const order = homepageSectionOrder(cfg, sectionDefaults)
   // Paid add-on blocks (AMC / loyalty / B2B) — rendered above the footer in every theme.
   const addonsSlot = await loadStorefrontAddonBlocks(tenant.id, cfg)
+
+  if (vertical === 'marketplace') {
+    return <MarketplaceHome tenant={tenant} cfg={cfg} addonsSlot={addonsSlot} />
+  }
 
   if (vertical === 'home_services') {
     const themeTenant = toHsTenant(

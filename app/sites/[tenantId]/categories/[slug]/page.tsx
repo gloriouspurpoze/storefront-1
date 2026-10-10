@@ -25,11 +25,15 @@ import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { toThemeTenant } from '@/themes/retail/types'
 import { LuxeEssenceCategoryPage } from '@/themes/retail/luxe-essence/LuxeEssenceCategoryPage'
+import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
+import { MarketplaceCatalogPage } from '@/themes/marketplace/MarketplaceCatalogPage'
+import { parseCatalogQuery } from '@/themes/marketplace/catalogQuery'
 
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ slug: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
 function productCategorySlug(product: PublicProduct): string | undefined {
@@ -44,7 +48,7 @@ function filterProductsByCategory(products: PublicProduct[], slug: string): Publ
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
-  const tenant = await loadRetailTenant()
+  const tenant = (await marketplaceTenantOrNull()) ?? (await loadRetailTenant())
   const [config, categoryMarketingRaw, catalogCategories] = await Promise.all([
     fetchStorefrontConfig(tenant.id),
     fetchCategoryMarketing(tenant.id),
@@ -72,10 +76,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function CategorySlugPage({ params }: PageProps) {
+export default async function CategorySlugPage({ params, searchParams }: PageProps) {
   const { slug: rawSlug } = await params
   const slug = rawSlug.trim().toLowerCase()
   if (!slug) notFound()
+
+  const marketplace = await marketplaceTenantOrNull()
+  if (marketplace) {
+    return (
+      <MarketplaceCatalogPage
+        tenant={marketplace}
+        mode="category"
+        categorySlug={slug}
+        query={parseCatalogQuery(await searchParams)}
+      />
+    )
+  }
 
   const h = await headers()
   const vertical = h.get('x-tenant-vertical')

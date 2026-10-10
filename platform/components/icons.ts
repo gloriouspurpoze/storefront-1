@@ -48,6 +48,7 @@ export const PILLAR_ICONS: Record<PillarIconKey, LucideIcon> = {
   real_estate: Home,
   b2b_services: Briefcase,
   retail: ShoppingBag,
+  marketplace: Store,
   healthcare: Stethoscope,
   education: GraduationCap,
 }

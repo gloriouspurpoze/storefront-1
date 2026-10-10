@@ -245,6 +245,14 @@ export interface PublicProduct {
   /** Catalog display order from admin (optional; list order is authoritative). */
   sortOrder?: number
   sort_order?: number
+  /** Marketplace tenants: who sells it, and the listing id the split checkout charges. */
+  sellerId?: string
+  sellerName?: string
+  sellerSlug?: string
+  listingId?: string
+  /** Verified-purchase review aggregate (marketplace reviews roll up here). */
+  averageRating?: number
+  totalReviews?: number
 }
 
 /** Resolve PDP gallery URLs — prefers `imageUrls`, falls back to single `imageUrl`. */

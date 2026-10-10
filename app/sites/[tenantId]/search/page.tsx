@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { searchMarketplace } from '@/lib/runMarketplaceCheckout'
 import { loadThemeTenant } from '@/lib/load-tenant'
 import {
   fetchMenu,
@@ -16,17 +15,10 @@ import { PageHeader, IconSearch } from '@/ui'
 import { ProductGrid } from '@/themes/retail/ProductGrid'
 import { MenuSectionInteractive } from '@/themes/restaurant/MenuSectionInteractive'
 import { ServiceGrid } from '@/themes/home-services/ServiceGrid'
+import { MarketplaceCatalogPage } from '@/themes/marketplace/MarketplaceCatalogPage'
+import { parseCatalogQuery } from '@/themes/marketplace/catalogQuery'
 
 export const dynamic = 'force-dynamic'
-
-type Listing = {
-  _id?: string
-  title?: string
-  slug?: string
-  listingType?: string
-  priceInr?: number
-  sellerId?: { displayName?: string; slug?: string }
-}
 
 /** Case-insensitive match on every whitespace-separated term. */
 function matches(q: string, ...fields: Array<string | undefined>): boolean {
@@ -65,46 +57,19 @@ export default async function StorefrontSearchPage({
   searchParams,
 }: {
   params: Promise<{ tenantId: string }>
-  searchParams: Promise<{ q?: string; types?: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { tenantId } = await params
   const sp = await searchParams
-  const q = (sp.q ?? '').trim()
   const tenant = await loadThemeTenant(tenantId)
   const vertical = tenant.verticalKey
+  // Marketplace: faceted search across every seller's listings (plus matching sellers).
+  if (vertical === 'marketplace') {
+    return <MarketplaceCatalogPage tenant={tenant} mode="search" query={parseCatalogQuery(sp)} />
+  }
+  const q = (typeof sp.q === 'string' ? sp.q : '').trim()
 
-  const [config, marketplace] = await Promise.all([
-    fetchStorefrontConfig(tenant.id),
-    q
-      ? searchMarketplace({ tenantId, q, types: sp.types }).catch(() => ({ listings: [] as Listing[] }))
-      : Promise.resolve({ listings: [] as Listing[] }),
-  ])
-  const listings = ((marketplace as { listings?: Listing[] }).listings ?? []) as Listing[]
-
-  const listingsBlock =
-    listings.length > 0 ? (
-      <section className="sf-search-page__market">
-        <h2 className="sf-heading" style={{ fontSize: 'var(--sf-text-xl)' }}>
-          From the marketplace
-        </h2>
-        <ul className="sf-search-page__listings">
-          {listings.map((l) => (
-            <li key={String(l._id)}>
-              <p className="sf-search-page__listing-title">{l.title}</p>
-              <p className="sf-subtle">
-                {l.listingType} · ₹{(l.priceInr ?? 0).toLocaleString('en-IN')}
-                {l.sellerId && typeof l.sellerId === 'object' && l.sellerId.slug ? (
-                  <>
-                    {' · '}
-                    <Link href={`/store/${l.sellerId.slug}`}>{l.sellerId.displayName}</Link>
-                  </>
-                ) : null}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
-    ) : null
+  const config = await fetchStorefrontConfig(tenant.id)
 
   const page = (placeholder: string, results: ReactNode) => (
     <main>
@@ -113,7 +78,6 @@ export default async function StorefrontSearchPage({
       </PageHeader>
       <div className="sf-container" style={{ paddingBottom: 'var(--sf-section-y)' }}>
         {results}
-        {listingsBlock}
       </div>
     </main>
   )
@@ -130,7 +94,7 @@ export default async function StorefrontSearchPage({
       'Search the menu…',
       <>
         <ResultCount q={q} count={count} noun="dish" />
-        {q && count === 0 && listings.length === 0 ? <p className="sf-product-empty">No dishes match your search.</p> : null}
+        {q && count === 0 ? <p className="sf-product-empty">No dishes match your search.</p> : null}
         {count > 0 ? <MenuSectionInteractive categories={filtered} /> : null}
       </>,
     )
@@ -150,7 +114,7 @@ export default async function StorefrontSearchPage({
           'Search services…',
           <>
             <ResultCount q={q} count={filtered.length} noun="service" />
-            {q && filtered.length === 0 && listings.length === 0 ? <p className="sf-product-empty">No services match your search.</p> : null}
+            {q && filtered.length === 0 ? <p className="sf-product-empty">No services match your search.</p> : null}
             {filtered.length > 0 ? <ServiceGrid services={filtered} title="Matching services" showSeeAll={false} /> : null}
           </>,
         )}
@@ -167,7 +131,7 @@ export default async function StorefrontSearchPage({
     'Search products…',
     <>
       <ResultCount q={q} count={filtered.length} noun="product" />
-      {q && filtered.length === 0 && listings.length === 0 ? (
+      {q && filtered.length === 0 ? (
         <div className="sf-product-empty">
           <p>No products match your search.</p>
           <Link href="/products" className="sf-btn sf-btn--secondary" style={{ marginTop: '1rem' }}>

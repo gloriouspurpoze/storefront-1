@@ -19,6 +19,8 @@ export function themeRootClass(themeKey?: string): string {
       return 'theme-soft-studio'
     case 'luxe-essence':
       return 'theme-luxe-essence'
+    case 'marketplace-classic':
+      return 'theme-marketplace'
     case 'private-thebrownbutter':
       return 'theme-brown-butter'
     default:

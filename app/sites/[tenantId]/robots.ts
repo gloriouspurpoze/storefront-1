@@ -22,7 +22,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     rules: {
       userAgent: '*',
       allow: indexable ? '/' : undefined,
-      disallow: indexable ? undefined : '/',
+      // Private / transactional pages never belong in an index.
+      disallow: indexable ? ['/cart', '/checkout', '/account'] : '/',
     },
     sitemap: cfg?.seo?.sitemapEnabled !== false ? `${base}/sitemap.xml` : undefined,
   }

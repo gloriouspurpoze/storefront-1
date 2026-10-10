@@ -101,9 +101,11 @@ export function buildProductJsonLd(
       availability: product.inStock
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
+      // Marketplace products are sold by an independent seller, not the site operator.
       seller: {
         '@type': 'Organization',
-        name: siteName,
+        name: product.sellerName || siteName,
+        ...(product.sellerSlug && baseUrl ? { url: `${baseUrl}/store/${encodeURIComponent(product.sellerSlug)}` } : {}),
       },
     },
   }

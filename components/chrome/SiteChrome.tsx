@@ -16,6 +16,10 @@ import { isRestaurantLayoutTheme } from '@/themes/restaurant/restaurantLayoutRou
 import { SiteHeader as HsHeader } from '@/themes/home-services/SiteHeader'
 import { SiteFooter as HsFooter } from '@/themes/home-services/SiteFooter'
 import { toThemeTenant as toHsTenant } from '@/themes/home-services/types'
+import { MarketplaceShell } from '@/themes/marketplace/MarketplaceShell'
+import { SiteHeader as MarketplaceHeader } from '@/themes/marketplace/SiteHeader'
+import { SiteFooter as MarketplaceFooter } from '@/themes/marketplace/SiteFooter'
+import { toThemeTenant as toMarketplaceTenant } from '@/themes/marketplace/types'
 
 /**
  * The one page frame for vertical-agnostic routes (search, marketplace seller
@@ -55,6 +59,17 @@ export async function SiteChrome({
           </>
         )}
       </RestaurantShell>
+    )
+  }
+
+  if (tenant.verticalKey === 'marketplace') {
+    const t = toMarketplaceTenant(tenant, tagline)
+    return (
+      <MarketplaceShell tenantId={tenant.id}>
+        <MarketplaceHeader tenant={t} config={config} />
+        {children}
+        <MarketplaceFooter tenant={t} config={config} />
+      </MarketplaceShell>
     )
   }
 

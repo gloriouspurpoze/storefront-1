@@ -7,12 +7,16 @@ import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant } from '@/themes/retail/types'
+import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
+import { MarketplaceGiftsPage } from '@/themes/marketplace/MarketplaceUtilityPages'
 
 export const dynamic = 'force-dynamic'
 
 export default async function GiftsPage() {
   const resolved = await loadTenantFromRequest()
   if (!resolved) notFound()
+
+  if (resolved.verticalKey === 'marketplace') return <MarketplaceGiftsPage tenant={resolved} />
 
   if (resolved.verticalKey !== 'retail') {
     notFound()

@@ -21,8 +21,11 @@ export interface StandardNavTenant {
   brand?: string
 }
 
-function giftMatchEnabled(config?: StorefrontConfig | null, variant?: 'retail' | 'restaurant'): boolean {
-  if (variant !== 'retail') return false
+/** `marketplace` = multi-seller retail: categories + inline search, no single-store shipping page. */
+export type StandardNavVariant = 'retail' | 'restaurant' | 'marketplace'
+
+function giftMatchEnabled(config?: StorefrontConfig | null, variant?: StandardNavVariant): boolean {
+  if (variant !== 'retail' && variant !== 'marketplace') return false
   const flags = config?.featureFlags as Record<string, boolean | undefined> | undefined
   return flags?.giftMatch === true
 }
@@ -114,7 +117,7 @@ export function StandardStorefrontNav({
   tenant: StandardNavTenant
   config?: StorefrontConfig | null
   itemCount?: number
-  variant?: 'retail' | 'restaurant'
+  variant?: StandardNavVariant
   onCartClick?: () => void
   cartHref?: string
   showShippingPolicy?: boolean
@@ -134,11 +137,12 @@ export function StandardStorefrontNav({
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const scrolled = useScrolled()
-  const shippingVisible = showShippingPolicy ?? variant === 'retail'
+  const shippingVisible = showShippingPolicy ?? variant !== 'restaurant'
   const policyLabel = variant === 'restaurant' ? 'Delivery policy' : 'Shipping policy'
   const showGiftMatch = giftMatchEnabled(config, variant)
-  const wishlistOn = useRegisterWishlistAddon(config) && variant === 'retail'
-  const hasCategories = variant === 'retail' && (categories?.length ?? 0) > 0
+  const wishlistOn = useRegisterWishlistAddon(config) && variant !== 'restaurant'
+  const hasCategories = variant !== 'restaurant' && (categories?.length ?? 0) > 0
+  const inlineSearch = variant === 'marketplace'
 
   const allLinks = (navLinks ?? []).filter((l) => l.href && l.label)
   // The Shop mega menu already links to /products; don't repeat it inline.
@@ -221,7 +225,21 @@ export function StandardStorefrontNav({
 
           <ul className="sf-header__nav">
             {hasCategories ? <ShopMegaMenu categories={categories!} /> : null}
-            {links.map((l) => (
+            {inlineSearch ? (
+              <li className="sf-header__nav-item sf-header__searchbar-item">
+                <form action="/search" role="search" className="sf-header__searchbar">
+                  <IconSearch size={18} aria-hidden />
+                  <input
+                    type="search"
+                    name="q"
+                    placeholder="Search products and sellers…"
+                    aria-label="Search the marketplace"
+                    enterKeyHint="search"
+                  />
+                </form>
+              </li>
+            ) : null}
+            {(inlineSearch ? links.slice(0, 2) : links).map((l) => (
               <li key={l.href} className="sf-header__nav-item">
                 <Link href={l.href} className="sf-header__nav-link">
                   {l.label}
@@ -270,7 +288,7 @@ export function StandardStorefrontNavActions({
 }: {
   config?: StorefrontConfig | null
   itemCount?: number
-  variant?: 'retail' | 'restaurant'
+  variant?: StandardNavVariant
   menuOpen: boolean
   onMenuOpen: () => void
   onMenuClose: () => void
@@ -279,10 +297,10 @@ export function StandardStorefrontNavActions({
   accountMode?: 'nav' | 'profile'
   navLinks?: { href: string; label: string }[]
 }) {
-  const shippingVisible = showShippingPolicy ?? variant === 'retail'
+  const shippingVisible = showShippingPolicy ?? variant !== 'restaurant'
   const policyLabel = variant === 'restaurant' ? 'Delivery policy' : 'Shipping policy'
   const showGiftMatch = giftMatchEnabled(config, variant)
-  const wishlistOn = useRegisterWishlistAddon(config) && variant === 'retail'
+  const wishlistOn = useRegisterWishlistAddon(config) && variant !== 'restaurant'
 
   return (
     <>

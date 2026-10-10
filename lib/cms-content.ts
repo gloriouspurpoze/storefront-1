@@ -101,6 +101,8 @@ export function defaultHeaderNavLinks(
       { href: '/contact', label: 'Contact' },
     ]
   }
+  // Marketplace chrome adds Sellers / Sell itself; per-seller shipping has no single policy page.
+  if (vertical === 'marketplace') return []
   return [
     { href: '/products', label: 'Shop all' },
     { href: '/orders/track', label: 'Track order' },
@@ -126,6 +128,7 @@ export function defaultFooterNavLinks(
       { href: '/contact', label: 'Contact' },
     ]
   }
+  if (vertical === 'marketplace') return []
   return [
     { href: '/products', label: 'Shop all' },
     { href: '/cart', label: 'Cart' },
