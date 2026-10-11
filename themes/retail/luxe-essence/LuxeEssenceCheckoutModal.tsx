@@ -217,7 +217,7 @@ export function LuxeEssenceCheckoutModal({
         aria-modal="true"
         aria-label="Checkout"
       >
-        <RequireStorefrontAuth returnPath="/" title="Sign in to checkout">
+        <RequireStorefrontAuth allowGuest returnPath="/" title="Sign in to checkout">
           {!orderNumber ? (
             <>
               <div className="le-checkout-modal__head">

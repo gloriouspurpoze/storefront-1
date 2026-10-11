@@ -16,6 +16,8 @@ import type { ThemeTenant } from './types'
 import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
 import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
+import { guestPhoneProblem } from '@/lib/customerAccounts'
+import { useAccountAuth } from '@/components/account/AccountAuthProvider'
 import {
   getEnabledPaymentMethods,
   STOREFRONT_PAYMENT_METHOD_LABELS,
@@ -84,6 +86,7 @@ export function MenuOrderCheckoutBlock({
     deliveryDetails: prefillDelivery,
     isReady,
   } = useCheckoutCustomerPrefill()
+  const { isAuthenticated, guestCheckoutAllowed } = useAccountAuth()
 
   const shouldCollectAddress = showDeliveryDetails || isControlled
   const shouldPersistShipping =
@@ -123,6 +126,11 @@ export function MenuOrderCheckoutBlock({
     }
     if (!trimmedName) {
       setError('Please enter your name.')
+      return
+    }
+    const phoneProblem = guestPhoneProblem(phone, { isAuthenticated, guestCheckoutAllowed })
+    if (phoneProblem) {
+      setError(phoneProblem)
       return
     }
 
@@ -196,7 +204,7 @@ export function MenuOrderCheckoutBlock({
     : { style: payBtnStyle }
 
   return (
-    <RequireStorefrontAuth returnPath={authReturnPath}>
+    <RequireStorefrontAuth allowGuest returnPath={authReturnPath}>
       <>
         {modal}
         <div

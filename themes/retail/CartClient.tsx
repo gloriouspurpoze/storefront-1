@@ -44,7 +44,7 @@ export function CartClient({ themeKey }: { themeKey?: string }) {
     : 'Secure checkout · Prices verified on our server'
 
   return (
-    <RequireStorefrontAuth returnPath="/cart" title="Sign in to view your cart">
+    <RequireStorefrontAuth allowGuest returnPath="/cart" title="Sign in to view your cart">
       {!lines.length ? (
         <div className={rootClass}>
           <div className="sf-cart-empty">

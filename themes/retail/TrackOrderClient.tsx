@@ -18,7 +18,7 @@ import type { ThemeTenant } from './types'
 
 export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
   const searchParams = useSearchParams()
-  const { tokens, isAuthenticated, isReady } = useAccountAuth()
+  const { tokens, isAuthenticated, isReady, customerAccounts } = useAccountAuth()
   const { email: prefillEmail, phone: prefillPhone, lockedEmail } = useCheckoutCustomerPrefill()
   const themeKey = useAccountTheme()
   const t = accountThemeClasses(themeKey)
@@ -152,11 +152,16 @@ export function TrackOrderClient({ tenant }: { tenant: ThemeTenant }) {
       <form onSubmit={onSubmit} className={`${t.card} ${t.form}`}>
         {!isAuthenticated ? (
           <p className={t.text}>
-            Enter your order number and the email or phone you used at checkout.{' '}
-            <Link href="/account/login" className={t.link}>
-              Sign in
-            </Link>{' '}
-            to skip contact fields.
+            Enter your order number and the email or phone you used at checkout.
+            {customerAccounts !== 'guest_only' ? (
+              <>
+                {' '}
+                <Link href="/account/login" className={t.link}>
+                  Sign in
+                </Link>{' '}
+                to skip contact fields.
+              </>
+            ) : null}
           </p>
         ) : null}
 

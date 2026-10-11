@@ -15,17 +15,20 @@ export type RequireStorefrontAuthProps = {
   returnPath?: string
   title?: string
   message?: string
+  /** Cart / checkout / booking: let guests through when the store allows guest checkout. */
+  allowGuest?: boolean
 }
 
-/** Blocks cart/checkout until the customer signs in. */
+/** Blocks cart/checkout until the customer signs in (unless `allowGuest` and the store allows guests). */
 export function RequireStorefrontAuth({
   children,
   returnPath,
   title = 'Sign in to continue',
   message,
+  allowGuest = false,
 }: RequireStorefrontAuthProps) {
   const pathname = usePathname()
-  const { isReady, isAuthenticated } = useAccountAuth()
+  const { isReady, isAuthenticated, guestCheckoutAllowed } = useAccountAuth()
   const themeKey = useAccountTheme()
   const layoutTheme = useAccountLayoutTheme()
   const isTradePro = isTradeProAccountChrome(layoutTheme)
@@ -40,6 +43,8 @@ export function RequireStorefrontAuth({
   const footerNote = isTradePro
     ? 'Enquiries are linked to your account so you can follow up on status.'
     : 'Orders are linked to your account for easy tracking and reordering.'
+
+  if (allowGuest && guestCheckoutAllowed) return <>{children}</>
 
   if (!isReady) {
     return (

@@ -244,7 +244,9 @@ export default async function TenantLayout({
       {fonts && <style dangerouslySetInnerHTML={{ __html: fonts.css }} />}
       {cfg?.customCss && <style dangerouslySetInnerHTML={{ __html: cfg.customCss }} />}
       {cfg?.themeKey === 'trade-pro' ? <TradeProThemeStyles /> : null}
-      <AccountAuthProvider tenantId={tenant.id}>{children}</AccountAuthProvider>
+      <AccountAuthProvider tenantId={tenant.id} customerAccounts={cfg?.customerAccounts}>
+        {children}
+      </AccountAuthProvider>
       <StorefrontFloatingWidgets
         tenantId={tenant.id}
         siteName={siteName}

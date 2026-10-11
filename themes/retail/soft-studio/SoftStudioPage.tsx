@@ -25,6 +25,8 @@ import { ShippingPolicyModal } from '@/components/ShippingPolicyModal'
 import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
+import { guestPhoneProblem } from '@/lib/customerAccounts'
+import { useAccountAuth } from '@/components/account/AccountAuthProvider'
 import { useRegisterWishlistAddon } from '@/components/wishlist/useWishlist'
 import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import './soft-studio.css'
@@ -81,6 +83,7 @@ export function SoftStudioPage({
   const { lines, itemCount, subtotal, setQuantity, removeLine, clear } = useCart()
   const { requireAuthForCart } = useCartAuthGate()
   const { accessToken } = useCheckoutCustomerPrefill()
+  const { isAuthenticated, guestCheckoutAllowed } = useAccountAuth()
 
   // Shared drawer bus: product-card quick add opens this theme's own cart sidebar.
   const [cartOpen, setCartOpen] = useCartDrawerState()
@@ -137,6 +140,11 @@ export function SoftStudioPage({
     }
     if (!trimmedName) {
       setCheckoutError('Please enter your name.')
+      return
+    }
+    const phoneProblem = guestPhoneProblem(phone, { isAuthenticated, guestCheckoutAllowed })
+    if (phoneProblem) {
+      setCheckoutError(phoneProblem)
       return
     }
 

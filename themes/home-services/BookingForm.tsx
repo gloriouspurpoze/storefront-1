@@ -60,7 +60,7 @@ export function BookingForm({
     setDateBounds({ min: localIsoDate(0), max: localIsoDate(BOOKING_MAX_DAYS_AHEAD), initial: localIsoDate(1) })
   }, [])
   const { tokens } = useAccountAuth()
-  const { isAuthenticated, isReady, requireAuthForCart } = useCartAuthGate()
+  const { isAuthenticated, isReady, guestCheckoutAllowed, requireAuthForCart } = useCartAuthGate()
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -236,7 +236,7 @@ export function BookingForm({
     )
   }
 
-  if (isReady && !isAuthenticated) {
+  if (isReady && !isAuthenticated && !guestCheckoutAllowed) {
     return (
       <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-lg font-semibold text-slate-900">

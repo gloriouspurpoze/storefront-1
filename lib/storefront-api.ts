@@ -570,6 +570,8 @@ export interface StorefrontConfig {
   customBodyScripts?: string
   /** Open / maintenance status. `maintenance` renders a holding page (previews still render the site). */
   siteStatus?: { mode: 'live' | 'maintenance'; message?: string; reopensAt?: string }
+  /** Shopper sign-in policy — see lib/customerAccounts. Unset = `required`. */
+  customerAccounts?: 'required' | 'optional' | 'guest_only'
   orderingHours?: Partial<import('@/lib/orderingHours').OrderingHoursConfig>
   orderingAvailability?: import('@/lib/orderingHours').OrderingAvailabilityConfig
   shippingPolicy?: import('@/lib/shippingPolicy').ShippingPolicyConfig

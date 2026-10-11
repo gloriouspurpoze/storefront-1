@@ -27,9 +27,12 @@ export function AccountProfileLink({
   className?: string
   iconClassName?: string
 }) {
-  const { isReady, isAuthenticated } = useAccountAuth()
+  const { isReady, isAuthenticated, customerAccounts } = useAccountAuth()
   const href = isAuthenticated ? '/account' : '/account/login?signup=1'
   const label = isAuthenticated ? 'Your account' : 'Sign up for your account'
+
+  // Guest-only stores have no accounts.
+  if (customerAccounts === 'guest_only') return null
 
   if (!isReady) {
     return (

@@ -5,8 +5,17 @@ import { useAccountAuth } from './AccountAuthProvider'
 
 /** Minimal account links for theme headers — dashboard or sign in / sign up. */
 export function AccountNavLink({ className }: { className?: string }) {
-  const { isReady, isAuthenticated } = useAccountAuth()
+  const { isReady, isAuthenticated, customerAccounts } = useAccountAuth()
   const linkClass = className ?? 'hover:opacity-80'
+
+  // Guest-only stores have no accounts — point shoppers at order tracking instead.
+  if (customerAccounts === 'guest_only') {
+    return (
+      <Link className={linkClass} href="/orders/track">
+        Track order
+      </Link>
+    )
+  }
 
   if (!isReady) {
     return (

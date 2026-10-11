@@ -1,3 +1,4 @@
+import { isAccountHref } from '@/lib/customerAccounts'
 import type { ProductCategoryNav } from '@/lib/productCategories'
 import type { StorefrontMenuNavLink } from '@/components/StorefrontMenuDrawer'
 import type { StorefrontProductCategory } from '@/lib/storefront-api'
@@ -65,6 +66,7 @@ export function buildLuxeDesktopNav(categories: ProductCategoryNav[]): {
 export function buildLuxeDrawerNav(
   categories: ProductCategoryNav[],
   cmsNavLinks?: StorefrontMenuNavLink[] | null,
+  opts: { hideAccountLinks?: boolean } = {},
 ): StorefrontMenuNavLink[] {
   const allProducts: StorefrontMenuNavLink = { href: '/products', label: 'All products' }
 
@@ -72,6 +74,7 @@ export function buildLuxeDrawerNav(
   const rest = (cmsNavLinks?.length ? cmsNavLinks : fallback).filter((link) => {
     const href = link.href.trim()
     if (href === '#products' || href === '/products') return false
+    if (opts.hideAccountLinks && isAccountHref(href)) return false
     if (categories.some((c) => href === categoryHref(c.slug) || href === `/categories/${c.slug}`)) {
       return false
     }

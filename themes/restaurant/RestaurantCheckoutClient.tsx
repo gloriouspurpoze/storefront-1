@@ -15,6 +15,8 @@ import type { ThemeTenant } from './types'
 import { useShippingPolicyCheckoutGate, validateBeforePayment } from '@/lib/useShippingPolicyCheckoutGate'
 import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
+import { guestPhoneProblem } from '@/lib/customerAccounts'
+import { useAccountAuth } from '@/components/account/AccountAuthProvider'
 import { hasShippableDeliveryDetails } from '@/lib/storefrontShippingAddress'
 
 type Status =
@@ -51,6 +53,7 @@ export function RestaurantCheckoutClient({
     deliveryDetails: prefillDelivery,
     isReady,
   } = useCheckoutCustomerPrefill()
+  const { isAuthenticated, guestCheckoutAllowed } = useAccountAuth()
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -82,6 +85,11 @@ export function RestaurantCheckoutClient({
     }
     if (!trimmedName) {
       setStatus({ kind: 'error', message: 'Please enter your name.' })
+      return
+    }
+    const phoneProblem = guestPhoneProblem(phone, { isAuthenticated, guestCheckoutAllowed })
+    if (phoneProblem) {
+      setStatus({ kind: 'error', message: phoneProblem })
       return
     }
 
@@ -123,7 +131,7 @@ export function RestaurantCheckoutClient({
   }
 
   const wrap = (node: React.ReactNode) => (
-    <RequireStorefrontAuth returnPath="/checkout">{node}</RequireStorefrontAuth>
+    <RequireStorefrontAuth allowGuest returnPath="/checkout">{node}</RequireStorefrontAuth>
   )
 
   if (status.kind === 'success') {

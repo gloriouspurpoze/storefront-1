@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { StorefrontMenuDrawer, type StorefrontMenuNavLink } from '@/components/StorefrontMenuDrawer'
 import type { ProductCategoryNav } from '@/lib/productCategories'
 import type { ComponentProps } from 'react'
+import { useAccountAuth } from '@/components/account/AccountAuthProvider'
 import {
   buildLuxeDrawerCategoryLinks,
   buildLuxeDrawerNav,
@@ -18,7 +19,10 @@ type MenuDrawerProps = Omit<ComponentProps<typeof StorefrontMenuDrawer>, 'drawer
 export function LuxeEssenceMenuDrawer({ navLinks, categories = [], onClose, ...props }: MenuDrawerProps) {
   const navCategories = toLuxeNavCategories(categories)
   const categoryLinks = buildLuxeDrawerCategoryLinks(navCategories)
-  const merged: StorefrontMenuNavLink[] = buildLuxeDrawerNav(navCategories, navLinks)
+  const { customerAccounts } = useAccountAuth()
+  const merged: StorefrontMenuNavLink[] = buildLuxeDrawerNav(navCategories, navLinks, {
+    hideAccountLinks: customerAccounts === 'guest_only',
+  })
 
   const categoriesBlock =
     categoryLinks.length > 0 ? (

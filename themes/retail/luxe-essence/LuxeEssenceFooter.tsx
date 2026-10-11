@@ -92,12 +92,16 @@ export function LuxeEssenceFooter({
             <li>
               <Link href="/orders/track">Track order</Link>
             </li>
-            <li>
-              <Link href="/account/login">Sign in</Link>
-            </li>
-            <li>
-              <Link href="/account/login?signup=1">Sign up with Google</Link>
-            </li>
+            {config?.customerAccounts !== 'guest_only' && (
+              <>
+                <li>
+                  <Link href="/account/login">Sign in</Link>
+                </li>
+                <li>
+                  <Link href="/account/login?signup=1">Sign up with Google</Link>
+                </li>
+              </>
+            )}
           </ul>
         </div>
 

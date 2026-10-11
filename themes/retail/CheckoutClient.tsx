@@ -192,7 +192,7 @@ export function CheckoutClient({
 
   if (status.kind === 'success') {
     return (
-      <RequireStorefrontAuth returnPath="/checkout">
+      <RequireStorefrontAuth allowGuest returnPath="/checkout">
         <>
           {modal}
           <div className={`${rootClass} sf-checkout-success`}>
@@ -231,7 +231,7 @@ export function CheckoutClient({
 
   if (!lines.length) {
     return (
-      <RequireStorefrontAuth returnPath="/checkout">
+      <RequireStorefrontAuth allowGuest returnPath="/checkout">
         <>
           {modal}
           <div className={`${rootClass} sf-cart-empty`}>
@@ -250,7 +250,7 @@ export function CheckoutClient({
   }
 
   return (
-    <RequireStorefrontAuth returnPath="/checkout">
+    <RequireStorefrontAuth allowGuest returnPath="/checkout">
       <>
         {modal}
         <div className={rootClass}>

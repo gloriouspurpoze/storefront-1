@@ -31,7 +31,7 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
     clear,
   } = useEnquiryCart()
   const { user, tokens } = useAccountAuth()
-  const { isAuthenticated, isReady, requireAuthForCart } = useCartAuthGate()
+  const { isAuthenticated, isReady, guestCheckoutAllowed, requireAuthForCart } = useCartAuthGate()
   const titleId = useId()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [successOpen, setSuccessOpen] = useState(false)
@@ -196,9 +196,9 @@ export function TradeProEnquiryDrawer({ tenantId }: { tenantId: string }) {
           ) : null}
 
           {lines.length > 0 ? (
-            !isReady ? (
+            !isReady && !guestCheckoutAllowed ? (
               <p className="mt-6 text-sm text-[var(--tp-mute)]">Checking your account…</p>
-            ) : !isAuthenticated ? (
+            ) : !isAuthenticated && !guestCheckoutAllowed ? (
               <div className="mt-6 space-y-3">
                 <p className="text-sm text-[var(--tp-body)]">
                   Sign in to send this enquiry so you can track status in your account.

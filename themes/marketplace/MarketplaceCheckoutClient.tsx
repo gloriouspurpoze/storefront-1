@@ -85,7 +85,7 @@ export function MarketplaceCheckoutClient({ tenant }: { tenant: ThemeTenant }) {
 
   if (!lines.length) {
     return (
-      <RequireStorefrontAuth returnPath="/checkout">
+      <RequireStorefrontAuth allowGuest returnPath="/checkout">
         <div className="mk-success">
           <IconBag size={32} />
           <h2>Nothing to check out</h2>
@@ -99,7 +99,7 @@ export function MarketplaceCheckoutClient({ tenant }: { tenant: ThemeTenant }) {
   }
 
   return (
-    <RequireStorefrontAuth returnPath="/checkout">
+    <RequireStorefrontAuth allowGuest returnPath="/checkout">
       <div className="mk-cart">
         <form className="mk-form" onSubmit={(e) => void onPay(e)} noValidate>
           <p>

@@ -16,6 +16,7 @@ import {
   type StorefrontAuthTokens,
   type StorefrontAuthUser,
 } from '@/lib/storefront-auth'
+import { resolveCustomerAccountsMode, type CustomerAccountsMode } from '@/lib/customerAccounts'
 
 interface AccountAuthContextValue {
   /** Storefront tenant this session belongs to. */
@@ -26,17 +27,24 @@ interface AccountAuthContextValue {
   isAuthenticated: boolean
   setSession: (user: StorefrontAuthUser, tokens: StorefrontAuthTokens) => void
   logout: () => void
+  /** Store sign-in policy (`config.customerAccounts`). */
+  customerAccounts: CustomerAccountsMode
+  /** Guests may use cart, checkout and booking without signing in. */
+  guestCheckoutAllowed: boolean
 }
 
 const AccountAuthContext = createContext<AccountAuthContextValue | null>(null)
 
 export function AccountAuthProvider({
   tenantId,
+  customerAccounts: rawCustomerAccounts,
   children,
 }: {
   tenantId: string
+  customerAccounts?: string
   children: ReactNode
 }) {
+  const customerAccounts = resolveCustomerAccountsMode(rawCustomerAccounts)
   const [user, setUser] = useState<StorefrontAuthUser | null>(null)
   const [tokens, setTokens] = useState<StorefrontAuthTokens | null>(null)
   const [isReady, setIsReady] = useState(false)
@@ -77,8 +85,10 @@ export function AccountAuthProvider({
       isAuthenticated: Boolean(user && tokens?.accessToken),
       setSession,
       logout,
+      customerAccounts,
+      guestCheckoutAllowed: customerAccounts !== 'required',
     }),
-    [tenantId, user, tokens, isReady, setSession, logout],
+    [tenantId, user, tokens, isReady, setSession, logout, customerAccounts],
   )
 
   return <AccountAuthContext.Provider value={value}>{children}</AccountAuthContext.Provider>
