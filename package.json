@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@profixer/marketing-data": "file:../packages/marketing-data",
     "@react-email/components": "^0.0.31",
     "@react-email/render": "^1.0.3",
     "lucide-react": "^0.468.0",
