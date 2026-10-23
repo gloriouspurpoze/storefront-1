@@ -1,0 +1,175 @@
+function BbImage({
+  src,
+  alt,
+  className,
+  style,
+}: {
+  src?: string
+  alt: string
+  className?: string
+  style?: React.CSSProperties
+}) {
+  const [url, setUrl] = useState(src || BB_IMG_FALLBACK)
+  useEffect(() => {
+    setUrl(src || BB_IMG_FALLBACK)
+  }, [src])
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className={className ?? 'card-img'}
+      src={url}
+      alt={alt}
+      width={400}
+      height={400}
+      decoding="async"
+      style={style}
+      onError={() => setUrl(BB_IMG_FALLBACK)}
+    />
+  )
+}
+
+function ProductCard({
+  product,
+  qty,
+  onAdd,
+  onSetQty,
+}: {
+  product: PublicProduct
+  qty: number
+  onAdd: () => void
+  onSetQty: (qty: number) => void
+}) {
+  const selected = qty > 0
+  const outOfStock = !product.inStock
+
+  return (
+    <div
+      className={`product-card${selected ? ' selected' : ''}${selected ? ' show-stepper' : ''}`}
+      data-id={product.slug}
+      onClick={() => {
+        if (!outOfStock && !selected) onAdd()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !outOfStock && !selected) onAdd()
+      }}
+      role={outOfStock ? undefined : 'button'}
+      tabIndex={outOfStock ? undefined : 0}
+    >
+      <div className="card-img-wrap">
+        <BbImage src={product.imageUrl} alt={product.name} />
+        <div className="veg-dot" aria-label="Vegetarian" />
+        <div className="check-badge">✓</div>
+      </div>
+      <div className="card-body">
+        <div className="card-name">{product.name}</div>
+        <div className="card-desc">{product.shortDescription ?? product.description ?? ''}</div>
+        <div className="card-bottom">
+          <div className="card-price">{formatInr(product.price)}</div>
+          {outOfStock ? (
+            <span className="sold-out-label">Sold out</span>
+          ) : !selected ? (
+            <button
+              type="button"
+              className="add-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                onAdd()
+              }}
+            >
+              + Add
+            </button>
+          ) : (
+            <div className="qty-stepper">
+              <button
+                type="button"
+                className="qty-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSetQty(qty - 1)
+                }}
+              >
+                −
+              </button>
+              <span className="qty-num">{qty}</span>
+              <button
+                type="button"
+                className="qty-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSetQty(qty + 1)
+                }}
+              >
+                +
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TinGroupCard({
+  group,
+  qtyFor,
+  onAdd,
+  onSetQty,
+}: {
+  group: TinGroup
+  qtyFor: (productId: string, variantId?: string) => number
+  onAdd: (product: PublicProduct, variantId?: string) => void
+  onSetQty: (product: PublicProduct, qty: number, variantId?: string) => void
+}) {
+  const groupSelected = group.variants.some((v) => qtyFor(v.id, v.variantId) > 0)
+
+  return (
+    <div className={`tin-card${groupSelected ? ' selected' : ''}`} data-id={group.id}>
+      <div className="card-img-wrap">
+        <BbImage src={group.img} alt={group.name} />
+        <div className="check-badge">✓</div>
+      </div>
+      <div className="card-body card-body--compact">
+        <div className="card-name">{group.name}</div>
+        <div className="card-desc">{group.desc}</div>
+      </div>
+      <div className="variant-rows">
+        {group.variants.map((v) => {
+          const qty = qtyFor(v.id, v.variantId)
+          const active = qty > 0
+          const outOfStock = !v.inStock
+          return (
+            <div
+              key={v.variantId ?? v.id}
+              className={`variant-item${active ? ' active v-show-stepper' : ''}`}
+            >
+              <div className="variant-left">
+                <span className="variant-size">{v.sizeLabel}</span>
+                <span className="variant-price">{formatInr(v.price)}</span>
+              </div>
+              <div className="variant-right">
+                {outOfStock ? (
+                  <span className="sold-out-label">Sold out</span>
+                ) : !active ? (
+                  <button type="button" className="v-add-btn" onClick={() => onAdd(v, v.variantId)}>
+                    + Add
+                  </button>
+                ) : (
+                  <div className="v-qty-stepper">
+                    <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty - 1, v.variantId)}>
+                      −
+                    </button>
+                    <span className="v-qty-num">{qty}</span>
+                    <button type="button" className="v-qty-btn" onClick={() => onSetQty(v, qty + 1, v.variantId)}>
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+

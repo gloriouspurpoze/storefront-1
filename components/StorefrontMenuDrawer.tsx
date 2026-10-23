@@ -22,9 +22,12 @@ export function StorefrontMenuDrawer({
   shippingPolicyLabel = 'Shipping policy',
   showGiftMatch = false,
   navLinks,
+  navPresentation = 'pills',
   navExtra,
   orderingHoursNote,
   shippingPolicyContent,
+  shippingPolicyHref,
+  hoursAlwaysOpen = false,
   drawerId = 'storefront-menu-drawer',
 }: {
   open: boolean
@@ -33,12 +36,20 @@ export function StorefrontMenuDrawer({
   showShippingPolicy?: boolean
   shippingPolicyLabel?: string
   showGiftMatch?: boolean
-  /** Pill links shown above policy sections (e.g. shop / account routes). */
+  /** Links above policy sections. `pills` is the default; `list` is a plain text stack. */
   navLinks?: StorefrontMenuNavLink[]
+  navPresentation?: 'pills' | 'list'
   /** Optional block above quick links (e.g. theme category section). */
   navExtra?: React.ReactNode
   orderingHoursNote?: React.ReactNode
   shippingPolicyContent?: React.ReactNode
+  /**
+   * With `hoursAlwaysOpen`, shipping policy is a plain list link to this page
+   * instead of an inline drawer panel. Other themes leave both unset.
+   */
+  shippingPolicyHref?: string
+  /** Keep the hours table visible at the bottom of the drawer. */
+  hoursAlwaysOpen?: boolean
   drawerId?: string
 }) {
   const [section, setSection] = useState<DrawerSection>('ordering-hours')
@@ -65,6 +76,15 @@ export function StorefrontMenuDrawer({
     [onClose],
   )
 
+  const pinnedHours = Boolean(hoursAlwaysOpen && shippingPolicyHref)
+  const listClass = navPresentation === 'list' ? 'sf-menu-drawer__nav-item' : 'sf-menu-drawer__quick-link'
+  const menuLinks = [
+    ...(navLinks ?? []),
+    ...(pinnedHours && showShippingPolicy
+      ? [{ href: shippingPolicyHref as string, label: shippingPolicyLabel }]
+      : []),
+  ]
+
   return (
     <div
       className={`sf-menu-overlay${open ? ' open' : ''}`}
@@ -85,18 +105,38 @@ export function StorefrontMenuDrawer({
         </div>
         <p className="sf-menu-drawer__subtitle">Quick store details and policies.</p>
         {navExtra}
-        {navLinks && navLinks.length > 0 ? (
-          <nav className="sf-menu-drawer__quick-links" aria-label="Site navigation">
-            {navLinks.map((link) => (
-              <Link
-                key={`${link.href}-${link.label}`}
-                href={link.href}
-                className="sf-menu-drawer__quick-link"
-                onClick={onClose}
-              >
-                {link.label}
-              </Link>
-            ))}
+        {menuLinks.length > 0 ? (
+          <nav
+            className={navPresentation === 'list' ? 'sf-menu-drawer__nav-list' : 'sf-menu-drawer__quick-links'}
+            aria-label="Site navigation"
+          >
+            {menuLinks.map((link) => {
+              const external = /^(https?:|mailto:|tel:)/i.test(link.href)
+              if (external) {
+                return (
+                  <a
+                    key={`${link.href}-${link.label}`}
+                    href={link.href}
+                    className={listClass}
+                    onClick={onClose}
+                    target={link.href.startsWith('http') ? '_blank' : undefined}
+                    rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  >
+                    {link.label}
+                  </a>
+                )
+              }
+              return (
+                <Link
+                  key={`${link.href}-${link.label}`}
+                  href={link.href}
+                  className={listClass}
+                  onClick={onClose}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
           </nav>
         ) : null}
         {showGiftMatch ? (
@@ -106,42 +146,51 @@ export function StorefrontMenuDrawer({
             </Link>
           </div>
         ) : null}
-        <div className="sf-menu-drawer__links">
-          <button
-            type="button"
-            className={`sf-menu-drawer__link${section === 'ordering-hours' ? ' active' : ''}`}
-            onClick={() => setSection('ordering-hours')}
-          >
-            <div className="sf-menu-drawer__link-title">Ordering hours</div>
-            <div className="sf-menu-drawer__link-copy">
-              See when we accept orders and when delivery slots are available.
+        {pinnedHours ? (
+          <div className="sf-menu-drawer__hours">
+            <OrderingHoursTable config={config} />
+            {slotsNote ? <p className="sf-menu-drawer__note">{slotsNote}</p> : null}
+          </div>
+        ) : (
+          <>
+            <div className="sf-menu-drawer__links">
+              <button
+                type="button"
+                className={`sf-menu-drawer__link${section === 'ordering-hours' ? ' active' : ''}`}
+                onClick={() => setSection('ordering-hours')}
+              >
+                <div className="sf-menu-drawer__link-title">Ordering hours</div>
+                <div className="sf-menu-drawer__link-copy">
+                  See when we accept orders and when delivery slots are available.
+                </div>
+              </button>
+              {showShippingPolicy && (
+                <button
+                  type="button"
+                  className={`sf-menu-drawer__link${section === 'shipping-policy' ? ' active' : ''}`}
+                  onClick={() => setSection('shipping-policy')}
+                >
+                  <div className="sf-menu-drawer__link-title">{shippingPolicyLabel}</div>
+                  <div className="sf-menu-drawer__link-copy">
+                    Read delivery zones, charges, and expected timelines.
+                  </div>
+                </button>
+              )}
             </div>
-          </button>
-          {showShippingPolicy && (
-            <button
-              type="button"
-              className={`sf-menu-drawer__link${section === 'shipping-policy' ? ' active' : ''}`}
-              onClick={() => setSection('shipping-policy')}
-            >
-              <div className="sf-menu-drawer__link-title">{shippingPolicyLabel}</div>
-              <div className="sf-menu-drawer__link-copy">
-                Read delivery zones, charges, and expected timelines.
-              </div>
-            </button>
-          )}
-        </div>
-        <div className="sf-menu-drawer__info">
-          {section === 'ordering-hours' ? (
-            <>
-              <OrderingHoursTable config={config} />
-              {slotsNote ? <p className="sf-menu-drawer__note">{slotsNote}</p> : null}
-            </>
-          ) : shippingPolicyContent ? (
-            shippingPolicyContent
-          ) : (
-            <ShippingPolicyPanel config={config} onClose={onClose} />
-          )}
-        </div>
+            <div className="sf-menu-drawer__info">
+              {section === 'ordering-hours' ? (
+                <>
+                  <OrderingHoursTable config={config} />
+                  {slotsNote ? <p className="sf-menu-drawer__note">{slotsNote}</p> : null}
+                </>
+              ) : shippingPolicyContent ? (
+                shippingPolicyContent
+              ) : (
+                <ShippingPolicyPanel config={config} onClose={onClose} />
+              )}
+            </div>
+          </>
+        )}
       </aside>
     </div>
   )
@@ -153,13 +202,25 @@ export function StorefrontHeaderBar({
   onMenuOpen,
   actions,
   wide = false,
+  homeHref,
+  center,
 }: {
   title: string
   subtitle?: string
   onMenuOpen: () => void
   actions?: React.ReactNode
   wide?: boolean
+  /** When set, the title links home. Otherwise the title is not a navigation link. */
+  homeHref?: string
+  /** Sits in the bar with the title, not in a row underneath. */
+  center?: React.ReactNode
 }) {
+  const brand = (
+    <>
+      <h2>{title}</h2>
+      {subtitle ? <p>{subtitle}</p> : null}
+    </>
+  )
   return (
     <header className="sf-store-header">
       <div className={`sf-store-header__container${wide ? ' wide' : ''}`}>
@@ -171,10 +232,16 @@ export function StorefrontHeaderBar({
         >
           ☰
         </button>
-        <a href="#" className="sf-store-header__brand" onClick={(e) => e.preventDefault()}>
-          <h2>{title}</h2>
-          {subtitle ? <p>{subtitle}</p> : null}
-        </a>
+        {homeHref ? (
+          <Link href={homeHref} className="sf-store-header__brand">
+            {brand}
+          </Link>
+        ) : (
+          <a href="#" className="sf-store-header__brand" onClick={(e) => e.preventDefault()}>
+            {brand}
+          </a>
+        )}
+        {center}
         <div className="sf-store-header__actions">{actions}</div>
       </div>
     </header>

@@ -20,6 +20,9 @@ import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { LuxeEssenceBlogArticlePage } from '@/themes/retail/luxe-essence/LuxeEssenceBlogArticlePage'
+import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
+import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
+import { BrownButterJournalArticle } from '@/themes/private/thebrownbutter/BrownButterJournal'
 
 /** Must be a literal — Next.js cannot statically analyze imported revalidate values. */
 export const revalidate = 180
@@ -65,6 +68,18 @@ export default async function BlogPostPage({ params }: RouteParams) {
     case 'restaurant': {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
+      if (isBrownButterTheme(config?.themeKey)) {
+        if (!isBrownButterNavEnabled(config, 'showJournalNav')) notFound()
+        const navLinks = await fetchStorefrontMenuLinks(tenant.id, 'header')
+        return (
+          <BrownButterJournalArticle
+            tenant={theme}
+            config={config}
+            navLinks={navLinks}
+            post={post}
+          />
+        )
+      }
       if (config?.themeKey === 'menufast-cards') {
         return <MenuFastCardsBlogArticlePage tenant={theme} config={config} post={post} />
       }

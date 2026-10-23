@@ -10,6 +10,9 @@ import {
 export interface TemplateCheckoutSettings {
   showPreferredDateOfDelivery?: boolean
   showPreferredTimeOfDelivery?: boolean
+  showAboutNav?: boolean
+  showJournalNav?: boolean
+  showTalkNav?: boolean
 }
 
 export type TemplateSettingsMap = Record<string, TemplateCheckoutSettings>

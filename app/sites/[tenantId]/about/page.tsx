@@ -24,6 +24,8 @@ import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { LuxeEssenceAboutPage } from '@/themes/retail/luxe-essence/LuxeEssenceAboutPage'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
+import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
+import { BrownButterAboutView } from '@/themes/private/thebrownbutter/BrownButterAboutView'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,6 +99,18 @@ export default async function AboutPage() {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
+      if (isBrownButterTheme(config?.themeKey)) {
+        if (!isBrownButterNavEnabled(config, 'showAboutNav')) notFound()
+        const headerLinks = await fetchStorefrontMenuLinks(tenant.id, 'header')
+        return (
+          <BrownButterAboutView
+            tenant={theme}
+            config={config}
+            navLinks={headerLinks}
+            cmsPage={cmsAbout}
+          />
+        )
+      }
       if (config?.themeKey === 'menufast-cards') {
         const footerLinks = await fetchStorefrontMenuLinks(tenant.id, 'footer')
         return (

@@ -12,6 +12,11 @@ import { SiteHeader } from '@/themes/retail/SiteHeader'
 import { LuxeEssenceShippingPolicyPage } from '@/themes/retail/luxe-essence/LuxeEssenceShippingPolicyPage'
 import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
 import { MarketplaceShippingPolicyPage } from '@/themes/marketplace/MarketplaceUtilityPages'
+import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
+import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
+import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
+import { isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
+import { BrownButterPolicyView } from '@/themes/private/thebrownbutter/BrownButterPolicyView'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +33,22 @@ export default async function ShippingPolicyPage() {
   if (!resolved) notFound()
 
   if (resolved.verticalKey === 'marketplace') return <MarketplaceShippingPolicyPage tenant={resolved} />
+
+  if (resolved.verticalKey === 'restaurant') {
+    const tenant = await loadRestaurantTenant()
+    const config = await fetchStorefrontConfig(tenant.id)
+    if (isBrownButterTheme(config?.themeKey)) {
+      const navLinks = await fetchStorefrontMenuLinks(tenant.id)
+      return (
+        <BrownButterPolicyView
+          tenant={toRestTenant(tenant, config?.branding?.tagline ?? '')}
+          config={config}
+          navLinks={navLinks}
+        />
+      )
+    }
+  }
+
   if (resolved.verticalKey !== 'retail') notFound()
 
   const tenant = await loadRetailTenant()

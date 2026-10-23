@@ -1,7 +1,9 @@
 'use client'
 import type { ReactNode } from 'react'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { fetchProducts, submitLead } from '@/lib/storefront-api'
@@ -12,21 +14,16 @@ import {
   getOrderingAvailabilityFromConfig,
   getOrderingHoursFromConfig,
   isStoreOpenNow,
-  ORDERING_DAY_KEYS,
-  ORDERING_DAY_LABELS,
-  formatDayOrderingHours,
 } from '@/lib/orderingHours'
-import { getShippingPolicyFromConfig } from '@/lib/shippingPolicy'
 import type { ThemeTenant } from '@/themes/restaurant/types'
 import { BB_IMG_FALLBACK } from './catalog'
 import { layoutBrownButterProducts, type TinGroup } from './productLayout'
 import { useBrownButterCart } from './useBrownButterCart'
-import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { SignedInCheckoutNote } from '@/components/CheckoutContactNote'
 import { useCartAuthGate } from '@/lib/useCartAuthGate'
 import { formatSavedAddressLine, resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
-import { StorefrontHeaderBar, StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
+import { BrownButterFrame } from './BrownButterFrame'
 import {
   coerceDeliveryMode,
   getEnabledDeliveryModes,
@@ -61,49 +58,6 @@ function categoryEmoji(sectionId: string, label: string): string {
   if (key.includes('brownie')) return '🍫'
   if (key.includes('cup')) return '🧁'
   return '🍪'
-}
-
-function summarizeStoreHours(config: StorefrontConfig | null): string {
-  const hours = getOrderingHoursFromConfig(config)
-  const openDays = ORDERING_DAY_KEYS.filter((d) => !hours[d].closed)
-  if (openDays.length === 0) return 'Currently closed'
-
-  const timeLabel = formatDayOrderingHours(hours[openDays[0]])
-  const allSameHours = openDays.every(
-    (d) =>
-      formatDayOrderingHours(hours[d]) === timeLabel &&
-      hours[d].openTime === hours[openDays[0]].openTime &&
-      hours[d].closeTime === hours[openDays[0]].closeTime,
-  )
-
-  if (openDays.length === 7 && allSameHours) return `Daily · ${timeLabel}`
-  if (
-    openDays.length === 6 &&
-    hours.sunday.closed &&
-    !hours.monday.closed &&
-    allSameHours
-  ) {
-    return `Mon – Sat · ${timeLabel}`
-  }
-
-  const first = ORDERING_DAY_LABELS[openDays[0]].slice(0, 3)
-  const last = ORDERING_DAY_LABELS[openDays[openDays.length - 1]].slice(0, 3)
-  return `${first} – ${last} · ${timeLabel}`
-}
-
-function formatDeliverySummary(config: StorefrontConfig | null): string {
-  const policy = getShippingPolicyFromConfig(config)
-  if (policy.summary) return policy.summary
-  if (policy.zones?.length) {
-    return policy.zones
-      .map((z) => {
-        const fee = z.fee?.trim()
-        if (fee) return `${z.label} ${fee}`
-        return z.details ? `${z.label} · ${z.details}` : z.label
-      })
-      .join(' · ')
-  }
-  return 'Mira Road free · Mumbai ₹70 · Outside 2–7 days'
 }
 
 function BbImage({
@@ -150,26 +104,24 @@ function ProductCard({
   const selected = qty > 0
   const outOfStock = !product.inStock
 
+  const detailHref = `/products/${product.slug}`
+
   return (
     <div
       className={`product-card${selected ? ' selected' : ''}${selected ? ' show-stepper' : ''}`}
       data-id={product.slug}
-      onClick={() => {
-        if (!outOfStock && !selected) onAdd()
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && !outOfStock && !selected) onAdd()
-      }}
-      role={outOfStock ? undefined : 'button'}
-      tabIndex={outOfStock ? undefined : 0}
     >
-      <div className="card-img-wrap">
-        <BbImage src={product.imageUrl} alt={product.name} />
-        <div className="veg-dot" aria-label="Vegetarian" />
-        <div className="check-badge">✓</div>
-      </div>
+      <Link href={detailHref} className="card-media-link" aria-label={`View ${product.name}`}>
+        <div className="card-img-wrap">
+          <BbImage src={product.imageUrl} alt="" />
+          <div className="veg-dot" aria-label="Vegetarian" />
+          <div className="check-badge">✓</div>
+        </div>
+      </Link>
       <div className="card-body">
-        <div className="card-name">{product.name}</div>
+        <Link href={detailHref} className="card-name-link">
+          <div className="card-name">{product.name}</div>
+        </Link>
         <div className="card-desc">{product.shortDescription ?? product.description ?? ''}</div>
         <div className="card-bottom">
           <div className="card-price">{formatInr(product.price)}</div>
@@ -179,34 +131,17 @@ function ProductCard({
             <button
               type="button"
               className="add-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                onAdd()
-              }}
+              onClick={onAdd}
             >
               + Add
             </button>
           ) : (
             <div className="qty-stepper">
-              <button
-                type="button"
-                className="qty-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSetQty(qty - 1)
-                }}
-              >
+              <button type="button" className="qty-btn" onClick={() => onSetQty(qty - 1)}>
                 −
               </button>
               <span className="qty-num">{qty}</span>
-              <button
-                type="button"
-                className="qty-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSetQty(qty + 1)
-                }}
-              >
+              <button type="button" className="qty-btn" onClick={() => onSetQty(qty + 1)}>
                 +
               </button>
             </div>
@@ -229,15 +164,31 @@ function TinGroupCard({
   onSetQty: (product: PublicProduct, qty: number, variantId?: string) => void
 }) {
   const groupSelected = group.variants.some((v) => qtyFor(v.id, v.variantId) > 0)
+  const detailHref = group.variants[0]?.slug ? `/products/${group.variants[0].slug}` : null
 
   return (
     <div className={`tin-card${groupSelected ? ' selected' : ''}`} data-id={group.id}>
-      <div className="card-img-wrap">
-        <BbImage src={group.img} alt={group.name} />
-        <div className="check-badge">✓</div>
-      </div>
+      {detailHref ? (
+        <Link href={detailHref} className="card-media-link" aria-label={`View ${group.name}`}>
+          <div className="card-img-wrap">
+            <BbImage src={group.img} alt="" />
+            <div className="check-badge">✓</div>
+          </div>
+        </Link>
+      ) : (
+        <div className="card-img-wrap">
+          <BbImage src={group.img} alt={group.name} />
+          <div className="check-badge">✓</div>
+        </div>
+      )}
       <div className="card-body card-body--compact">
-        <div className="card-name">{group.name}</div>
+        {detailHref ? (
+          <Link href={detailHref} className="card-name-link">
+            <div className="card-name">{group.name}</div>
+          </Link>
+        ) : (
+          <div className="card-name">{group.name}</div>
+        )}
         <div className="card-desc">{group.desc}</div>
       </div>
       <div className="variant-rows">
@@ -251,7 +202,13 @@ function TinGroupCard({
               className={`variant-item${active ? ' active v-show-stepper' : ''}`}
             >
               <div className="variant-left">
-                <span className="variant-size">{v.sizeLabel}</span>
+                {v.slug ? (
+                  <Link href={`/products/${v.slug}`} className="variant-size-link">
+                    {v.sizeLabel}
+                  </Link>
+                ) : (
+                  <span className="variant-size">{v.sizeLabel}</span>
+                )}
                 <span className="variant-price">{formatInr(v.price)}</span>
               </div>
               <div className="variant-right">
@@ -281,56 +238,25 @@ function TinGroupCard({
   )
 }
 
-function StoreFooter({
-  config,
-  contactPhone,
-}: {
-  config: StorefrontConfig | null
-  contactPhone?: string
-}) {
-  const pickup = config?.branding?.address || 'Near Tanwar Hospital, Mira Road'
-  const whatsapp = config?.branding?.socials?.whatsapp || contactPhone
-  const waHref = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '')}` : undefined
 
-  return (
-    <div className="store-footer">
-      <div className="footer-row">
-        <div className="footer-icon">🕐</div>
-        <div className="footer-text">
-          <div className="footer-label">Store hours</div>
-          <div className="footer-value">{summarizeStoreHours(config)}</div>
-        </div>
-      </div>
-      <div className="footer-row">
-        <div className="footer-icon">📍</div>
-        <div className="footer-text">
-          <div className="footer-label">Pickup location</div>
-          <div className="footer-value">{pickup}</div>
-        </div>
-      </div>
-      <div className="footer-row">
-        <div className="footer-icon">🚚</div>
-        <div className="footer-text">
-          <div className="footer-label">Delivery</div>
-          <div className="footer-value">{formatDeliverySummary(config)}</div>
-        </div>
-      </div>
-      {contactPhone ? (
-        <div className="footer-row">
-          <div className="footer-icon">💬</div>
-          <div className="footer-text">
-            <div className="footer-label">Questions?</div>
-            <div className="footer-value">{contactPhone}</div>
-          </div>
-          {waHref ? (
-            <a className="footer-wa-btn" href={waHref} target="_blank" rel="noopener noreferrer">
-              WhatsApp
-            </a>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  )
+function OpenCartFromQuery({
+  hydrated,
+  itemCount,
+  onOpen,
+}: {
+  hydrated: boolean
+  itemCount: number
+  onOpen: () => void
+}) {
+  const params = useSearchParams()
+  useEffect(() => {
+    if (!hydrated || params.get('cart') !== 'open') return
+    if (itemCount > 0) onOpen()
+    const url = new URL(window.location.href)
+    url.searchParams.delete('cart')
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+  }, [hydrated, itemCount, onOpen, params])
+  return null
 }
 
 export function BrownButterPage({
@@ -351,7 +277,6 @@ export function BrownButterPage({
   addonsSlot?: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
-  const headerTitle = config?.branding?.tagline || '📍 Delivering Across Mumbai'
   const logoUrl = config?.branding?.logoUrl || tenant.logoUrl || '/private/thebrownbutter/media/logo.jpeg'
   const contactPhone = config?.branding?.contactPhone || config?.branding?.socials?.whatsapp
   const heroLocation =
@@ -364,7 +289,7 @@ export function BrownButterPage({
     [orderingHours, orderingAvailability],
   )
 
-  const { entries, itemCount, subtotal, add, setQty, qtyFor, clear } = useBrownButterCart()
+  const { entries, itemCount, subtotal, add, setQty, qtyFor, clear, hydrated } = useBrownButterCart(tenant.id)
   const { requireAuthForCart } = useCartAuthGate()
   const {
     email: prefillEmail,
@@ -396,7 +321,6 @@ export function BrownButterPage({
   const [address, setAddress] = useState('')
   const [birthday, setBirthday] = useState('')
   const [mounted, setMounted] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
 
   const enabledDeliveryModes = useMemo(() => getEnabledBrownButterModes(config), [config])
 
@@ -906,24 +830,15 @@ export function BrownButterPage({
 
   return (
     <>
-      {/* Menu drawer stays outside .bb-root so the theme `*` reset cannot
-          zero shared storefront-menu-drawer padding (ordering-hours panel). */}
-      <StorefrontMenuDrawer
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
+      <Suspense fallback={null}>
+        <OpenCartFromQuery hydrated={hydrated} itemCount={itemCount} onOpen={openSheet} />
+      </Suspense>
+      <BrownButterFrame
         config={config}
         navLinks={navLinks}
-      />
-      <div className="bb-root bb-page">
-        <StorefrontHeaderBar
-          title={headerTitle}
-          onMenuOpen={() => setMenuOpen(true)}
-          actions={
-            <AccountProfileLink className="action-profile-btn" iconClassName="h-4 w-4" />
-          }
-        />
-
-        <div className="bb-store-wrap">
+        headerTitle={siteName}
+        contactPhone={contactPhone}
+      >
         <section className="hero">
           <div className="status-card">
             <div className="status-left">
@@ -1020,12 +935,9 @@ export function BrownButterPage({
         </div>
 
         {addonsSlot}
-
-        <StoreFooter config={config} contactPhone={contactPhone} />
-      </div>
+      </BrownButterFrame>
 
       {mounted ? createPortal(cartChrome, document.body) : null}
-      </div>
     </>
   )
 }

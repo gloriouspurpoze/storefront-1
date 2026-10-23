@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
   const description =
     seo.defaultDescription ||
     branding.tagline ||
-    `Welcome to ${siteName} — powered by Profixer.`
+    `Welcome to ${siteName} — powered by Torq Orbit.`
   const ogImage = seo.ogImageUrl
   // Holding page must not replace the shop in search results.
   const inMaintenance = cfg?.siteStatus?.mode === 'maintenance'

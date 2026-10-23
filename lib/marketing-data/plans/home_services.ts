@@ -1,0 +1,45 @@
+import type { VerticalPlanDef } from './types'
+
+export const homeServicesBillingPlans: VerticalPlanDef[] = [
+  {
+    key: 'hs_starter',
+    label: 'Starter',
+    description: 'Dispatch, bookings, CRM, and quotations for a small crew.',
+    priceMonthlyInr: 499,
+    compareAtMonthlyInr: 999,
+    includedModules: ['crm', 'cms', 'quotations', 'employee_management'],
+    limits: { maxUsers: 5, maxBookingsPerMonth: 500 },
+    stripePriceIdEnv: 'REACT_APP_STRIPE_PRICE_HS_STARTER',
+    recommended: true,
+  },
+  {
+    key: 'hs_growth',
+    label: 'Growth',
+    description: 'Adds finance, marketing workspace, and team collaboration.',
+    priceMonthlyInr: 999,
+    compareAtMonthlyInr: 1999,
+    includedModules: ['crm', 'cms', 'finance', 'marketing_workspace', 'team_work', 'quotations', 'employee_management'],
+    limits: { maxUsers: 25, maxBookingsPerMonth: 5000 },
+    stripePriceIdEnv: 'REACT_APP_STRIPE_PRICE_HS_GROWTH',
+  },
+  {
+    key: 'hs_scale',
+    label: 'Scale',
+    description: 'Full platform including bazaar and e-commerce modules.',
+    priceMonthlyInr: 1599,
+    compareAtMonthlyInr: 3199,
+    includedModules: [
+      'crm',
+      'cms',
+      'finance',
+      'marketing_workspace',
+      'team_work',
+      'bazaar',
+      'ecommerce',
+      'quotations',
+      'employee_management',
+    ],
+    limits: { maxUsers: 100, maxBookingsPerMonth: 25000 },
+    stripePriceIdEnv: 'REACT_APP_STRIPE_PRICE_HS_SCALE',
+  },
+]

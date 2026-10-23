@@ -480,6 +480,10 @@ export interface StorefrontContent {
 export interface StorefrontTemplateCheckoutSettings {
   showPreferredDateOfDelivery?: boolean
   showPreferredTimeOfDelivery?: boolean
+  /** Brown Butter header. Unset = shown. */
+  showAboutNav?: boolean
+  showJournalNav?: boolean
+  showTalkNav?: boolean
 }
 
 export interface StorefrontOrderingDayHours {

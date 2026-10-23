@@ -20,6 +20,9 @@ import { SiteHeader as RetailHeader } from '@/themes/retail/SiteHeader'
 import { SiteFooter as RetailFooter } from '@/themes/retail/SiteFooter'
 import { toThemeTenant as toRetailTenant } from '@/themes/retail/types'
 import { LuxeEssenceBlogIndexPage } from '@/themes/retail/luxe-essence/LuxeEssenceBlogIndexPage'
+import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
+import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
+import { BrownButterJournalIndex } from '@/themes/private/thebrownbutter/BrownButterJournal'
 
 /** Must be a literal — Next.js cannot statically analyze imported revalidate values. */
 export const revalidate = 120
@@ -32,6 +35,12 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
   if (!resolved || resolved.id !== tenantId) return { title: 'Blog' }
   const config = await fetchStorefrontConfig(tenantId)
   const siteName = config?.branding?.siteName || resolved.name
+  if (isBrownButterTheme(config?.themeKey)) {
+    return {
+      title: 'The Cookie Journal',
+      description: `Stories and baking notes from ${siteName}.`,
+    }
+  }
   return {
     title: 'Blog',
     description: `Guides and updates from ${siteName}.`,
@@ -65,6 +74,18 @@ export default async function BlogIndexPage({ params }: RouteParams) {
     case 'restaurant': {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
+      if (isBrownButterTheme(config?.themeKey)) {
+        if (!isBrownButterNavEnabled(config, 'showJournalNav')) notFound()
+        const navLinks = await fetchStorefrontMenuLinks(tenant.id, 'header')
+        return (
+          <BrownButterJournalIndex
+            tenant={theme}
+            config={config}
+            navLinks={navLinks}
+            posts={posts}
+          />
+        )
+      }
       if (config?.themeKey === 'menufast-cards') {
         return (
           <MenuFastCardsBlogIndexPage

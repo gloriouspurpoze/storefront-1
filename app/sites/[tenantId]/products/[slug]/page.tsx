@@ -23,6 +23,9 @@ import {
 } from '@/lib/product-seo'
 import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
 import { MarketplaceProductPage } from '@/themes/marketplace/MarketplaceProductPage'
+import { loadTenantFromRequest } from '@/lib/load-tenant'
+import { BrownButterProductPage } from '@/themes/private/thebrownbutter/BrownButterProductPage'
+import { isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +35,25 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
+  const resolved = await loadTenantFromRequest()
+  if (resolved?.verticalKey === 'restaurant') {
+    const [product, config] = await Promise.all([
+      fetchProductBySlug(resolved.id, slug),
+      fetchStorefrontConfig(resolved.id),
+    ])
+    if (isBrownButterTheme(config?.themeKey) && product) {
+      const h = await headers()
+      const baseUrl = resolveStorefrontBaseUrl(
+        config,
+        h.get('host'),
+        h.get('x-forwarded-proto') ?? 'https',
+      )
+      const siteName = config?.branding?.siteName || resolved.name
+      return buildProductMetadata(product, config, siteName, baseUrl)
+    }
+    return { title: product?.name || 'Product' }
+  }
+
   const tenant = (await marketplaceTenantOrNull()) ?? (await loadRetailTenant())
   const [product, config] = await Promise.all([
     fetchProductBySlug(tenant.id, slug),
@@ -51,6 +73,12 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params
+  const resolved = await loadTenantFromRequest()
+  if (resolved?.verticalKey === 'restaurant') {
+    const config = await fetchStorefrontConfig(resolved.id)
+    if (!isBrownButterTheme(config?.themeKey)) notFound()
+    return <BrownButterProductPage slug={slug} />
+  }
   const marketplace = await marketplaceTenantOrNull()
   if (marketplace) return <MarketplaceProductPage tenant={marketplace} slug={slug} />
   const tenant = await loadRetailTenant()

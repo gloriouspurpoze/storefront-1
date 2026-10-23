@@ -26,6 +26,8 @@ import { loadTenantFromRequest } from '@/lib/load-tenant'
 import { fetchServices, fetchStorefrontConfig, fetchStorefrontCategories } from '@/lib/storefront-api'
 import { LuxeEssenceContactPage } from '@/themes/retail/luxe-essence/LuxeEssenceContactPage'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
+import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
+import { BrownButterTalkView } from '@/themes/private/thebrownbutter/BrownButterTalkView'
 
 export const dynamic = 'force-dynamic'
 
@@ -92,6 +94,11 @@ export default async function ContactPage() {
       const tenant = await loadRestaurantTenant()
       const theme = toRestTenant(tenant, tenant.fallbackTagline)
       const config = await fetchStorefrontConfig(tenant.id)
+      if (isBrownButterTheme(config?.themeKey)) {
+        if (!isBrownButterNavEnabled(config, 'showTalkNav')) notFound()
+        const navLinks = await fetchStorefrontMenuLinks(tenant.id, 'header')
+        return <BrownButterTalkView tenant={theme} config={config} navLinks={navLinks} />
+      }
       if (config?.themeKey === 'menufast-cards') {
         return (
           <MenuFastCardsContactPage tenant={theme} config={config} tenantId={tenant.id} />

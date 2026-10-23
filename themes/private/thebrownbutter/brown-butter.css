@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,700&display=swap');
 
 /* Brown Butter storefront — aligned with brownbutterredesign.html */
 
@@ -87,6 +87,7 @@
 .bb-store-wrap {
   width: 100%;
   max-width: 480px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -385,7 +386,7 @@
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
   display: flex;
   flex-direction: column;
-  cursor: pointer;
+  cursor: default;
 }
 
 .product-card:hover {
@@ -2815,4 +2816,645 @@
     padding-top: 8px;
   }
 }
+
+/* One row: wordmark, page links, account. The menu column stays narrow underneath. */
+.bb-root .bb-bar-nav {
+  display: none;
+  align-items: center;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  gap: 22px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.bb-root a.bb-bar-nav__link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--navy-mid);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bb-root a.bb-bar-nav__link.is-active {
+  color: var(--navy);
+  box-shadow: inset 0 -2px 0 var(--sky-dark);
+}
+
+@media (min-width: 760px) {
+  .bb-root .bb-bar-nav {
+    display: flex;
+  }
+}
+
+.bb-root a.bb-bar-nav__link:focus-visible,
+.bb-root a.card-name-link:focus-visible,
+.bb-root a.card-media-link:focus-visible,
+.bb-root a.bb-back:focus-visible,
+.bb-root .bb-pdp-variant:focus-visible,
+.bb-root .bb-pdp-thumb:focus-visible {
+  outline: 2px solid var(--sky-dark);
+  outline-offset: 2px;
+}
+
+.bb-root a.card-media-link,
+.bb-root a.card-name-link,
+.bb-root a.variant-size-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.bb-root a.card-media-link {
+  display: block;
+  cursor: pointer;
+}
+
+.bb-root a.card-name-link:hover .card-name,
+.bb-root a.variant-size-link:hover {
+  color: var(--sky-dark);
+}
+
+.bb-root a.variant-size-link {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.2px;
+  color: var(--navy-mid);
+}
+
+.bb-root .bb-kicker {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sky-dark);
+}
+
+.bb-root .bb-page-title {
+  margin: 6px 0 0;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--navy);
+  overflow-wrap: anywhere;
+}
+
+.bb-root .bb-lead {
+  margin: 10px 0 0;
+  max-width: 100%;
+  color: var(--navy-mid);
+  font-size: 15px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.bb-root .bb-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+  color: var(--navy-mid);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.bb-root .bb-empty {
+  margin: 18px 0 0;
+  padding: 18px;
+  border-radius: var(--r-md);
+  background: var(--white);
+  color: var(--navy-mid);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.bb-root .bb-story,
+.bb-root .bb-journal,
+.bb-root .bb-talk,
+.bb-root .bb-pdp {
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 16px 12px;
+  overflow-wrap: break-word;
+}
+
+/* CMS rich text. Selectors stay stronger than the `.bb-root *` margin/padding reset. */
+.bb-root .bb-prose {
+  margin-top: 16px;
+  max-width: 100%;
+  min-width: 0;
+  color: var(--navy);
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+  overflow-x: clip;
+}
+
+.bb-root .bb-prose *:not(table):not(thead):not(tbody):not(tfoot):not(tr):not(th):not(td):not(col):not(colgroup) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.bb-root .bb-prose h1,
+.bb-root .bb-prose h2,
+.bb-root .bb-prose h3,
+.bb-root .bb-prose h4 {
+  margin: 20px 0 8px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  color: var(--navy);
+  line-height: 1.25;
+}
+
+.bb-root .bb-prose h1 { font-size: 28px; }
+.bb-root .bb-prose h2 { font-size: 22px; }
+.bb-root .bb-prose h3 { font-size: 18px; font-weight: 800; }
+.bb-root .bb-prose h4 { font-size: 16px; font-weight: 800; }
+
+.bb-root .bb-prose p,
+.bb-root .bb-prose blockquote,
+.bb-root .bb-prose pre {
+  margin: 0 0 12px;
+}
+
+.bb-root .bb-prose strong,
+.bb-root .bb-prose b {
+  font-weight: 700;
+}
+
+.bb-root .bb-prose em,
+.bb-root .bb-prose i {
+  font-style: italic;
+}
+
+.bb-root .bb-prose u { text-decoration: underline; }
+.bb-root .bb-prose s { text-decoration: line-through; }
+
+.bb-root .bb-prose a {
+  color: var(--navy-mid);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bb-root .bb-prose ul,
+.bb-root .bb-prose ol {
+  margin: 0 0 12px;
+  padding-left: 1.35em;
+}
+
+.bb-root .bb-prose ul { list-style: disc outside; }
+.bb-root .bb-prose ol { list-style: decimal outside; }
+
+.bb-root .bb-prose li {
+  margin: 0 0 6px;
+  padding-left: 0.2em;
+}
+
+.bb-root .bb-prose li[data-list="bullet"] { list-style: disc outside; }
+.bb-root .bb-prose li[data-list="ordered"] { list-style: decimal outside; }
+.bb-root .bb-prose .ql-ui { display: none; }
+
+.bb-root .bb-prose .ql-indent-1 { padding-left: 1.5em; }
+.bb-root .bb-prose .ql-indent-2 { padding-left: 3em; }
+.bb-root .bb-prose .ql-indent-3 { padding-left: 4.5em; }
+.bb-root .bb-prose .ql-indent-4 { padding-left: 6em; }
+.bb-root .bb-prose .ql-align-center { text-align: center; }
+.bb-root .bb-prose .ql-align-right { text-align: right; }
+.bb-root .bb-prose .ql-align-justify { text-align: justify; }
+
+.bb-root .bb-prose blockquote {
+  padding: 4px 0 4px 14px;
+  border-left: 3px solid var(--sky);
+  color: var(--navy-mid);
+}
+
+.bb-root .bb-prose pre,
+.bb-root .bb-prose code {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+}
+
+.bb-root .bb-prose img,
+.bb-root .bb-prose video {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--r-md);
+  margin: 12px 0;
+}
+
+.bb-root .bb-prose iframe {
+  width: 100%;
+  max-width: 100%;
+  border: 0;
+  border-radius: var(--r-md);
+  margin: 12px 0;
+}
+
+.bb-root .bb-prose table {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 12px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.bb-root .bb-prose th,
+.bb-root .bb-prose td {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.bb-root .bb-prose th {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  background: var(--sky-light);
+}
+
+.bb-root .bb-journal-list {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bb-root a.bb-journal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100%;
+  padding: 16px;
+  border-radius: var(--r-lg);
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  color: inherit;
+  text-decoration: none;
+}
+
+.bb-root a.bb-journal-card:hover {
+  border-color: var(--sky);
+}
+
+.bb-root .bb-journal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bb-root a.bb-journal-card h2 {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.25;
+  color: var(--navy);
+}
+
+.bb-root a.bb-journal-card p {
+  margin: 0;
+  color: var(--navy-mid);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.bb-root .bb-journal-more {
+  margin-top: auto;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--sky-dark);
+}
+
+.bb-root .bb-journal-hero {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  margin-top: 16px;
+  object-fit: cover;
+  border-radius: var(--r-lg);
+}
+
+.bb-root .bb-talk-phone {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--navy-mid);
+}
+
+.bb-root .bb-talk-phone a {
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.bb-root .bb-optional {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.bb-root a.bb-talk-wa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  min-height: 52px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--green);
+  color: var(--white);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1.2;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+}
+
+.bb-root a.bb-talk-wa:hover {
+  background: #16a34a;
+}
+
+.bb-root .bb-talk-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 18px;
+}
+
+.bb-root .bb-talk-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+}
+
+.bb-root .bb-talk-form label {
+  display: block;
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bb-root .bb-talk-form input,
+.bb-root .bb-talk-form textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 13px 16px;
+  border: 2px solid #e8eef3;
+  border-radius: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--navy);
+  background: var(--cream);
+  outline: none;
+  box-shadow: none;
+  overflow-wrap: anywhere;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.bb-root .bb-talk-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.bb-root .bb-talk-form input::placeholder,
+.bb-root .bb-talk-form textarea::placeholder {
+  color: #c0cdd8;
+  font-weight: 400;
+}
+
+.bb-root .bb-talk-form input:focus,
+.bb-root .bb-talk-form textarea:focus {
+  border-color: var(--sky);
+  background: var(--white);
+  box-shadow: 0 0 0 4px rgba(126, 200, 227, 0.15);
+}
+
+.bb-root .bb-talk-form .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  margin: 2px 0 0;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 18px;
+  background: var(--sky);
+  color: var(--white);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(126, 200, 227, 0.4);
+}
+
+.bb-root .bb-talk-form .btn:hover {
+  background: var(--sky-dark);
+}
+
+.bb-root .bb-talk-form .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bb-root .bb-talk-form .no-item-warn {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--red);
+}
+
+.bb-root .bb-talk-success {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  background: var(--green-soft);
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.bb-root .bb-pdp-gallery {
+  margin-bottom: 14px;
+}
+
+.bb-root .bb-pdp-photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--white);
+  border: 1.5px solid var(--border);
+}
+
+.bb-root .bb-pdp-img {
+  display: block;
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+}
+
+.bb-root .bb-pdp-sold {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bb-root .bb-pdp-thumbs {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.bb-root .bb-pdp-thumb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  overflow: hidden;
+}
+
+.bb-root .bb-pdp-thumb.is-active {
+  border-color: var(--navy);
+}
+
+.bb-root .bb-pdp-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bb-root .bb-pdp-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--navy);
+}
+
+.bb-root .bb-pdp-price s {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.bb-root .bb-pdp-variants {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.bb-root .bb-pdp-variant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  color: var(--navy);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  text-align: left;
+}
+
+.bb-root .bb-pdp-variant.is-active {
+  border-color: var(--navy);
+  background: var(--sky-light);
+}
+
+.bb-root .bb-pdp-variant:disabled {
+  opacity: 0.55;
+}
+
+.bb-root .bb-pdp-buy {
+  margin-top: 16px;
+}
+
+.bb-root .bb-pdp-buy .btn {
+  width: 100%;
+}
+
+.bb-root .bb-pdp-stepper {
+  display: flex;
+  justify-content: space-between;
+}
+
+.bb-root .bb-pdp-copy {
+  padding: 16px;
+  border-radius: var(--r-lg);
+  background: var(--white);
+  border: 1.5px solid var(--border);
+}
+
+a.sticky-cart {
+  text-decoration: none;
+  color: var(--white);
+}
+
   
