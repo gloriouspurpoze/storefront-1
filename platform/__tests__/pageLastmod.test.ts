@@ -3,9 +3,9 @@ import { latestDate, pageLastmod, pageSources } from '../pageLastmod'
 
 const recorded = {
   'app/platform/[slug]/page.tsx': '2026-10-01T00:00:00.000Z',
-  '../packages/marketing-data/src/landingContent.ts': '2026-10-05T00:00:00.000Z',
-  '../packages/marketing-data/src/plans/salon.ts': '2026-10-08T00:00:00.000Z',
-  '../packages/marketing-data/src/plans/retail.ts': '2026-10-09T00:00:00.000Z',
+  'lib/marketing-data/landingContent.ts': '2026-10-05T00:00:00.000Z',
+  'lib/marketing-data/plans/salon.ts': '2026-10-08T00:00:00.000Z',
+  'lib/marketing-data/plans/retail.ts': '2026-10-09T00:00:00.000Z',
 }
 
 describe('pageLastmod', () => {

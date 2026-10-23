@@ -13,7 +13,7 @@ export default {
   },
   resolve: {
     alias: {
-      '@profixer/marketing-data': fileURLToPath(new URL('../packages/marketing-data/src/index.ts', import.meta.url)),
+      '@profixer/marketing-data': fileURLToPath(new URL('./lib/marketing-data/index.ts', import.meta.url)),
       '@': fileURLToPath(new URL('.', import.meta.url)),
     },
   },

@@ -13,7 +13,7 @@ import { join, relative } from 'node:path'
 
 const OUT = 'platform/content/page-lastmod.json'
 /** Files whose edits change what a marketing page says (keep in sync with platform/pageLastmod.ts). */
-const ROOTS = ['app/platform/page.tsx', 'app/platform/pricing/page.tsx', 'app/platform/[slug]/page.tsx', 'platform/content', '../packages/marketing-data/src']
+const ROOTS = ['app/platform/page.tsx', 'app/platform/pricing/page.tsx', 'app/platform/[slug]/page.tsx', 'platform/content', 'lib/marketing-data']
 
 function git(args) {
   return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()

@@ -12,7 +12,7 @@ const config: NextConfig = {
   poweredByHeader: false,
   typedRoutes: true,
   transpilePackages: ['@profixer/marketing-data'],
-  /** Lets the Torq Studio marketing site import `packages/marketing-data` (shared with the admin app). */
+  /** Marketing copy is vendored at lib/marketing-data (inside this app). Vercel root is storefront/, so it cannot see ../packages. */
   experimental: { externalDir: true },
   /** Allow tenant subdomains (e.g. bazaar.lvh.me:3001) to load /_next/* in dev. */
   allowedDevOrigins: ['*.lvh.me', 'lvh.me'],

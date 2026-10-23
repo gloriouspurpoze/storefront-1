@@ -7,7 +7,7 @@
 import { MARKETING_VERTICALS, type VerticalKey } from '@profixer/marketing-data'
 import RECORDED from './content/page-lastmod.json'
 
-const PKG = '../packages/marketing-data/src'
+const PKG = 'lib/marketing-data'
 const PLAN_FILES: Partial<Record<VerticalKey, string>> = {
   home_services: `${PKG}/plans/home_services.ts`,
   restaurant: `${PKG}/plans/restaurant.ts`,

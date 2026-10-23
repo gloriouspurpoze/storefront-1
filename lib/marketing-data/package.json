@@ -1,0 +1,11 @@
+{
+  "name": "@profixer/marketing-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Storefront copy of marketing industries, plans, and landing copy. Kept inside this app so Vercel (root: storefront/) can install it.",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  }
+}
