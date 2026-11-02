@@ -33,9 +33,6 @@ const RESERVED_PATH_PREFIXES = [
 /** Framework internals and API routes pass through untouched on the marketing hosts too. */
 const PLATFORM_PASSTHROUGH_PREFIXES = ['/_next', '/static', '/favicon', '/api']
 
-/** Tenant hosts keep serving these from outside the middleware, as before. */
-const TENANT_UNTOUCHED_PATHS = new Set(['/robots.txt', '/sitemap.xml'])
-
 /**
  * Torq Studio marketing site: platform hosts render `app/platform/*` and never hit
  * tenant resolution. Non-canonical hosts (www., legacy torqerp.*) 301 to the canonical
@@ -73,7 +70,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.rewrite(url)
   }
 
-  if (TENANT_UNTOUCHED_PATHS.has(pathname) || RESERVED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
+  // /sitemap.xml, /robots.txt, and /llms.txt must be rewritten into
+  // /sites/[tenantId]/… — leaving them untouched 404s on the custom domain.
+  if (RESERVED_PATH_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
