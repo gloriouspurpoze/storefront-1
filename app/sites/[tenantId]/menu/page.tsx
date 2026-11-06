@@ -8,6 +8,7 @@ import { PageHeader } from '@/ui'
 import { toThemeTenant } from '@/themes/restaurant/types'
 import { fetchMenu, fetchProducts, fetchStorefrontConfig } from '@/lib/storefront-api'
 import type { StorefrontConfig } from '@/lib/storefront-api'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 function showProducts(cfg: StorefrontConfig | null): boolean {
   const flags = cfg?.featureFlags as Record<string, boolean | undefined> | undefined
@@ -26,7 +27,7 @@ import { storefrontPathMetadata } from '@/lib/path-metadata'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata() {
+async function baseGenerateMetadata() {
   return storefrontPathMetadata('/menu')
 }
 
@@ -78,3 +79,5 @@ export default async function MenuPage() {
     </RestaurantShell>
   )
 }
+
+export const generateMetadata = seoOverridable((p) => '/menu', baseGenerateMetadata)

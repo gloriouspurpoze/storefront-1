@@ -23,13 +23,14 @@ import { LuxeEssenceBlogIndexPage } from '@/themes/retail/luxe-essence/LuxeEssen
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 import { BrownButterJournalIndex } from '@/themes/private/thebrownbutter/BrownButterJournal'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 /** Must be a literal — Next.js cannot statically analyze imported revalidate values. */
 export const revalidate = 120
 
 type RouteParams = { params: Promise<{ tenantId: string }> }
 
-export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
+async function baseGenerateMetadata({ params }: RouteParams): Promise<Metadata> {
   const { tenantId } = await params
   const resolved = await loadTenantFromRequest()
   if (!resolved || resolved.id !== tenantId) return { title: 'Blog' }
@@ -131,3 +132,5 @@ export default async function BlogIndexPage({ params }: RouteParams) {
     }
   }
 }
+
+export const generateMetadata = seoOverridable((p) => '/blog', baseGenerateMetadata)

@@ -44,7 +44,8 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
     seo.defaultDescription ||
     branding.tagline ||
     `Welcome to ${siteName} — powered by Torq Orbit.`
-  const ogImage = seo.ogImageUrl
+  // No share image set → use the logo so links shared on WhatsApp/social still show a picture.
+  const ogImage = seo.ogImageUrl || branding.logoUrl
   // Holding page must not replace the shop in search results.
   const inMaintenance = cfg?.siteStatus?.mode === 'maintenance'
   const robotsIndex = seo.robots?.indexable !== false && !inMaintenance

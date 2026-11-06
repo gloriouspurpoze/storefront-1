@@ -17,10 +17,11 @@ import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { toThemeTenant as toRestTenant } from '@/themes/restaurant/types'
 import { isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 import { BrownButterPolicyView } from '@/themes/private/thebrownbutter/BrownButterPolicyView'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata() {
+async function baseGenerateMetadata() {
   const tenant = await loadTenantFromRequest()
   return {
     title: 'Shipping policy',
@@ -86,3 +87,5 @@ export default async function ShippingPolicyPage() {
     </RetailShell>
   )
 }
+
+export const generateMetadata = seoOverridable((p) => '/shipping-policy', baseGenerateMetadata)

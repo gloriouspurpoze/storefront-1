@@ -26,6 +26,7 @@ import { MarketplaceProductPage } from '@/themes/marketplace/MarketplaceProductP
 import { loadTenantFromRequest } from '@/lib/load-tenant'
 import { BrownButterProductPage } from '@/themes/private/thebrownbutter/BrownButterProductPage'
 import { isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,7 @@ interface PageProps {
   params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({ params }: PageProps) {
+async function baseGenerateMetadata({ params }: PageProps) {
   const { slug } = await params
   const resolved = await loadTenantFromRequest()
   if (resolved?.verticalKey === 'restaurant') {
@@ -134,3 +135,5 @@ export default async function ProductDetailPage({ params }: PageProps) {
     </RetailShell>
   )
 }
+
+export const generateMetadata = seoOverridable((p) => `/products/${p.slug}`, baseGenerateMetadata)

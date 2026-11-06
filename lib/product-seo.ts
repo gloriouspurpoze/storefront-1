@@ -39,9 +39,13 @@ export function buildProductMetadata(
   siteName: string,
   baseUrl?: string,
 ): Metadata {
-  const description = productDescription(product)
+  const seoTitle = product.seoTitle?.trim()
+  const description = product.seoDescription?.trim() || productDescription(product)
   const url = productPageUrl(baseUrl, product.slug)
   const title = product.name
+  // Merchant SEO titles get the brand appended like every other page, unless they already name it.
+  const seoHasBrand = Boolean(seoTitle && siteName && seoTitle.toLowerCase().includes(siteName.toLowerCase()))
+  const fullTitle = seoTitle ? (seoHasBrand ? seoTitle : `${seoTitle} · ${siteName}`) : `${title} · ${siteName}`
   const images = product.imageUrl ? [{ url: product.imageUrl, alt: product.name }] : undefined
   const seo = cfg?.seo ?? {}
   const robotsIndex = seo.robots?.indexable !== false
@@ -49,14 +53,14 @@ export function buildProductMetadata(
   const categoryKeywords = product.categoryName ? [product.name, product.categoryName] : [product.name]
 
   return {
-    title,
+    title: seoTitle ? (seoHasBrand ? { absolute: seoTitle } : seoTitle) : title,
     description,
     keywords: [...categoryKeywords, ...(seo.defaultKeywords ?? [])],
     alternates: url ? { canonical: url } : undefined,
     robots: { index: robotsIndex, follow: robotsFollow },
     openGraph: {
       type: 'website',
-      title: `${title} · ${siteName}`,
+      title: fullTitle,
       description,
       url,
       siteName,
@@ -73,7 +77,7 @@ export function buildProductMetadata(
         ? {
             card: product.imageUrl ? 'summary_large_image' : 'summary',
             site: seo.twitterHandle,
-            title,
+            title: fullTitle,
             description,
             images: product.imageUrl ? [product.imageUrl] : undefined,
           }

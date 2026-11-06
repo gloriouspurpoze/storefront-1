@@ -6,6 +6,7 @@ import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { fetchStorefrontBlogPosts } from '@/lib/cms-blog'
 import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 import { BROWN_BUTTER_REDIRECTED_PATHS, brownButterSitePages } from '@/themes/private/thebrownbutter/brownButterSeo'
+import { fetchTenantSeoOverride } from '@/lib/tenant-seo'
 
 export const revalidate = 300
 
@@ -73,6 +74,27 @@ async function withThemePages(
 }
 
 /**
+ * Drop pages the owner hid from Google — via SEO → Page titles (noindex entry) or Studio
+ * `seo.pages[path].noindex`. A sitemap must never list a page that says noindex.
+ * Product/blog URLs carry their own SEO and are not checked here (one lookup per page).
+ */
+async function withoutHiddenPages(tenantId: string, baseUrl: string, urls: SitemapApiUrl[]): Promise<SitemapApiUrl[]> {
+  const cfg = await fetchStorefrontConfig(tenantId).catch(() => null)
+  const studioPages = (cfg?.seo as { pages?: Record<string, { noindex?: boolean }> } | undefined)?.pages ?? {}
+  const pathOf = (loc: string) => loc.replace(baseUrl, '').replace(/\/+$/, '') || '/'
+  const checks = await Promise.all(
+    urls.map(async (u) => {
+      const path = pathOf(u.loc)
+      if (studioPages[path]?.noindex === true) return false
+      if (/^\/(products|blog|categories)\//.test(path)) return true
+      const override = await fetchTenantSeoOverride(tenantId, path)
+      return !override?.noindex
+    }),
+  )
+  return urls.filter((_, i) => checks[i])
+}
+
+/**
  * Tenant /sitemap.xml. Middleware rewrites the custom-domain path onto
  * /sites/[tenantId]/sitemap.xml. This is a plain route handler rather than a
  * `sitemap.ts` metadata file: Next never passes segment `params` to sitemap
@@ -109,6 +131,7 @@ export async function GET(
   }
 
   urls = await withThemePages(tenant.id, baseUrl, urls)
+  urls = await withoutHiddenPages(tenant.id, baseUrl, urls)
 
   return new Response(renderSitemap(urls), {
     headers: {

@@ -21,10 +21,11 @@ import { storefrontPathMetadata } from '@/lib/path-metadata'
 import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
 import { MarketplaceCatalogPage } from '@/themes/marketplace/MarketplaceCatalogPage'
 import { parseCatalogQuery } from '@/themes/marketplace/catalogQuery'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata() {
+async function baseGenerateMetadata() {
   return storefrontPathMetadata('/products')
 }
 
@@ -119,3 +120,5 @@ export default async function ProductsPage({
     </RetailShell>
   )
 }
+
+export const generateMetadata = seoOverridable((p) => '/products', baseGenerateMetadata)

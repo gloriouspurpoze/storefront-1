@@ -28,10 +28,11 @@ import { LuxeEssenceContactPage } from '@/themes/retail/luxe-essence/LuxeEssence
 import { storefrontPathMetadata } from '@/lib/path-metadata'
 import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 import { BrownButterTalkView } from '@/themes/private/thebrownbutter/BrownButterTalkView'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata() {
+async function baseGenerateMetadata() {
   return storefrontPathMetadata('/contact')
 }
 
@@ -150,3 +151,5 @@ export default async function ContactPage() {
       notFound()
   }
 }
+
+export const generateMetadata = seoOverridable((p) => '/contact', baseGenerateMetadata)

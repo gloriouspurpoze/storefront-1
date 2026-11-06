@@ -12,10 +12,11 @@ import { TradeProShellClient } from '@/themes/home-services/trade-pro/TradeProSh
 import { fetchServices, fetchStorefrontConfig } from '@/lib/storefront-api'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata() {
+async function baseGenerateMetadata() {
   return storefrontPathMetadata('/services')
 }
 
@@ -86,3 +87,5 @@ export default async function ServicesPage() {
     </>
   )
 }
+
+export const generateMetadata = seoOverridable((p) => '/services', baseGenerateMetadata)

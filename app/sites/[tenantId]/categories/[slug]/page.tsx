@@ -28,6 +28,7 @@ import { LuxeEssenceCategoryPage } from '@/themes/retail/luxe-essence/LuxeEssenc
 import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
 import { MarketplaceCatalogPage } from '@/themes/marketplace/MarketplaceCatalogPage'
 import { parseCatalogQuery } from '@/themes/marketplace/catalogQuery'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +47,7 @@ function filterProductsByCategory(products: PublicProduct[], slug: string): Publ
   return products.filter((product) => productCategorySlug(product)?.toLowerCase() === key)
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+async function baseGenerateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
   const tenant = (await marketplaceTenantOrNull()) ?? (await loadRetailTenant())
   const [config, categoryMarketingRaw, catalogCategories] = await Promise.all([
@@ -67,8 +68,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     catalogName ||
     slug.replace(/-/g, ' ')
 
+  // The layout's title template appends the site name; only an SEO title that already names the
+  // brand is used as-is (avoids "Electronics | Bazaar · Bazaar").
+  const namesBrand = title.toLowerCase().includes(siteName.toLowerCase())
   return {
-    title: `${title} | ${siteName}`,
+    title: namesBrand ? { absolute: title } : title,
+    alternates: { canonical: `/categories/${encodeURIComponent(slug.trim().toLowerCase())}` },
     description:
       marketing?.metaDescription?.trim() ||
       marketing?.intro?.replace(/<[^>]+>/g, '').slice(0, 160) ||
@@ -211,3 +216,5 @@ export default async function CategorySlugPage({ params, searchParams }: PagePro
     </RetailShell>
   )
 }
+
+export const generateMetadata = seoOverridable((p) => `/categories/${p.slug}`, baseGenerateMetadata)

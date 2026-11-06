@@ -164,4 +164,4 @@ export function brownButterSitePages(
 }
 
 /** Paths the Brown Butter site does not serve (they redirect to `/`). */
-export const BROWN_BUTTER_REDIRECTED_PATHS = new Set(['/products', '/menu'])
+export const BROWN_BUTTER_REDIRECTED_PATHS = new Set(['/products', '/menu', '/reserve'])

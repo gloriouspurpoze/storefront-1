@@ -16,6 +16,7 @@ import { fetchServiceBySlug, fetchServices, fetchStorefrontConfig } from '@/lib/
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { bookingAddonActive } from '@/themes/home-services/bookingAddon'
 import { IconArrowLeft, IconStar } from '@/ui'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,7 @@ interface PageProps {
   params: Promise<{ tenantId: string; slug: string }>
 }
 
-export async function generateMetadata({ params }: PageProps) {
+async function baseGenerateMetadata({ params }: PageProps) {
   const { slug } = await params
   const tenant = await loadHomeServicesTenant()
   const service = await fetchServiceBySlug(tenant.id, slug)
@@ -186,3 +187,5 @@ function Badge({ children }: { children: React.ReactNode }) {
     </span>
   )
 }
+
+export const generateMetadata = seoOverridable((p) => `/services/${p.slug}`, baseGenerateMetadata)

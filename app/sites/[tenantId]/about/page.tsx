@@ -26,10 +26,11 @@ import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
 import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 import { BrownButterAboutView } from '@/themes/private/thebrownbutter/BrownButterAboutView'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata() {
+async function baseGenerateMetadata() {
   return storefrontPathMetadata('/about')
 }
 
@@ -175,3 +176,5 @@ export default async function AboutPage() {
       notFound()
   }
 }
+
+export const generateMetadata = seoOverridable((p) => '/about', baseGenerateMetadata)

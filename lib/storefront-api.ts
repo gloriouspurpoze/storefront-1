@@ -245,6 +245,10 @@ export interface PublicProduct {
   /** Catalog display order from admin (optional; list order is authoritative). */
   sortOrder?: number
   sort_order?: number
+  /** Merchant-set Google title (admin → SEO → product pages); falls back to the name. */
+  seoTitle?: string
+  /** Merchant-set Google description; falls back to the short description. */
+  seoDescription?: string
   /** Marketplace tenants: who sells it, and the listing id the split checkout charges. */
   sellerId?: string
   sellerName?: string

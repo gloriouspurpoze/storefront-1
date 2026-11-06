@@ -4,10 +4,11 @@ import { fetchStorefrontConfig } from '@/lib/storefront-api'
 import { ComingSoon } from '@/themes/coming-soon/ComingSoon'
 import { HomePageSections } from '@/components/HomePageSections'
 import { storefrontPathMetadata } from '@/lib/path-metadata'
+import { seoOverridable } from '@/lib/tenant-seo'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata() {
+async function baseGenerateMetadata() {
   return storefrontPathMetadata('/')
 }
 
@@ -27,3 +28,5 @@ export default async function TenantHomePage() {
       return <ComingSoon tenant={tenant} />
   }
 }
+
+export const generateMetadata = seoOverridable((p) => '/', baseGenerateMetadata)
