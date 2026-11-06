@@ -1,13 +1,18 @@
 'use client'
 
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
-import { todayDateInputValue } from '@/lib/templateSettings'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  getDeliveryTimeBounds,
-  getMinDeliveryDate,
+  getDeliveryDateOptions,
+  getDeliveryTimeSlots,
+  ORDERING_DAY_KEYS,
   type OrderingAvailabilityConfig,
   type OrderingHoursConfig,
 } from '@/lib/orderingHours'
+
+const ALWAYS_OPEN_HOURS = Object.fromEntries(
+  ORDERING_DAY_KEYS.map((day) => [day, { closed: false, openTime: '12:00 AM', closeTime: '11:59 PM' }]),
+) as OrderingHoursConfig
 
 export function DeliveryDetailsSection({
   showPreferredDate,
@@ -30,18 +35,45 @@ export function DeliveryDetailsSection({
 }) {
   const set = (patch: Partial<DeliveryDetailsValue>) => onChange({ ...value, ...patch })
 
-  const minDate =
-    orderingHours && showPreferredDate
-      ? getMinDeliveryDate(orderingHours, new Date(), {
-          requireTimeSlot: showPreferredTime,
-          availability: orderingAvailability,
-        })
-      : todayDateInputValue()
+  // Re-evaluated every minute so prep time / same-day cutoff stay current.
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    if (!showPreferredDate && !showPreferredTime) return
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => window.clearInterval(id)
+  }, [showPreferredDate, showPreferredTime])
 
-  const timeBounds =
-    showPreferredTime && orderingHours && value.preferredDate
-      ? getDeliveryTimeBounds(orderingHours, value.preferredDate, new Date(), orderingAvailability)
-      : null
+  // No schedule passed (e.g. marketplace) → every day open; DEFAULT_ORDERING_HOURS closes Mondays.
+  const hours = useMemo(() => orderingHours ?? ALWAYS_OPEN_HOURS, [orderingHours])
+  // Every upcoming day is listed; closed / holiday / past-cutoff / full days are disabled.
+  const dateOptions = useMemo(
+    () =>
+      showPreferredDate
+        ? getDeliveryDateOptions(hours, orderingAvailability, new Date(nowTick), {
+            requireTimeSlot: showPreferredTime,
+            days: 14,
+          })
+        : [],
+    [showPreferredDate, showPreferredTime, hours, orderingAvailability, nowTick],
+  )
+  const timeSlots = useMemo(
+    () =>
+      showPreferredTime && value.preferredDate
+        ? getDeliveryTimeSlots(hours, value.preferredDate, new Date(nowTick), orderingAvailability)
+        : [],
+    [showPreferredTime, value.preferredDate, hours, orderingAvailability, nowTick],
+  )
+
+  // Drop a pick that stopped being bookable (e.g. the clock passed the cutoff).
+  const { preferredDate, preferredTime } = value
+  useEffect(() => {
+    if (preferredDate && showPreferredDate && !dateOptions.some((d) => d.dateStr === preferredDate && d.available)) {
+      onChange({ ...value, preferredDate: undefined, preferredTime: undefined })
+    } else if (preferredTime && showPreferredTime && preferredDate && !timeSlots.some((s) => s.value === preferredTime && s.available)) {
+      onChange({ ...value, preferredTime: undefined })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferredDate, preferredTime, dateOptions, timeSlots])
 
   const isMenufast = variant === 'menufast'
 
@@ -178,13 +210,20 @@ export function DeliveryDetailsSection({
           <span className={isMenufast ? 'mf-cards-checkout-sublabel' : undefined} style={isMenufast ? undefined : { display: 'block', fontSize: '12px', fontWeight: 500, color: '#4A4540', marginBottom: '4px' }}>
             Preferred date of delivery
           </span>
-          <input
-            type="date"
-            min={minDate}
+          <select
             value={value.preferredDate ?? ''}
-            onChange={(e) => set({ preferredDate: e.target.value, preferredTime: undefined })}
+            onChange={(e) => set({ preferredDate: e.target.value || undefined, preferredTime: undefined })}
             {...fieldInputProps()}
-          />
+          >
+            <option value="" disabled>
+              Select date
+            </option>
+            {dateOptions.map((d) => (
+              <option key={d.dateStr} value={d.dateStr} disabled={!d.available}>
+                {d.available ? d.label : `${d.label} · ${d.note}`}
+              </option>
+            ))}
+          </select>
         </label>
       )}
       {showPreferredTime && (
@@ -195,15 +234,25 @@ export function DeliveryDetailsSection({
           <span className={isMenufast ? 'mf-cards-checkout-sublabel' : undefined} style={isMenufast ? undefined : { display: 'block', fontSize: '12px', fontWeight: 500, color: '#4A4540', marginBottom: '4px' }}>
             Preferred time of delivery
           </span>
-          <input
-            type="time"
-            min={timeBounds?.min}
-            max={timeBounds?.max}
+          <select
             value={value.preferredTime ?? ''}
-            onChange={(e) => set({ preferredTime: e.target.value })}
+            onChange={(e) => set({ preferredTime: e.target.value || undefined })}
             {...fieldInputProps()}
-            disabled={!value.preferredDate}
-          />
+            disabled={(showPreferredDate && !value.preferredDate) || !timeSlots.some((s) => s.available)}
+          >
+            <option value="" disabled>
+              {showPreferredDate && !value.preferredDate
+                ? 'Pick a date first'
+                : !timeSlots.some((s) => s.available)
+                  ? 'No slots left on this day'
+                  : 'Select time'}
+            </option>
+            {timeSlots.map((s) => (
+              <option key={s.value} value={s.value} disabled={!s.available}>
+                {s.tag ? `${s.label} · ${s.tag}` : s.label}
+              </option>
+            ))}
+          </select>
         </label>
       )}
     </div>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
+import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import {
   formatDeliveryNotes,
@@ -240,6 +241,9 @@ export function RestaurantCheckoutClient({
           <div className="mt-4">
             <DeliveryDetailsSection
               showPreferredDate={showPreferredDate}
+              showPreferredTime={showPreferredTime}
+              orderingHours={getOrderingHoursFromConfig(config)}
+              orderingAvailability={getOrderingAvailabilityFromConfig(config)}
               value={deliveryDetails}
               onChange={setDeliveryDetails}
               variant="plain"

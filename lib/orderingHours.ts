@@ -743,3 +743,173 @@ export function getTodayOrderingLabel(hours: OrderingHoursConfig, date = new Dat
   const today = hours[getOrderingDayKeyForDate(getISTDateParts(date).dateStr)]
   return formatDayOrderingHours(today)
 }
+
+export type DeliveryDateUnavailableReason = 'closed' | 'holiday' | 'cutoff' | 'no_slots'
+
+export interface DeliveryDateOption {
+  /** YYYY-MM-DD (IST). */
+  dateStr: string
+  /** e.g. "Wed, 8 Oct". */
+  label: string
+  available: boolean
+  reason?: DeliveryDateUnavailableReason
+  /** Customer-facing reason when unavailable. */
+  note?: string
+}
+
+const DATE_OPTION_FORMAT = new Intl.DateTimeFormat('en-IN', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+})
+
+function formatDateOptionLabel(dateStr: string): string {
+  return DATE_OPTION_FORMAT.format(new Date(`${dateStr}T00:00:00Z`))
+}
+
+/**
+ * Upcoming dates for a delivery-date dropdown: today (IST) through the booking window,
+ * with every unavailable day kept but flagged so pickers can show it disabled.
+ */
+export function getDeliveryDateOptions(
+  hours: OrderingHoursConfig,
+  availability?: OrderingAvailabilityConfig | null,
+  now = new Date(),
+  opts: { requireTimeSlot?: boolean; days?: number } = {},
+): DeliveryDateOption[] {
+  const today = getISTDateParts(now).dateStr
+  const latest = getLatestDeliveryDate(availability, now)
+  const maxDays = Math.max(1, opts.days ?? 14)
+  let start = today
+  if (availability?.earliestDate && start < availability.earliestDate) start = availability.earliestDate
+
+  const cutoff = parseOrderingTime12h(availability?.sameDayCutoffTime)
+  const nowIst = getISTDateParts(now)
+  const pastCutoff = cutoff !== null && nowIst.hour * 60 + nowIst.minute >= cutoff
+  // First calendar day reachable after prep time (and cutoff), ignoring slot fit.
+  const earliestDay = earliestFulfilment(availability, now).dateStr
+
+  const out: DeliveryDateOption[] = []
+  for (let i = 0, cursor = start; i < maxDays; i += 1, cursor = addDaysToDateStr(cursor, 1)) {
+    if (latest && cursor > latest) break
+    const option: DeliveryDateOption = { dateStr: cursor, label: formatDateOptionLabel(cursor), available: true }
+    const holiday = getClosedDate(availability, cursor)
+    if (holiday) {
+      Object.assign(option, { available: false, reason: 'holiday', note: holiday.label || 'Holiday' })
+    } else if (isOrderingDayClosed(hours, cursor)) {
+      Object.assign(option, { available: false, reason: 'closed', note: 'Closed' })
+    } else if (cursor === today && pastCutoff) {
+      Object.assign(option, { available: false, reason: 'cutoff', note: 'Same-day orders closed' })
+    } else if (
+      opts.requireTimeSlot !== false &&
+      !getDeliveryTimeSlots(hours, cursor, now, availability).some((s) => s.available)
+    ) {
+      Object.assign(option, { available: false, reason: 'no_slots', note: 'No slots left' })
+    } else if (cursor < earliestDay) {
+      Object.assign(option, { available: false, reason: 'no_slots', note: 'No slots left' })
+    }
+    out.push(option)
+  }
+  return out
+}
+
+export type DeliveryTimeSlotUnavailableReason = 'preparing' | 'unavailable'
+
+export interface DeliveryTimeSlot {
+  /** HH:MM (24h) slot start — the value sent with the order. */
+  value: string
+  /** Slot window, e.g. "2:30 PM – 3:00 PM". */
+  label: string
+  available: boolean
+  reason?: DeliveryTimeSlotUnavailableReason
+  /** Customer-facing tag: "Earliest" on the first bookable slot, "Preparing" inside the prep window. */
+  tag?: string
+}
+
+export function formatTimeSlotLabel(minutes: number): string {
+  const h24 = Math.floor(minutes / 60) % 24
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12
+  return `${h12}:${String(minutes % 60).padStart(2, '0')} ${h24 >= 12 ? 'PM' : 'AM'}`
+}
+
+/** "11:00 – 11:30 AM" when both ends share AM/PM, else "11:30 AM – 12:00 PM". */
+export function formatTimeWindowLabel(start: number, end: number): string {
+  const a = formatTimeSlotLabel(start)
+  const b = formatTimeSlotLabel(end)
+  return a.slice(-2) === b.slice(-2) ? `${a.slice(0, -3)} – ${b}` : `${a} – ${b}`
+}
+
+/**
+ * The day's delivery windows (every `stepMinutes` within opening hours). Windows already
+ * past are omitted; windows inside the preparation time (or blocked by the same-day cutoff)
+ * are kept but unavailable so customers see why. The first bookable window is tagged.
+ */
+export function getDeliveryTimeSlots(
+  hours: OrderingHoursConfig,
+  dateStr: string,
+  now = new Date(),
+  availability?: OrderingAvailabilityConfig | null,
+  stepMinutes = 30,
+): DeliveryTimeSlot[] {
+  if (!dateStr) return []
+  const day = getDayOrderingHours(hours, dateStr)
+  if (day.closed || getClosedDate(availability, dateStr)) return []
+  const open = parseOrderingTime12h(day.openTime)
+  const close = parseOrderingTime12h(day.closeTime)
+  if (open === null || close === null || close <= open) return []
+
+  const step = Math.max(5, Math.floor(stepMinutes))
+  const nowIst = getISTDateParts(now)
+  const today = nowIst.dateStr
+  if (dateStr < today) return []
+  const nowMinutes = dateStr === today ? nowIst.hour * 60 + nowIst.minute : -1
+
+  // First bookable minute (prep time / cutoff applied); null = nothing bookable that day.
+  const bounds = getDeliveryTimeBounds(hours, dateStr, now, availability)
+  const firstBookable = bounds ? parseTimeInputValue(bounds.min) : null
+  const cutoff = parseOrderingTime12h(availability?.sameDayCutoffTime)
+  const sameDayClosed = dateStr === today && cutoff !== null && nowMinutes >= cutoff
+
+  const slots: DeliveryTimeSlot[] = []
+  let earliestTagged = false
+  for (let m = Math.ceil(open / step) * step; m < close; m += step) {
+    if (m < nowMinutes) continue // already past
+    const end = Math.min(m + step, close)
+    // A closing time off the grid (e.g. 3:03 PM) would leave a stub window — skip it.
+    if (end - m < step / 2) continue
+    const slot: DeliveryTimeSlot = {
+      value: minutesToTimeInputValue(m),
+      label: formatTimeWindowLabel(m, end),
+      available: firstBookable !== null && m >= firstBookable,
+    }
+    if (!slot.available) {
+      slot.reason = sameDayClosed ? 'unavailable' : 'preparing'
+      slot.tag = sameDayClosed ? 'Same-day closed' : 'Preparing'
+    } else if (!earliestTagged) {
+      slot.tag = 'Earliest'
+      earliestTagged = true
+    }
+    slots.push(slot)
+  }
+  return slots
+}
+
+/** First bookable date + window, e.g. for "Earliest available: Today, 2:30 PM". */
+export function getEarliestDeliverySlot(
+  hours: OrderingHoursConfig,
+  availability?: OrderingAvailabilityConfig | null,
+  now = new Date(),
+  stepMinutes = 30,
+): { dateStr: string; dayLabel: string; slot: DeliveryTimeSlot; label: string } | null {
+  const today = getISTDateParts(now).dateStr
+  for (const option of getDeliveryDateOptions(hours, availability, now, { days: 30 })) {
+    if (!option.available) continue
+    const slot = getDeliveryTimeSlots(hours, option.dateStr, now, availability, stepMinutes).find((s) => s.available)
+    if (!slot) continue
+    const dayLabel =
+      option.dateStr === today ? 'Today' : option.dateStr === addDaysToDateStr(today, 1) ? 'Tomorrow' : option.label
+    return { dateStr: option.dateStr, dayLabel, slot, label: `${dayLabel}, ${formatTimeSlotLabel(parseTimeInputValue(slot.value) ?? 0)}` }
+  }
+  return null
+}

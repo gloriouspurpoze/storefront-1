@@ -3458,3 +3458,185 @@ a.sticky-cart {
 }
 
   
+/* Delivery date / time dropdowns (only bookable options are enabled). */
+.checkout-sheet select.bb-slot-select {
+  width: 100%;
+  padding: 13px 40px 13px 16px;
+  border: 2px solid #e8eef3;
+  border-radius: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  color: var(--navy);
+  background-color: var(--cream);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8a99' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.checkout-sheet select.bb-slot-select:focus {
+  border-color: var(--sky);
+  background-color: var(--white);
+  box-shadow: 0 0 0 4px rgba(126, 200, 227, 0.15);
+}
+
+.checkout-sheet select.bb-slot-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.checkout-sheet select.bb-slot-select option:disabled {
+  color: #b4bfc9;
+}
+
+.checkout-sheet .field-hint--strong {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* Delivery slot summary card */
+.checkout-sheet .bb-slot-warn {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c0392b;
+}
+
+.checkout-sheet .bb-slot-card {
+  margin-top: 12px;
+  border: 1.5px solid rgba(126, 200, 227, 0.45);
+  border-radius: 16px;
+  background: var(--sky-light);
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.checkout-sheet .bb-slot-card.is-selected {
+  border-color: var(--sky);
+}
+
+.checkout-sheet .bb-slot-card__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.checkout-sheet .bb-slot-card__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--sky-dark);
+}
+
+.checkout-sheet .bb-slot-card__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.checkout-sheet .bb-slot-card__icon--muted {
+  color: var(--muted);
+}
+
+.checkout-sheet .bb-slot-card__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkout-sheet .bb-slot-card__eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--sky-dark);
+}
+
+.checkout-sheet .bb-slot-card__value {
+  font-size: 14px;
+  color: var(--navy);
+  line-height: 1.3;
+}
+
+.checkout-sheet .bb-slot-card__value strong {
+  font-weight: 800;
+}
+
+.checkout-sheet .bb-slot-card__cta {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--white);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.checkout-sheet .bb-slot-card__cta:hover {
+  opacity: 0.9;
+}
+
+.checkout-sheet .bb-slot-card__cta:active {
+  transform: scale(0.97);
+}
+
+.checkout-sheet .bb-slot-card__cta:focus-visible {
+  outline: 3px solid rgba(126, 200, 227, 0.6);
+  outline-offset: 2px;
+}
+
+.checkout-sheet .bb-slot-card__done {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sky-dark);
+}
+
+.checkout-sheet .bb-slot-card__rules {
+  list-style: none;
+  margin: 0;
+  padding: 10px 14px 12px;
+  display: grid;
+  gap: 6px;
+  border-top: 1px dashed rgba(126, 200, 227, 0.6);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.checkout-sheet .bb-slot-card__rules li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.checkout-sheet .bb-slot-card__rules li svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  color: var(--sky-dark);
+}
+
+.checkout-sheet .bb-slot-card__rules strong {
+  color: var(--navy);
+  font-weight: 700;
+}

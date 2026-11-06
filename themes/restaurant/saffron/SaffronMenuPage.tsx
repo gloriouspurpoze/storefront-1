@@ -12,6 +12,7 @@ import { homepageSectionOrder, THEME_SECTIONS } from '@/lib/storefrontSections'
 import { StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
 import { MenuOrderCheckoutBlock } from '../MenuOrderCheckoutBlock'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
+import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
 import { ProductVariantSelector } from '@/components/ProductVariantSelector'
 import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
 import {
@@ -331,6 +332,8 @@ function CartContent({
           <DeliveryDetailsSection
             showPreferredDate={showPreferredDate}
             showAddressFields={deliveryMode === 'delivery'}
+            orderingHours={getOrderingHoursFromConfig(config)}
+            orderingAvailability={getOrderingAvailabilityFromConfig(config)}
             value={deliveryDetails}
             onChange={onDeliveryDetailsChange}
             variant="card"

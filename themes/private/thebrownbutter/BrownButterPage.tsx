@@ -11,10 +11,15 @@ import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import { validateShippingAddress } from '@/lib/storefrontShippingAddress'
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
 import {
+  getDeliveryDateOptions,
+  getDeliveryTimeSlots,
+  getEarliestDeliverySlot,
   getOrderingAvailabilityFromConfig,
   getOrderingHoursFromConfig,
   isStoreOpenNow,
+  parseOrderingTime12h,
 } from '@/lib/orderingHours'
+import { runPreCheckoutGuards } from '@/lib/checkoutGuard'
 import type { ThemeTenant } from '@/themes/restaurant/types'
 import { BB_IMG_FALLBACK } from './catalog'
 import { layoutBrownButterProducts, type TinGroup } from './productLayout'
@@ -58,6 +63,42 @@ function categoryEmoji(sectionId: string, label: string): string {
   if (key.includes('brownie')) return '🍫'
   if (key.includes('cup')) return '🧁'
   return '🍪'
+}
+
+/** Small line icons for the delivery-slot card (inherit currentColor). */
+function BbSlotIcon({ kind }: { kind: 'clock' | 'check' | 'prep' | 'cutoff' | 'note' }) {
+  const common = {
+    width: 16,
+    height: 16,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  }
+  if (kind === 'check') return <svg {...common}><path d="M20 6 9 17l-5-5" /></svg>
+  if (kind === 'prep')
+    return (
+      <svg {...common}>
+        <path d="M6 2h12M6 22h12M7 2v4a5 5 0 0 0 10 0V2M7 22v-4a5 5 0 0 1 10 0v4" />
+      </svg>
+    )
+  if (kind === 'note')
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4M12 8h.01" />
+      </svg>
+    )
+  // clock / cutoff
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="10" />
+      <path d={kind === 'cutoff' ? 'M12 6v6l-4 2' : 'M12 6v6l4 2'} />
+    </svg>
+  )
 }
 
 function BbImage({
@@ -284,10 +325,68 @@ export function BrownButterPage({
 
   const orderingHours = useMemo(() => getOrderingHoursFromConfig(config), [config])
   const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
+  const [deliveryDate, setDeliveryDate] = useState('')
+  const [deliveryTime, setDeliveryTime] = useState('')
+  // Re-evaluated every minute so prep time / same-day cutoff stay current while the sheet is open.
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
   const storeOpen = useMemo(
-    () => isStoreOpenNow(orderingHours, new Date(), orderingAvailability),
-    [orderingHours, orderingAvailability],
+    () => isStoreOpenNow(orderingHours, new Date(nowTick), orderingAvailability),
+    [orderingHours, orderingAvailability, nowTick],
   )
+  const earliestSlot = useMemo(
+    () => getEarliestDeliverySlot(orderingHours, orderingAvailability, new Date(nowTick)),
+    [orderingHours, orderingAvailability, nowTick],
+  )
+  // Every upcoming day is listed; closed / holiday / past-cutoff / full days are disabled.
+  const deliveryDateOptions = useMemo(
+    () => getDeliveryDateOptions(orderingHours, orderingAvailability, new Date(nowTick), { days: 14 }),
+    [orderingHours, orderingAvailability, nowTick],
+  )
+  const deliveryTimeSlots = useMemo(
+    () => getDeliveryTimeSlots(orderingHours, deliveryDate, new Date(nowTick), orderingAvailability),
+    [orderingHours, orderingAvailability, deliveryDate, nowTick],
+  )
+  // Drop a pick that stopped being bookable (e.g. the clock passed the cutoff while the sheet was open).
+  useEffect(() => {
+    if (deliveryDate && !deliveryDateOptions.some((d) => d.dateStr === deliveryDate && d.available)) {
+      setDeliveryDate('')
+      setDeliveryTime('')
+    } else if (deliveryTime && !deliveryTimeSlots.some((s) => s.value === deliveryTime && s.available)) {
+      setDeliveryTime('')
+    }
+  }, [deliveryDate, deliveryTime, deliveryDateOptions, deliveryTimeSlots])
+  // Start on the earliest bookable day (customers can still change it).
+  useEffect(() => {
+    if (!deliveryDate && earliestSlot) setDeliveryDate(earliestSlot.dateStr)
+  }, [deliveryDate, earliestSlot])
+  const schedulingRules = useMemo(() => {
+    const rules: Array<{ key: string; icon: 'prep' | 'cutoff' | 'note'; title: string; text: string }> = []
+    if (orderingAvailability.leadTimeMinutes) {
+      const m = orderingAvailability.leadTimeMinutes
+      const label =
+        m >= 60 && m % 60 === 0 ? `${m / 60} hr${m === 60 ? '' : 's'}` : m > 60 ? `${Math.floor(m / 60)} hr ${m % 60} min` : `${m} min`
+      rules.push({ key: 'prep', icon: 'prep', title: `${label} prep`, text: 'Every order is made fresh for you' })
+    }
+    const cutoff = orderingAvailability.sameDayCutoffTime
+    if (cutoff && parseOrderingTime12h(cutoff) !== null) {
+      rules.push({ key: 'cutoff', icon: 'cutoff', title: `Same-day till ${cutoff}`, text: 'Later orders go to the next day' })
+    }
+    if (orderingAvailability.slotsNote) {
+      rules.push({ key: 'note', icon: 'note', title: 'Note', text: orderingAvailability.slotsNote })
+    }
+    return rules
+  }, [orderingAvailability])
+  const earliestSelected =
+    Boolean(earliestSlot) && deliveryDate === earliestSlot?.dateStr && deliveryTime === earliestSlot?.slot.value
+  const pickEarliestSlot = () => {
+    if (!earliestSlot) return
+    setDeliveryDate(earliestSlot.dateStr)
+    setDeliveryTime(earliestSlot.slot.value)
+  }
 
   const { entries, itemCount, subtotal, add, setQty, qtyFor, clear, hydrated } = useBrownButterCart(tenant.id)
   const { requireAuthForCart } = useCartAuthGate()
@@ -313,8 +412,6 @@ export function BrownButterPage({
 
   const [delivery, setDelivery] = useState<DeliveryMode>('pickup')
   const [pincode, setPincode] = useState('')
-  const [deliveryDate, setDeliveryDate] = useState('')
-  const [deliveryTime, setDeliveryTime] = useState('')
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -444,6 +541,16 @@ export function BrownButterPage({
 
     if (!deliveryDate.trim() || !deliveryTime.trim()) {
       setCheckoutError('Delivery date and time are required.')
+      return
+    }
+    // Pause, closed days, ordering hours, preparation time and same-day cutoff (IST).
+    const slotGuard = runPreCheckoutGuards(
+      config,
+      { preferredDate: deliveryDate.trim(), preferredTime: deliveryTime.trim() },
+      { requireDate: true, requireTime: true, requireAddress: false },
+    )
+    if (!slotGuard.ok) {
+      setCheckoutError(slotGuard.message)
       return
     }
     if ((delivery === 'local' || delivery === 'ship') && !address.trim()) {
@@ -707,15 +814,97 @@ export function BrownButterPage({
               <div className="field-row" style={{ marginTop: 14, marginBottom: 0 }}>
                 <div className="field">
                   <label htmlFor="bb-date">Delivery Date</label>
-                  <input id="bb-date" type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+                  <select
+                    id="bb-date"
+                    className="bb-slot-select"
+                    value={deliveryDate}
+                    onChange={(e) => {
+                      setDeliveryDate(e.target.value)
+                      setDeliveryTime('')
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select date
+                    </option>
+                    {deliveryDateOptions.map((d) => (
+                      <option key={d.dateStr} value={d.dateStr} disabled={!d.available}>
+                        {d.available ? d.label : `${d.label} · ${d.note}`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="field">
                   <label htmlFor="bb-time">Preferred Time</label>
-                  <input id="bb-time" type="time" min="11:00" max="23:59" value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)} />
+                  <select
+                    id="bb-time"
+                    className="bb-slot-select"
+                    disabled={!deliveryDate || !deliveryTimeSlots.some((s) => s.available)}
+                    value={deliveryTime}
+                    onChange={(e) => setDeliveryTime(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      {deliveryDate ? 'Select time' : 'Pick a date first'}
+                    </option>
+                    {deliveryTimeSlots.map((s) => (
+                      <option key={s.value} value={s.value} disabled={!s.available}>
+                        {s.available ? s.label : `${s.label} · ${s.tag}`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <div className="field-hint">Orders placed after 2:00 PM IST are scheduled for the next day.</div>
-              <div className="field-hint">Delivery Slots start at 11:00 AM IST.</div>
+              {deliveryDate && !deliveryTimeSlots.some((s) => s.available) ? (
+                <p className="bb-slot-warn" role="status">
+                  No slots left on this day — please pick another date.
+                </p>
+              ) : null}
+
+              <div className={`bb-slot-card${earliestSelected ? ' is-selected' : ''}`} aria-live="polite">
+                {earliestSlot ? (
+                  <div className="bb-slot-card__main">
+                    <span className="bb-slot-card__icon" aria-hidden>
+                      <BbSlotIcon kind="clock" />
+                    </span>
+                    <div className="bb-slot-card__text">
+                      <span className="bb-slot-card__eyebrow">Earliest available</span>
+                      <span className="bb-slot-card__value">
+                        <strong>{earliestSlot.dayLabel}</strong> · {earliestSlot.slot.label}
+                      </span>
+                    </div>
+                    {earliestSelected ? (
+                      <span className="bb-slot-card__done">
+                        <BbSlotIcon kind="check" /> Selected
+                      </span>
+                    ) : (
+                      <button type="button" className="bb-slot-card__cta" onClick={pickEarliestSlot}>
+                        Use this slot
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bb-slot-card__main">
+                    <span className="bb-slot-card__icon bb-slot-card__icon--muted" aria-hidden>
+                      <BbSlotIcon kind="clock" />
+                    </span>
+                    <div className="bb-slot-card__text">
+                      <span className="bb-slot-card__eyebrow">No slots right now</span>
+                      <span className="bb-slot-card__value">Please check back a little later.</span>
+                    </div>
+                  </div>
+                )}
+                {schedulingRules.length > 0 ? (
+                  <ul className="bb-slot-card__rules">
+                    {schedulingRules.map((r) => (
+                      <li key={r.key}>
+                        <BbSlotIcon kind={r.icon} />
+                        <span>
+                          <strong>{r.title}</strong> — {r.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             </div>
 
             <div className={`cart-summary${entries.length ? ' visible' : ''}`}>
