@@ -249,6 +249,10 @@ export interface PublicProduct {
   seoTitle?: string
   /** Merchant-set Google description; falls back to the short description. */
   seoDescription?: string
+  /** Item FAQs written in admin → SEO → items (shown on the page + FAQPage schema). */
+  faqs?: Array<{ question: string; answer: string }>
+  /** Alt text for the main photo. */
+  imageAlt?: string
   /** Marketplace tenants: who sells it, and the listing id the split checkout charges. */
   sellerId?: string
   sellerName?: string

@@ -25,6 +25,7 @@ import { BrownButterFrame } from './BrownButterFrame'
 import { formatDeliverySummary } from './BrownButterFooter'
 import { BrownButterImage } from './BrownButterImage'
 import { normalizeProseHtml } from './BrownButterPageParts'
+import { completeFaqs } from '@/lib/faq-jsonld'
 import { useBrownButterCart } from './useBrownButterCart'
 
 function formatInr(amount: number): string {
@@ -122,6 +123,7 @@ export function BrownButterProductDetail({
   const canAdd = inStock && (!needsVariant || Boolean(variantId))
 
   const shortCopy = (product.shortDescription || '').trim()
+  const faqs = completeFaqs(product.faqs)
   const longCopy = (product.description || '').trim()
   const lead = shortCopy || stripHtml(longCopy)
   // Full description only when it adds something beyond the lead line.
@@ -163,7 +165,7 @@ export function BrownButterProductDetail({
         <div className="bb-pdp-layout">
           <div className="bb-pdp-gallery">
             <div className="bb-pdp-photo">
-              <BrownButterImage src={photo} alt={product.name} className="bb-pdp-img" />
+              <BrownButterImage src={photo} alt={product.imageAlt || product.name} className="bb-pdp-img" />
               <span className="bb-pdp-veg" title="Vegetarian">
                 <span className="veg-dot" aria-hidden />
                 <span className="sr-only">Vegetarian</span>
@@ -326,8 +328,9 @@ export function BrownButterProductDetail({
           </div>
         </div>
 
-        {showLongCopy ? (
+        {showLongCopy || faqs.length ? (
           <div className="bb-pdp-details">
+            {showLongCopy ? (
               <section className="bb-pdp-section" aria-labelledby="bb-pdp-about">
                 <h2 id="bb-pdp-about">About {product.name}</h2>
                 {containsHtml(longCopy) ? (
@@ -340,6 +343,22 @@ export function BrownButterProductDetail({
                   </div>
                 )}
               </section>
+            ) : null}
+            {faqs.length ? (
+              <section className="bb-pdp-section" aria-labelledby="bb-pdp-faqs">
+                <h2 id="bb-pdp-faqs">Questions about {product.name}</h2>
+                <div className="bb-prose">
+                  {faqs.map((f) => (
+                    <details key={f.question}>
+                      <summary>
+                        <strong>{f.question}</strong>
+                      </summary>
+                      <p>{f.answer}</p>
+                    </details>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
         ) : null}
 

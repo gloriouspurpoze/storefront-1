@@ -307,6 +307,7 @@ export function BrownButterPage({
   navLinks,
   footerLinks: _footerLinks,
   addonsSlot,
+  sectionCopy = {},
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
@@ -316,6 +317,8 @@ export function BrownButterPage({
   footerLinks?: { href: string; label: string }[]
   /** Paid add-on homepage blocks, rendered above the footer. */
   addonsSlot?: ReactNode
+  /** Intro + FAQs per menu section (category slug) from admin → SEO → Categories. */
+  sectionCopy?: Record<string, { intro: string; faqs: Array<{ question: string; answer: string }> }>
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const logoUrl = config?.branding?.logoUrl || tenant.logoUrl || '/private/thebrownbutter/media/logo.jpeg'
@@ -1130,6 +1133,9 @@ export function BrownButterPage({
                 <div className="menu-section-label">
                   {categoryEmoji(section.id, section.label)} {section.label}
                 </div>
+                {sectionCopy[section.id]?.intro ? (
+                  <p className="menu-section-intro">{sectionCopy[section.id].intro}</p>
+                ) : null}
                 <div className="menu-grid">
                   {section.items.map((item) =>
                     item.kind === 'tin' ? (
@@ -1151,6 +1157,16 @@ export function BrownButterPage({
                     ),
                   )}
                 </div>
+                {sectionCopy[section.id]?.faqs.length ? (
+                  <div className="menu-section-faqs" aria-label={`Questions about ${section.label}`}>
+                    {sectionCopy[section.id].faqs.map((f) => (
+                      <details key={f.question}>
+                        <summary>{f.question}</summary>
+                        <p>{f.answer}</p>
+                      </details>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             )
           })}

@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { JsonLd } from '@/components/seo/JsonLd'
+import { buildFaqPageJsonLd } from '@/lib/faq-jsonld'
 import { fetchStorefrontMenuLinks } from '@/lib/cms-content'
 import {
   buildProductBreadcrumbJsonLd,
@@ -45,12 +46,14 @@ export async function BrownButterProductPage({ slug }: { slug: string }) {
   const productLd = buildProductJsonLd(product, siteName, baseUrl)
   // No catalog page on this store: Home (the menu) → product.
   const breadcrumbLd = buildProductBreadcrumbJsonLd(product, baseUrl, null)
+  const faqLd = buildFaqPageJsonLd(product.faqs)
   const related = pickRelated(product, catalog)
 
   return (
     <>
       <JsonLd id="bb-product-jsonld" data={productLd} />
       <JsonLd id="bb-product-breadcrumb-jsonld" data={breadcrumbLd} />
+      {faqLd ? <JsonLd id="bb-product-faq-jsonld" data={faqLd} /> : null}
       <BrownButterProductDetail
         tenant={theme}
         config={config}
