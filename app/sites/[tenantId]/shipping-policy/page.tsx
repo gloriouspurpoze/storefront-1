@@ -25,6 +25,7 @@ export async function generateMetadata() {
   return {
     title: 'Shipping policy',
     description: tenant ? `Shipping and delivery information for ${tenant.name}` : 'Shipping policy',
+    alternates: { canonical: '/shipping-policy' },
   }
 }
 

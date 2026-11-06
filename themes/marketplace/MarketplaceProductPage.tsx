@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import Script from 'next/script'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ResolvedTenant } from '@/lib/types'
@@ -41,19 +41,9 @@ export async function MarketplaceProductPage({ tenant, slug }: { tenant: Resolve
 
   return (
     <SiteChrome tenant={tenant} config={config}>
-      <Script
-        id="product-jsonld"
-        type="application/ld+json"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }}
-      />
+      <JsonLd id="product-jsonld" data={productLd} />
       {breadcrumbLd ? (
-        <Script
-          id="product-breadcrumb-jsonld"
-          type="application/ld+json"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
-        />
+        <JsonLd id="product-breadcrumb-jsonld" data={breadcrumbLd} />
       ) : null}
       <main className="sf-pdp--modern sf-container">
         <div className="sf-pdp-crumbs">

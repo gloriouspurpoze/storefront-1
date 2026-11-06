@@ -59,12 +59,15 @@ export function BrownButterFrame({
   navLinks,
   headerTitle,
   contactPhone,
+  layout = 'wide',
   children,
 }: {
   config: StorefrontConfig | null
   navLinks?: StorefrontNavLink[]
   headerTitle: string
   contactPhone?: string
+  /** `wide` (default) matches the 1120px header container; pages set their own reading width inside it. `narrow` is the legacy 480px column. */
+  layout?: 'narrow' | 'wide'
   children: ReactNode
 }) {
   const links = useMemo(() => resolveBrownButterHeaderLinks(config, navLinks), [config, navLinks])
@@ -89,7 +92,7 @@ export function BrownButterFrame({
           actions={<AccountProfileLink className="action-profile-btn" iconClassName="h-4 w-4" />}
           center={<PageNav links={links} />}
         />
-        <div className="bb-store-wrap">
+        <div className={`bb-store-wrap${layout === 'wide' ? ' bb-store-wrap--wide' : ''}`}>
           {children}
           <BrownButterFooter config={config} contactPhone={contactPhone} />
         </div>

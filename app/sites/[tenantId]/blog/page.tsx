@@ -39,6 +39,7 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
     return {
       title: 'The Cookie Journal',
       description: `Stories and baking notes from ${siteName}.`,
+      alternates: { canonical: '/blog' },
     }
   }
   return {

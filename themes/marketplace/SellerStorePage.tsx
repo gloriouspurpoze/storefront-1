@@ -1,4 +1,4 @@
-import Script from 'next/script'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -69,12 +69,7 @@ export async function SellerStorePage({
 
   return (
     <SiteChrome tenant={tenant} config={config}>
-      <Script
-        id="store-jsonld"
-        type="application/ld+json"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(storeLd) }}
-      />
+      <JsonLd id="store-jsonld" data={storeLd} />
       <main>
         <section className="mk-store-hero">
           <div className="sf-container">

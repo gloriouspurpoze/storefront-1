@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import type { ReactNode } from 'react'
 import Script from 'next/script'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 import {
   fetchStorefrontConfig,
   getStorefrontPreviewState,
@@ -71,7 +74,22 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
       : undefined,
     robots: { index: robotsIndex, follow: robotsFollow },
     verification: verification ? { google: verification } : undefined,
-    alternates: seo.canonicalDomain ? { canonical: seo.canonicalDomain } : undefined,
+    // Pages set their own canonical (relative → resolved here). A layout-level canonical
+    // would be inherited by every page and point them all at the homepage.
+    metadataBase: await resolveMetadataBase(seo.canonicalDomain),
+  }
+}
+
+/** Absolute origin for canonical / OG URLs: Studio canonical domain, else the request host. */
+async function resolveMetadataBase(canonicalDomain?: string): Promise<URL | undefined> {
+  const h = await headers()
+  const host = h.get('x-forwarded-host') ?? h.get('host')
+  const proto = h.get('x-forwarded-proto') ?? 'https'
+  const origin = canonicalDomain?.trim().replace(/\/+$/, '') || (host ? `${proto}://${host}` : '')
+  try {
+    return origin ? new URL(origin) : undefined
+  } catch {
+    return undefined
   }
 }
 
@@ -113,6 +131,9 @@ function brandStyle(tenant: ResolvedTenant, cfg: StorefrontConfig | null): React
 /** Build JSON-LD blocks (Organization, LocalBusiness, etc.). */
 function structuredData(tenant: ResolvedTenant, cfg: StorefrontConfig | null): Array<Record<string, unknown>> {
   const blocks: Array<Record<string, unknown>> = []
+  // Brown Butter emits its own Bakery + menu graph (BrownButterHome); a second
+  // generic Organization/LocalBusiness would describe the same business twice.
+  if (isBrownButterTheme(cfg?.themeKey)) return blocks
   const sd = cfg?.seo?.structuredData ?? {}
   const siteName = cfg?.branding?.siteName || tenant.name
   const description = cfg?.seo?.defaultDescription || cfg?.branding?.tagline || `Welcome to ${siteName}.`
@@ -198,13 +219,7 @@ export default async function TenantLayout({
     >
       {preview.active ? <PreviewBanner expired={!cfg?.isPreview} /> : null}
       {jsonLd.map((block, i) => (
-        <Script
-          key={`jsonld-${i}`}
-          id={`jsonld-${i}`}
-          type="application/ld+json"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(block) }}
-        />
+        <JsonLd key={`jsonld-${i}`} id={`jsonld-${i}`} data={block} />
       ))}
       {analytics.googleTagManagerId && (
         <Script

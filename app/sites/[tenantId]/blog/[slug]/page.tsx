@@ -1,3 +1,6 @@
+import { headers } from 'next/headers'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { resolveStorefrontBaseUrl } from '@/lib/product-seo'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { loadTenantFromRequest } from '@/lib/load-tenant'
@@ -37,10 +40,58 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
   if (!post) return { title: 'Article not found' }
   const title = post.seo?.metaTitle || post.seo?.title || post.title
   const description = post.seo?.description || post.excerpt
-  return { title, description }
+  const path = `/blog/${encodeURIComponent(post.slug || slug)}`
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      type: 'article',
+      title,
+      description,
+      url: path,
+      publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt,
+      images: post.featuredImage ? [{ url: post.featuredImage, alt: post.featuredImageAlt || post.title }] : undefined,
+    },
+  }
 }
 
-export default async function BlogPostPage({ params }: RouteParams) {
+/** BlogPosting structured data in the server HTML, around whichever theme renders the post. */
+export default async function BlogPostPage(props: RouteParams) {
+  const { tenantId, slug } = await props.params
+  const [post, config, page] = await Promise.all([
+    fetchStorefrontBlogBySlug(tenantId, slug),
+    fetchStorefrontConfig(tenantId),
+    BlogPostBody(props),
+  ])
+  if (!post) return page
+  const h = await headers()
+  const base = resolveStorefrontBaseUrl(config, h.get('host'), h.get('x-forwarded-proto') ?? 'https')
+  const author = typeof post.author === 'string' ? post.author : post.author?.name
+  const siteName = config?.branding?.siteName
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.seo?.metaTitle || post.seo?.title || post.title,
+    description: post.seo?.description || post.excerpt,
+    image: post.featuredImage ? [post.featuredImage] : undefined,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt || post.publishedAt,
+    author: author ? { '@type': 'Person', name: author } : siteName ? { '@type': 'Organization', name: siteName } : undefined,
+    publisher: siteName ? { '@type': 'Organization', name: siteName, logo: config?.branding?.logoUrl } : undefined,
+    mainEntityOfPage: base ? `${base}/blog/${encodeURIComponent(post.slug || slug)}` : undefined,
+    keywords: post.tags?.length ? post.tags.join(', ') : undefined,
+  }
+  return (
+    <>
+      <JsonLd id="blog-posting-jsonld" data={ld} />
+      {page}
+    </>
+  )
+}
+
+async function BlogPostBody({ params }: RouteParams) {
   const { tenantId, slug } = await params
   const resolved = await loadTenantFromRequest()
   if (!resolved || resolved.id !== tenantId) notFound()

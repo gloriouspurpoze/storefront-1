@@ -4,7 +4,7 @@ import type { PublicMenuCategory, PublicProduct, StorefrontConfig } from '@/lib/
 import type { ThemeTenant as RetailThemeTenant } from '@/themes/retail/types'
 import type { ThemeTenant as RestaurantThemeTenant } from '@/themes/restaurant/types'
 import type { ThemeTenant as HomeServicesThemeTenant } from '@/themes/home-services/types'
-import { BrownButterPage } from './thebrownbutter/BrownButterPage'
+import { BrownButterHome } from './thebrownbutter/BrownButterHome'
 
 export type PrivateVerticalKey = 'home_services' | 'restaurant' | 'retail'
 
@@ -33,7 +33,7 @@ export type PrivateLayoutEntry = {
 export const PRIVATE_LAYOUT_REGISTRY: Record<string, PrivateLayoutEntry> = {
   'private-thebrownbutter': {
     vertical: 'restaurant',
-    Component: BrownButterPage,
+    Component: BrownButterHome,
   },
 }
 

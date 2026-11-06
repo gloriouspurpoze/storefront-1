@@ -41,6 +41,9 @@ export type StorefrontBlogListItem = {
   author: string
   category: string
   readingTime: number
+  /** Featured image, when the post has one. */
+  image?: string
+  imageAlt?: string
 }
 
 function apiUrl(path: string): string {
@@ -76,6 +79,8 @@ function mapListItem(row: StorefrontBlogPost): StorefrontBlogListItem | null {
     author: blogAuthorLabel(row.author),
     category: blogCategoryLabel(row.category),
     readingTime: row.readingTime && row.readingTime > 0 ? row.readingTime : 5,
+    image: row.featuredImage?.trim() || undefined,
+    imageAlt: row.featuredImageAlt?.trim() || undefined,
   }
 }
 

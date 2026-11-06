@@ -409,6 +409,12 @@ export function BrownButterPage({
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [noItemWarn, setNoItemWarn] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
+  const [confirmClear, setConfirmClear] = useState(false)
+
+  // Never reopen the drawer with a half-finished "Clear cart?" prompt.
+  useEffect(() => {
+    if (!sheetOpen) setConfirmClear(false)
+  }, [sheetOpen])
 
   const [delivery, setDelivery] = useState<DeliveryMode>('pickup')
   const [pincode, setPincode] = useState('')
@@ -763,7 +769,33 @@ export function BrownButterPage({
           <div className="sheet-handle" aria-hidden />
           <div className="sheet-header">
             <h2 className="sheet-title" id="sheet-title">Your Order</h2>
-            <button type="button" className="sheet-close" aria-label="Close checkout" onClick={() => setSheetOpen(false)}>×</button>
+            <div className="sheet-header__actions">
+              {entries.length > 0 ? (
+                confirmClear ? (
+                  <span className="sheet-clear-confirm" role="group" aria-label="Confirm clear cart">
+                    <button
+                      type="button"
+                      className="sheet-clear sheet-clear--danger"
+                      onClick={() => {
+                        clear()
+                        setConfirmClear(false)
+                        setSheetOpen(false)
+                      }}
+                    >
+                      Clear cart?
+                    </button>
+                    <button type="button" className="sheet-clear" onClick={() => setConfirmClear(false)}>
+                      Keep
+                    </button>
+                  </span>
+                ) : (
+                  <button type="button" className="sheet-clear" onClick={() => setConfirmClear(true)}>
+                    Clear
+                  </button>
+                )
+              ) : null}
+              <button type="button" className="sheet-close" aria-label="Close checkout" onClick={() => setSheetOpen(false)}>×</button>
+            </div>
           </div>
           <div className="sheet-body">
             <div className="menu-section">
@@ -1027,6 +1059,7 @@ export function BrownButterPage({
         navLinks={navLinks}
         headerTitle={siteName}
         contactPhone={contactPhone}
+        layout="wide"
       >
         <section className="hero">
           <div className="status-card">

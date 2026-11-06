@@ -2,6 +2,10 @@ import { headers } from 'next/headers'
 import { assertRouteTenant } from '@/lib/load-tenant'
 import { env } from '@/lib/env'
 import { withTenantId } from '@/lib/tenant-headers'
+import { fetchStorefrontConfig } from '@/lib/storefront-api'
+import { fetchStorefrontBlogPosts } from '@/lib/cms-blog'
+import { isBrownButterNavEnabled, isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
+import { BROWN_BUTTER_REDIRECTED_PATHS, brownButterSitePages } from '@/themes/private/thebrownbutter/brownButterSeo'
 
 export const revalidate = 300
 
@@ -41,6 +45,33 @@ function renderSitemap(urls: SitemapApiUrl[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.join('\n')}\n</urlset>\n`
 }
 
+/** Theme pages the API list doesn't know about, minus paths the theme redirects away. */
+async function withThemePages(
+  tenantId: string,
+  baseUrl: string,
+  urls: SitemapApiUrl[],
+): Promise<SitemapApiUrl[]> {
+  const cfg = await fetchStorefrontConfig(tenantId).catch(() => null)
+  if (!isBrownButterTheme(cfg?.themeKey)) return urls
+  const pathOf = (loc: string) => loc.replace(baseUrl, '').replace(/\/+$/, '') || '/'
+  const kept = urls.filter((u) => !BROWN_BUTTER_REDIRECTED_PATHS.has(pathOf(u.loc)))
+  const have = new Set(kept.map((u) => pathOf(u.loc)))
+  const extra: SitemapApiUrl[] = []
+  for (const page of brownButterSitePages(cfg)) {
+    if (!have.has(page.path)) extra.push({ loc: `${baseUrl}${page.path}`, changefreq: 'monthly', priority: 0.6 })
+  }
+  if (isBrownButterNavEnabled(cfg, 'showJournalNav')) {
+    const posts = await fetchStorefrontBlogPosts(tenantId).catch(() => [])
+    for (const post of posts) {
+      const path = `/blog/${encodeURIComponent(post.slug)}`
+      if (!have.has(path)) {
+        extra.push({ loc: `${baseUrl}${path}`, lastmod: post.date || undefined, changefreq: 'monthly', priority: 0.5 })
+      }
+    }
+  }
+  return [...kept, ...extra]
+}
+
 /**
  * Tenant /sitemap.xml. Middleware rewrites the custom-domain path onto
  * /sites/[tenantId]/sitemap.xml. This is a plain route handler rather than a
@@ -76,6 +107,8 @@ export async function GET(
   } catch {
     // Fall back to the home page so crawlers always get a valid sitemap.
   }
+
+  urls = await withThemePages(tenant.id, baseUrl, urls)
 
   return new Response(renderSitemap(urls), {
     headers: {

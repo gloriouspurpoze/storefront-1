@@ -1,3 +1,6 @@
+import { permanentRedirect } from 'next/navigation'
+import { loadTenantFromRequest } from '@/lib/load-tenant'
+import { isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteHeader } from '@/themes/retail/SiteHeader'
@@ -25,11 +28,23 @@ export async function generateMetadata() {
   return storefrontPathMetadata('/products')
 }
 
+/**
+ * Brown Butter sells from the homepage menu; there is no separate catalog page.
+ * (loading.tsx streams first, so this lands as an instant meta-refresh redirect.)
+ */
+async function redirectBrownButterCatalog() {
+  const resolved = await loadTenantFromRequest()
+  if (resolved?.verticalKey !== 'restaurant') return
+  const cfg = await fetchStorefrontConfig(resolved.id)
+  if (isBrownButterTheme(cfg?.themeKey)) permanentRedirect('/')
+}
+
 export default async function ProductsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
+  await redirectBrownButterCatalog()
   const marketplace = await marketplaceTenantOrNull()
   if (marketplace) {
     return <MarketplaceCatalogPage tenant={marketplace} mode="all" query={parseCatalogQuery(await searchParams)} />

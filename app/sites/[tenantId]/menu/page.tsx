@@ -1,3 +1,5 @@
+import { permanentRedirect } from 'next/navigation'
+import { isBrownButterTheme } from '@/themes/private/thebrownbutter/brownButterNav'
 import { loadRestaurantTenant } from '@/themes/restaurant/loadThemeTenant'
 import { SiteHeader } from '@/themes/restaurant/SiteHeader'
 import { SiteFooter } from '@/themes/restaurant/SiteFooter'
@@ -35,6 +37,8 @@ export default async function MenuPage() {
     fetchMenu(tenant.id),
     fetchStorefrontConfig(tenant.id),
   ])
+  // Brown Butter's menu is the homepage — avoid a duplicate-content copy at /menu.
+  if (isBrownButterTheme(cfg?.themeKey)) permanentRedirect('/')
   const products = showProducts(cfg) ? await fetchProducts(tenant.id, 80) : []
 
   if (isRestaurantLayoutTheme(cfg?.themeKey)) {

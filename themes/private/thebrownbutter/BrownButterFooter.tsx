@@ -30,7 +30,7 @@ function summarizeStoreHours(config: StorefrontConfig | null): string {
   return `${first} – ${last} · ${timeLabel}`
 }
 
-function formatDeliverySummary(config: StorefrontConfig | null): string {
+export function formatDeliverySummary(config: StorefrontConfig | null): string {
   const policy = getShippingPolicyFromConfig(config)
   if (policy.summary) return policy.summary
   if (policy.zones?.length) {

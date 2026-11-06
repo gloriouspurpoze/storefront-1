@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
-import Script from 'next/script'
+import { JsonLd } from '@/components/seo/JsonLd'
 import { loadRetailTenant } from '@/themes/retail/loadThemeTenant'
 import { RetailShell } from '@/themes/retail/RetailShell'
 import { SiteFooter } from '@/themes/retail/SiteFooter'
@@ -114,19 +114,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   return (
     <RetailShell tenantId={tenant.id}>
-      <Script
-        id="product-jsonld"
-        type="application/ld+json"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }}
-      />
+      <JsonLd id="product-jsonld" data={productLd} />
       {breadcrumbLd ? (
-        <Script
-          id="product-breadcrumb-jsonld"
-          type="application/ld+json"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
-        />
+        <JsonLd id="product-breadcrumb-jsonld" data={breadcrumbLd} />
       ) : null}
       <ProductDetailView
         product={product}

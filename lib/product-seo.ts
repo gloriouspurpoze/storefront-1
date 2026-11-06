@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import type { PublicProduct, StorefrontConfig } from './storefront-api'
+import { resolveProductGalleryUrls } from './storefront-api'
 
 /** Strip HTML tags for meta descriptions and JSON-LD text fields. */
 export function stripHtml(html: string): string {
@@ -61,6 +62,12 @@ export function buildProductMetadata(
       siteName,
       images,
     },
+    // Open Graph product tags (read by Facebook/Pinterest catalog + link unfurlers).
+    other: {
+      'product:price:amount': String(product.price),
+      'product:price:currency': product.currency || 'INR',
+      'product:availability': product.inStock ? 'in stock' : 'out of stock',
+    },
     twitter:
       seo.twitterHandle || product.imageUrl
         ? {
@@ -81,53 +88,88 @@ export function buildProductJsonLd(
 ): Record<string, unknown> {
   const url = productPageUrl(baseUrl, product.slug)
   const description = productDescription(product)
+  const currency = product.currency || 'INR'
+  const images = resolveProductGalleryUrls(product)
+  const availability = (inStock: boolean) =>
+    inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
+  // Marketplace products are sold by an independent seller, not the site operator.
+  const seller = {
+    '@type': 'Organization',
+    name: product.sellerName || siteName,
+    ...(product.sellerSlug && baseUrl ? { url: `${baseUrl}/store/${encodeURIComponent(product.sellerSlug)}` } : {}),
+  }
+  const variants = (product.variants ?? []).filter((v) => Number.isFinite(v.price))
+  const offers =
+    variants.length > 1
+      ? {
+          '@type': 'AggregateOffer',
+          url,
+          priceCurrency: currency,
+          lowPrice: Math.min(...variants.map((v) => v.price)),
+          highPrice: Math.max(...variants.map((v) => v.price)),
+          offerCount: variants.length,
+          availability: availability(variants.some((v) => v.inStock !== false) && product.inStock),
+          seller,
+          offers: variants.map((v) => ({
+            '@type': 'Offer',
+            name: v.name,
+            url,
+            price: v.price,
+            priceCurrency: currency,
+            availability: availability(v.inStock !== false && product.inStock),
+            itemCondition: 'https://schema.org/NewCondition',
+          })),
+        }
+      : {
+          '@type': 'Offer',
+          url,
+          priceCurrency: currency,
+          price: variants[0]?.price ?? product.price,
+          availability: availability(product.inStock),
+          itemCondition: 'https://schema.org/NewCondition',
+          seller,
+        }
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
+    ...(url ? { '@id': `${url}#product`, url } : {}),
     name: product.name,
     description,
-    image: product.imageUrl ? [product.imageUrl] : undefined,
+    image: images.length ? images : undefined,
     sku: product.id,
     category: product.categoryName,
     brand: {
       '@type': 'Brand',
       name: siteName,
     },
-    offers: {
-      '@type': 'Offer',
-      url,
-      priceCurrency: product.currency || 'INR',
-      price: product.price,
-      availability: product.inStock
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/OutOfStock',
-      // Marketplace products are sold by an independent seller, not the site operator.
-      seller: {
-        '@type': 'Organization',
-        name: product.sellerName || siteName,
-        ...(product.sellerSlug && baseUrl ? { url: `${baseUrl}/store/${encodeURIComponent(product.sellerSlug)}` } : {}),
-      },
-    },
+    offers,
+    // Only real review data — never synthesize ratings.
+    ...(product.totalReviews && product.totalReviews > 0 && product.averageRating
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: product.averageRating,
+            reviewCount: product.totalReviews,
+          },
+        }
+      : {}),
   }
 }
 
 export function buildProductBreadcrumbJsonLd(
   product: PublicProduct,
   baseUrl?: string,
+  /** Middle crumb; `null` for stores without a catalog page (Home → Product). */
+  listing: { name: string; path: string } | null = { name: 'Shop', path: '/products' },
 ): Record<string, unknown> | null {
   if (!baseUrl) return null
+  const crumbs: Array<{ name: string; item: string }> = [{ name: 'Home', item: `${baseUrl}/` }]
+  if (listing) crumbs.push({ name: listing.name, item: `${baseUrl}${listing.path}` })
+  crumbs.push({ name: product.name, item: `${baseUrl}/products/${encodeURIComponent(product.slug)}` })
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
-      { '@type': 'ListItem', position: 2, name: 'Shop', item: `${baseUrl}/products` },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: product.name,
-        item: `${baseUrl}/products/${encodeURIComponent(product.slug)}`,
-      },
-    ],
+    itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, ...c })),
   }
 }
