@@ -501,6 +501,8 @@ export interface StorefrontOrderingAvailability {
   pausedMessage?: string
   closedDates?: Array<{ date: string; label?: string }>
   leadTimeMinutes?: number
+  /** After this IST clock time, same-day preferred dates are refused (e.g. "2:00 PM"). */
+  sameDayCutoffTime?: string
   maxDaysAhead?: number
 }
 

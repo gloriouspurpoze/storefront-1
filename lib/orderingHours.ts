@@ -62,6 +62,11 @@ export interface OrderingAvailabilityConfig {
   leadTimeMinutes?: number
   /** Rolling booking window: customers can schedule at most this many days ahead. */
   maxDaysAhead?: number
+  /**
+   * After this clock time (Asia/Kolkata), same-day dates are refused.
+   * Example: "2:00 PM".
+   */
+  sameDayCutoffTime?: string
 }
 
 export type StoreClosedReason = 'paused' | 'holiday' | 'closed_today' | 'outside_hours'
@@ -213,6 +218,7 @@ export function getOrderingAvailabilityFromConfig(
     closedDates: closedDates?.length ? closedDates : undefined,
     leadTimeMinutes: positiveInt(raw.leadTimeMinutes, 7 * 24 * 60),
     maxDaysAhead: positiveInt(raw.maxDaysAhead, 365),
+    sameDayCutoffTime: raw.sameDayCutoffTime?.trim() || undefined,
   }
 }
 
@@ -253,7 +259,21 @@ function earliestFulfilment(
   now: Date,
 ): { dateStr: string; minutes: number } {
   const lead = availability?.leadTimeMinutes ?? 0
-  const ist = getISTDateParts(new Date(now.getTime() + lead * 60_000))
+  const afterLead = new Date(now.getTime() + lead * 60_000)
+  let ist = getISTDateParts(afterLead)
+
+  // Past same-day cutoff → earliest calendar day is tomorrow (IST).
+  const cutoff = parseOrderingTime12h(availability?.sameDayCutoffTime)
+  if (cutoff !== null) {
+    const nowIst = getISTDateParts(now)
+    if (nowIst.hour * 60 + nowIst.minute >= cutoff) {
+      const tomorrow = addDaysToDateStr(nowIst.dateStr, 1)
+      if (ist.dateStr < tomorrow) {
+        return { dateStr: tomorrow, minutes: 0 }
+      }
+    }
+  }
+
   return { dateStr: ist.dateStr, minutes: ist.hour * 60 + ist.minute + 1 }
 }
 
@@ -604,6 +624,17 @@ export function validateDeliverySlot(
 
   const windowCheck = clampDateToAvailabilityWindow(dateStr, availability, now)
   if (!windowCheck.ok) return windowCheck
+
+  const cutoff = parseOrderingTime12h(availability?.sameDayCutoffTime)
+  if (cutoff !== null) {
+    const ist = getISTDateParts(now)
+    if (dateStr === ist.dateStr && ist.hour * 60 + ist.minute >= cutoff) {
+      return {
+        ok: false,
+        message: `Same-day orders close at ${availability?.sameDayCutoffTime?.trim() || '2:00 PM'}. Please choose tomorrow or a later date.`,
+      }
+    }
+  }
 
   const minDate = getMinDeliveryDate(hours, now, {
     requireTimeSlot: Boolean(time?.trim()),
