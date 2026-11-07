@@ -7,7 +7,7 @@ import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { AccountProfileLink } from '@/components/account/AccountProfileLink'
 import { StorefrontHeaderBar, StorefrontMenuDrawer } from '@/components/StorefrontMenuDrawer'
-import { resolveBrownButterHeaderLinks } from './brownButterNav'
+import { resolveBrownButterDrawerLinks, resolveBrownButterHeaderLinks } from './brownButterNav'
 import { BrownButterFooter } from './BrownButterFooter'
 import './brown-butter.css'
 
@@ -71,6 +71,7 @@ export function BrownButterFrame({
   children: ReactNode
 }) {
   const links = useMemo(() => resolveBrownButterHeaderLinks(config, navLinks), [config, navLinks])
+  const drawerLinks = useMemo(() => resolveBrownButterDrawerLinks(links), [links])
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -79,7 +80,7 @@ export function BrownButterFrame({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         config={config}
-        navLinks={links}
+        navLinks={drawerLinks}
         navPresentation="list"
         shippingPolicyHref="/shipping-policy"
         hoursAlwaysOpen

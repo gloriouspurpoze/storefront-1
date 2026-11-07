@@ -70,3 +70,9 @@ export function resolveBrownButterHeaderLinks(
 
   return [...primary, ...extras]
 }
+
+/** Sidebar links: a "Home" (the menu page) link first, then the header links. */
+export function resolveBrownButterDrawerLinks(links: StorefrontNavLink[]): StorefrontNavLink[] {
+  if (links.some((link) => brownButterHrefKey(link.href) === '/')) return links
+  return [{ href: '/', label: 'Home' }, ...links]
+}

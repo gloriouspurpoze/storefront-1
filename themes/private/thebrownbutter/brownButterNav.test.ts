@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   isBrownButterNavEnabled,
+  resolveBrownButterDrawerLinks,
   resolveBrownButterHeaderLinks,
 } from './brownButterNav'
 
@@ -33,5 +34,19 @@ describe('resolveBrownButterHeaderLinks', () => {
       { href: '/about/', label: 'Our kitchen' },
     ])
     expect(links[0]).toEqual({ href: '/about', label: 'Our kitchen' })
+  })
+})
+
+describe('resolveBrownButterDrawerLinks', () => {
+  it('puts Home first in the sidebar', () => {
+    expect(resolveBrownButterDrawerLinks(resolveBrownButterHeaderLinks(null, []))[0]).toEqual({
+      href: '/',
+      label: 'Home',
+    })
+  })
+
+  it('does not add a second home link when one already exists', () => {
+    const links = [{ href: '/', label: 'Our menu' }, { href: '/about', label: 'About' }]
+    expect(resolveBrownButterDrawerLinks(links)).toEqual(links)
   })
 })
