@@ -36,7 +36,13 @@ export function metadataForPath(
       ? fallbackName
       : { absolute: homeTitle }
   const ogTitle = typeof title === 'string' ? `${title} · ${siteName}` : homeTitle
-  const description = page?.description || seo.defaultDescription || cfg?.branding?.tagline || ''
+  // Never '' — Next drops an empty description tag AND it overrides the layout's fallback,
+  // leaving the page with no meta description at all.
+  const description =
+    page?.description?.trim() ||
+    seo.defaultDescription?.trim() ||
+    cfg?.branding?.tagline?.trim() ||
+    (path !== '/' && fallbackName ? `${fallbackName} — ${siteName}.` : `Welcome to ${siteName}.`)
   const noindex = page?.noindex === true || seo.robots?.indexable === false
 
   return {
