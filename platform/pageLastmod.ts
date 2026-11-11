@@ -15,7 +15,8 @@ const PLAN_FILES: Partial<Record<VerticalKey, string>> = {
   retail: `${PKG}/plans/retail.ts`,
 }
 const planFile = (key: VerticalKey) => PLAN_FILES[key] ?? `${PKG}/plans/home_services.ts`
-const OFFER = 'platform/content/offer.ts'
+/** Launch-offer defaults + home cards (admin edits arrive with their own updatedAt). */
+const OFFER = `${PKG}/siteContent.ts`
 
 /** Content sources per public path (keep in sync with ROOTS in scripts/page-lastmod.mjs). */
 export function pageSources(path: string): string[] {

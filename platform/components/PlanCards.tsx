@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react'
 import { formatPlanPriceInr, type VerticalPlanDef } from '@profixer/marketing-data'
-import { launchOfferLive } from '../content/offer'
+import { siteUrl } from '../config'
 import { AttributionLink } from './AttributionLink'
 
 const inr = new Intl.NumberFormat('en-IN')
@@ -37,8 +37,18 @@ function planDiscount(plan: VerticalPlanDef): { was: string; saved: string; perc
   return { was: inrCurrency.format(was), saved: inrCurrency.format(was - now), percent: Math.round(((was - now) / was) * 100) }
 }
 
-export function PlanCards({ plans, trialHref, ctaLabel = 'Start free trial' }: { plans: VerticalPlanDef[]; trialHref: string; ctaLabel?: string }) {
-  const offerLive = launchOfferLive()
+export function PlanCards({
+  plans,
+  trialHref,
+  offerLive,
+  ctaLabel = 'Start free trial',
+}: {
+  plans: VerticalPlanDef[]
+  trialHref: string
+  /** Launch offer running → show the struck-through compare-at price. */
+  offerLive: boolean
+  ctaLabel?: string
+}) {
   return (
     <div className="mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
       {plans.map((plan) => {
@@ -107,6 +117,9 @@ export function plansJsonLd(plans: VerticalPlanDef[], name: string, url: string)
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web, Android, iOS',
     url,
+    image: siteUrl('/brand-logo'),
+    // Ties every product entity to the one Organization node in the layout.
+    publisher: { '@id': siteUrl('/#organization') },
     offers: plans
       .filter((p) => p.priceMonthlyInr != null)
       .map((p) => ({

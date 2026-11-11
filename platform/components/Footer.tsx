@@ -1,10 +1,11 @@
-import { MARKETING_VERTICALS } from '@profixer/marketing-data'
+import { platformSiteContent } from '../siteContent'
 import { PLATFORM_BRAND, PLATFORM_CONTACT_EMAIL, SIGN_IN_URL, signupUrl } from '../config'
 import { AttributionLink } from './AttributionLink'
 import { BrandLink } from './Brand'
 import { Container } from './Section'
 
-export function Footer() {
+export async function Footer() {
+  const { verticals } = await platformSiteContent()
   return (
     <footer className="border-t border-tq-line bg-tq-wash">
       <Container className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
@@ -17,7 +18,7 @@ export function Footer() {
         <nav aria-label="Industries">
           <p className="text-sm font-semibold text-tq-ink">Industries</p>
           <ul className="mt-3 space-y-2 text-sm text-tq-muted">
-            {MARKETING_VERTICALS.map((v) => (
+            {verticals.map((v) => (
               <li key={v.key}>
                 <a href={`/${v.marketingSlug}`} className="hover:text-tq-ink">
                   {v.label}

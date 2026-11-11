@@ -37,7 +37,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import { MARKETING_VERTICALS } from '@profixer/marketing-data'
+import { MARKETING_VERTICALS, type MarketingVertical } from '@profixer/marketing-data'
 import { env } from '@/lib/env'
 import { PLATFORM_BRAND, signupUrl } from '../config'
 import { ATTRIBUTION_PARAMS, captureAttribution, withAttribution } from '../attribution'
@@ -175,7 +175,18 @@ async function submitDemoRequest(body: Record<string, unknown>): Promise<{ ok: t
 
 // ── Provider ──────────────────────────────────────────────────────────────────────────────────
 
-export function DemoRequestProvider({ children, autoPopup = true }: { children: ReactNode; autoPopup?: boolean }) {
+/** Industry options for the form — the site's visible industries (admin can rename or hide them). */
+type IndustryOption = Pick<MarketingVertical, 'key' | 'label'>
+
+export function DemoRequestProvider({
+  children,
+  autoPopup = true,
+  industries = MARKETING_VERTICALS,
+}: {
+  children: ReactNode
+  autoPopup?: boolean
+  industries?: readonly IndustryOption[]
+}) {
   /** Industry label to preselect — set by <DemoIndustryHint> on industry pages. */
   const [defaultIndustry, setDefaultIndustry] = useState<string | undefined>()
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -270,6 +281,7 @@ export function DemoRequestProvider({ children, autoPopup = true }: { children: 
             ) : (
               <DemoForm
                 defaultIndustry={defaultIndustry}
+                industryOptions={industries}
                 done={step === 'done'}
                 onDone={() => {
                   writeStorage(SUBMITTED_KEY, String(Date.now()))
@@ -362,11 +374,13 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 
 function DemoForm({
   defaultIndustry,
+  industryOptions,
   done,
   onDone,
   onClose,
 }: {
   defaultIndustry?: string
+  industryOptions: readonly IndustryOption[]
   done: boolean
   onDone: () => void
   onClose: () => void
@@ -379,10 +393,10 @@ function DemoForm({
   const formRef = useRef<HTMLFormElement>(null)
 
   const industries = useMemo(() => {
-    const labels = MARKETING_VERTICALS.map((v) => v.label)
+    const labels = industryOptions.map((v) => v.label)
     if (defaultIndustry && !labels.includes(defaultIndustry)) labels.unshift(defaultIndustry)
     return [...labels, OTHER_INDUSTRY]
-  }, [defaultIndustry])
+  }, [defaultIndustry, industryOptions])
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }))
@@ -424,7 +438,7 @@ function DemoForm({
 
   if (done) {
     const firstName = form.name.trim().split(/\s+/)[0]
-    const verticalKey = MARKETING_VERTICALS.find((v) => v.label === form.industry)?.key
+    const verticalKey = industryOptions.find((v) => v.label === form.industry)?.key
     return (
       <div className="px-6 py-10 text-center sm:px-10">
         <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-tq-success">

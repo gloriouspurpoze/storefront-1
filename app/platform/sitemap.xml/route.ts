@@ -1,7 +1,7 @@
-import { MARKETING_VERTICALS } from '@profixer/marketing-data'
+import { platformSiteContent } from '@/platform/siteContent'
 import { siteUrl } from '@/platform/config'
 import { platformBlogPosts, platformSeoOverride } from '@/platform/cms'
-import { pageLastmod } from '@/platform/pageLastmod'
+import { latestDate, pageLastmod } from '@/platform/pageLastmod'
 
 export const revalidate = 300
 
@@ -11,23 +11,29 @@ function xmlEscape(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-const STATIC_PAGES = [
-  { path: '/', priority: 1 },
-  { path: '/pricing', priority: 0.9 },
-  ...MARKETING_VERTICALS.map((v) => ({ path: `/${v.marketingSlug}`, priority: 0.8 })),
-]
+/** Hand-built pages; industries hidden in admin are left out (they 404). */
+function staticPages(verticals: readonly { marketingSlug: string }[]) {
+  return [
+    { path: '/', priority: 1 },
+    { path: '/pricing', priority: 0.9 },
+    ...verticals.map((v) => ({ path: `/${v.marketingSlug}`, priority: 0.8 })),
+  ]
+}
 
 /**
  * torqstudio.com/sitemap.xml — hand-built pages plus every published blog post from the CMS.
  * Hand-built pages carry their real last content change (see `platform/pageLastmod.ts`).
  */
 export async function GET() {
+  const site = await platformSiteContent()
+  const pages = staticPages(site.verticals)
   const [posts, seo] = await Promise.all([
     platformBlogPosts(500),
-    Promise.all(STATIC_PAGES.map((p) => platformSeoOverride(p.path))),
+    Promise.all(pages.map((p) => platformSeoOverride(p.path))),
   ])
   const entries: Entry[] = [
-    ...STATIC_PAGES.map((p, i) => ({ ...p, lastModified: pageLastmod(p.path, seo[i]?.updatedAt) })),
+    // Admin edits to pricing, industries or home cards count as a content change.
+    ...pages.map((p, i) => ({ ...p, lastModified: pageLastmod(p.path, latestDate([seo[i]?.updatedAt, site.updatedAt])) })),
     { path: '/blog', priority: 0.7, lastModified: posts[0]?.date },
     ...posts.map((p) => ({ path: `/blog/${p.slug}`, priority: 0.6, lastModified: p.date })),
   ]

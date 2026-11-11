@@ -41,8 +41,7 @@ export function pageMetadata({
   // A CMS image has unknown dimensions; only the generated one is known to be 1200×630.
   const imageMeta = override?.ogImage ? { url: image, alt: shareTitle } : { url: image, width: 1200, height: 630, alt: shareTitle }
   return {
-    // A title that already names the brand (often a CMS SEO title) skips the "| Torq Studio" suffix.
-    title: absoluteTitle || title.includes(PLATFORM_BRAND) ? { absolute: title } : title,
+    title: skipTitleSuffix(title, absoluteTitle) ? { absolute: title } : title,
     description,
     alternates: { canonical: url },
     openGraph: {
@@ -57,6 +56,19 @@ export function pageMetadata({
     twitter: { card: 'summary_large_image', title: shareTitle, description, images: [image] },
     ...(override?.noindex ? { robots: { index: false, follow: true } } : {}),
   }
+}
+
+/** Google truncates titles at roughly 60 characters (~580px). */
+export const MAX_TITLE_LENGTH = 60
+const TITLE_SUFFIX = ` | ${PLATFORM_BRAND}`
+
+/**
+ * Whether to skip the layout's "| Torq Studio" suffix: the title already names the brand
+ * (often a CMS SEO title), or the suffix would push it past the length Google shows, which
+ * would cut off the page's own keywords. Google still shows the brand from WebSite schema.
+ */
+export function skipTitleSuffix(title: string, force = false): boolean {
+  return force || title.includes(PLATFORM_BRAND) || title.length + TITLE_SUFFIX.length > MAX_TITLE_LENGTH
 }
 
 export function truncate(text: string, max = 158): string {

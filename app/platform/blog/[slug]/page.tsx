@@ -17,6 +17,8 @@ function personName(raw: unknown): string | null {
   const name =
     typeof raw === 'string' ? raw : raw && typeof raw === 'object' && 'name' in raw && typeof raw.name === 'string' ? raw.name : ''
   const trimmed = name.trim()
+  // A CMS author named after the brand is the company, not a person (Article schema `author` type).
+  if (trimmed.toLowerCase().startsWith(PLATFORM_BRAND.toLowerCase())) return null
   return trimmed && !trimmed.includes('@') ? trimmed : null
 }
 

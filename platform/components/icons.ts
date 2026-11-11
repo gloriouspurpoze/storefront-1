@@ -1,28 +1,39 @@
 import {
+  BadgeCheck,
   BarChart3,
   Briefcase,
   Calendar,
   Clock,
+  CreditCard,
   Dumbbell,
+  FileCheck2,
   FileText,
+  Globe,
   GraduationCap,
   Home,
+  IndianRupee,
+  KeyRound,
   LayoutDashboard,
+  Lock,
   MessageSquare,
   Package,
   Receipt,
   Repeat,
   Scissors,
+  ShieldCheck,
   ShoppingBag,
+  Smartphone,
   Stethoscope,
   Store,
   Target,
+  Timer,
   Users,
   UtensilsCrossed,
   Wrench,
+  Zap,
   type LucideIcon,
 } from 'lucide-react'
-import type { PainIconKey, PillarIconKey } from '@profixer/marketing-data'
+import type { HomeIconKey, PainIconKey, PillarIconKey } from '@profixer/marketing-data'
 
 export const PAIN_ICONS: Record<PainIconKey, LucideIcon> = {
   fragmented: MessageSquare,
@@ -51,4 +62,26 @@ export const PILLAR_ICONS: Record<PillarIconKey, LucideIcon> = {
   marketplace: Store,
   healthcare: Stethoscope,
   education: GraduationCap,
+}
+
+/** Icons admin can pick for the home feature / trust / guarantee cards. */
+export const HOME_ICONS: Record<HomeIconKey, LucideIcon> = {
+  calendar: Calendar,
+  target: Target,
+  store: Store,
+  receipt: Receipt,
+  users: Users,
+  chart: BarChart3,
+  lock: Lock,
+  key: KeyRound,
+  'file-check': FileCheck2,
+  'credit-card': CreditCard,
+  timer: Timer,
+  rupee: IndianRupee,
+  'badge-check': BadgeCheck,
+  zap: Zap,
+  shield: ShieldCheck,
+  smartphone: Smartphone,
+  message: MessageSquare,
+  globe: Globe,
 }

@@ -1,13 +1,9 @@
-import {
-  MARKETING_VERTICALS,
-  formatPlanPriceInr,
-  getVerticalLandingContent,
-  marketingPlansForVertical,
-} from '@profixer/marketing-data'
+import { formatPlanPriceInr } from '@profixer/marketing-data'
 import { PLATFORM_BRAND, PLATFORM_CONTACT_EMAIL, siteUrl } from '@/platform/config'
 import { HOME_DESCRIPTION, HOME_FAQ } from '@/platform/content/home'
 import { pageFaqs, platformBlogPost, platformBlogPosts } from '@/platform/cms'
 import { htmlToText, textResponse } from '@/platform/llms'
+import { platformSiteContent } from '@/platform/siteContent'
 
 export const revalidate = 3600
 
@@ -19,10 +15,10 @@ const MAX_FULL_POSTS = 20
  * pricing per industry, every FAQ and the full text of recent guides. /llms.txt is the index.
  */
 export async function GET() {
-  const [homeFaqs, posts] = await Promise.all([pageFaqs('home', HOME_FAQ), platformBlogPosts(MAX_FULL_POSTS)])
+  const [homeFaqs, posts, site] = await Promise.all([pageFaqs('home', HOME_FAQ), platformBlogPosts(MAX_FULL_POSTS), platformSiteContent()])
   const industries = await Promise.all(
-    MARKETING_VERTICALS.map(async (v) => {
-      const content = getVerticalLandingContent(v.key)
+    site.verticals.map(async (v) => {
+      const content = site.landing(v.key)
       return { v, content, faqs: await pageFaqs(`industry:${v.key}`, content.faq) }
     }),
   )
@@ -60,7 +56,7 @@ export async function GET() {
       '',
       '### Pricing (per month, INR, 14-day free trial)',
       '',
-      ...marketingPlansForVertical(v.key).map((plan) => `- **${plan.label}** — ${formatPlanPriceInr(plan) ?? 'Custom'}: ${plan.description}`),
+      ...site.plans(v.key).map((plan) => `- **${plan.label}** — ${formatPlanPriceInr(plan) ?? 'Custom'}: ${plan.description}`),
       '',
       '### FAQ',
       '',

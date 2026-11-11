@@ -4,74 +4,14 @@
  * Trust claims must stay verifiable against the product — no invented customer
  * counts, ratings, testimonials or certifications. Add those only once they are real.
  */
-import type { LucideIcon } from 'lucide-react'
-import {
-  BadgeCheck,
-  BarChart3,
-  Calendar,
-  CreditCard,
-  FileCheck2,
-  IndianRupee,
-  KeyRound,
-  Lock,
-  Receipt,
-  Store,
-  Target,
-  Timer,
-  Users,
-} from 'lucide-react'
 import { PLATFORM_BRAND } from '../config'
 
-export const HOME_TITLE = `${PLATFORM_BRAND} — Bookings, CRM, storefront & billing in one workspace`
+export const HOME_TITLE = `${PLATFORM_BRAND} — Bookings, CRM, storefront & billing in one app`
+/** Long form — Organization schema and llms.txt. Meta tags use HOME_META_DESCRIPTION (fits the ~160-char snippet). */
 export const HOME_DESCRIPTION = `${PLATFORM_BRAND} is an all-in-one business platform for service, restaurant and retail businesses: bookings and orders, built-in CRM, a branded storefront, GST-ready invoicing and team roles. 14-day free trial, INR pricing.`
 
-export const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
-  {
-    icon: Calendar,
-    title: 'Bookings & orders',
-    body: 'Take bookings and orders from every channel, assign your team and track each job to done.',
-  },
-  { icon: Target, title: 'Built-in CRM', body: 'Leads, deals and follow-ups — fed by every booking automatically.' },
-  { icon: Store, title: 'Your own storefront', body: 'A branded site customers can book and buy from, on your domain.' },
-  { icon: Receipt, title: 'Billing & invoices', body: 'GST-ready invoices, payments and receivables in one place.' },
-  { icon: Users, title: 'Team & roles', body: 'Invite staff with role-based access. Everyone sees just what they need.' },
-  {
-    icon: BarChart3,
-    title: 'Real-time reports',
-    body: 'Revenue, bookings and team performance at a glance — no spreadsheets.',
-  },
-]
-
-export const STEPS = [
-  { title: 'Create your workspace', body: 'Sign up in under a minute. Your 14-day trial starts right away.' },
-  { title: 'Pick your industry', body: 'We set up the right modules, menus and storefront for how you work.' },
-  { title: 'Go live', body: 'Add services, invite your team and start taking bookings.' },
-]
-
-export const TRUST_PILLARS: { icon: LucideIcon; title: string; body: string }[] = [
-  {
-    icon: Lock,
-    title: 'Your data stays yours',
-    body: 'Every business gets its own private workspace. Your customers, prices and reports are never shared with anyone else.',
-  },
-  {
-    icon: KeyRound,
-    title: 'Access you control',
-    body: 'Role-based permissions mean staff see only what their job needs. Add or remove people in seconds.',
-  },
-  {
-    icon: FileCheck2,
-    title: 'Compliance built in',
-    body: 'GST-ready invoices and a clean record of payments and receivables, ready for your accountant.',
-  },
-]
-
-export const GUARANTEES: { icon: LucideIcon; title: string; body: string }[] = [
-  { icon: CreditCard, title: 'No credit card', body: 'Try every feature free for 14 days.' },
-  { icon: Timer, title: 'Live in minutes', body: 'Industry-ready setup, no consultants needed.' },
-  { icon: IndianRupee, title: 'Honest INR pricing', body: 'One clear monthly price per plan.' },
-  { icon: BadgeCheck, title: 'Change plans anytime', body: 'Upgrade as your team and bookings grow.' },
-]
+export const HOME_META_DESCRIPTION =
+  'All-in-one platform for service, restaurant and retail businesses: bookings, CRM, a branded storefront and GST invoicing. 14-day free trial, INR pricing.'
 
 /** Answers buyers (and AI assistants) look for; rendered as visible FAQ + FAQPage structured data. */
 export const HOME_FAQ: { q: string; a: string }[] = [

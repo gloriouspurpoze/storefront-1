@@ -1,6 +1,6 @@
-import { MARKETING_VERTICALS, marketingPlansForVertical, type VerticalKey } from '@profixer/marketing-data'
+import { launchOfferLive, marketingPlansForVertical, type MarketingVertical, type VerticalKey } from '@profixer/marketing-data'
 import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
-import { launchOfferLive } from '@/platform/content/offer'
+import { platformSiteContent } from '@/platform/siteContent'
 import { pageMetadata } from '@/platform/seo'
 import { pageFaqs, platformSeoOverride } from '@/platform/cms'
 import { CtaBand } from '@/platform/components/CtaBand'
@@ -26,7 +26,7 @@ export async function generateMetadata() {
 
 /** Industries with their own plan set; every other industry uses the home-services plans. */
 const PLAN_GROUPS: { key: VerticalKey; title: string; note: string }[] = [
-  { key: 'home_services', title: 'Services businesses', note: 'Home services, fitness, real estate, B2B services, healthcare and education' },
+  { key: 'home_services', title: 'Services businesses', note: '' },
   { key: 'restaurant', title: 'Restaurants', note: 'Menu, orders, reservations and kitchen operations' },
   { key: 'salon', title: 'Salons & spas', note: 'Appointments, stylists, treatments and retail' },
   { key: 'retail', title: 'Retail & e-commerce', note: 'Products, orders and your online store' },
@@ -43,13 +43,17 @@ const PRICING_FAQ = [
 ]
 
 export default async function PricingPage() {
-  const faqs = await pageFaqs('pricing', PRICING_FAQ)
-  const offerLive = launchOfferLive()
+  const [faqs, site] = await Promise.all([pageFaqs('pricing', PRICING_FAQ), platformSiteContent()])
+  const offerLive = launchOfferLive(site.launchOffer)
+  // A group shows only while one of its industries is visible and it still has a plan.
+  const groups = PLAN_GROUPS.map((g) => ({ ...g, members: groupMembers(g.key, site.verticals), plans: site.plans(g.key) })).filter(
+    (g) => g.members.length && g.plans.length,
+  )
   return (
     <>
       <JsonLd
         data={[
-          ...PLAN_GROUPS.map((g) => plansJsonLd(marketingPlansForVertical(g.key), `${PLATFORM_BRAND} — ${g.title}`, siteUrl('/pricing'))),
+          ...groups.map((g) => plansJsonLd(g.plans, `${PLATFORM_BRAND} — ${g.title}`, siteUrl('/pricing'))),
           faqJsonLd(faqs),
         ]}
       />
@@ -63,21 +67,23 @@ export default async function PricingPage() {
               title="Simple plans that grow with you."
               subtitle="Pick the plans for your industry. Every plan starts with a 14-day free trial. Prices in INR, billed monthly."
             />
-            {offerLive ? <OfferCountdown /> : null}
+            {offerLive && site.launchOffer ? <OfferCountdown offer={site.launchOffer} /> : null}
           </Container>
         </section>
-        {PLAN_GROUPS.map((group) => {
-          const verticalLabel = MARKETING_VERTICALS.find((v) => v.key === group.key)?.label ?? group.title
+        {groups.map((group) => {
+          const verticalLabel = site.isVisible(group.key) ? site.vertical(group.key).label : group.title
+          const note = group.note || listLabels(group.members)
           return (
             <section key={group.key} className="py-14" id={group.key}>
               <Container>
                 <div className="mx-auto max-w-5xl">
                   <h2 className="text-2xl font-semibold tracking-tight">{group.title}</h2>
-                  <p className="mt-1 text-sm text-tq-muted">{group.note}</p>
+                  <p className="mt-1 text-sm text-tq-muted">{note}</p>
                 </div>
                 <PlanCards
-                  plans={marketingPlansForVertical(group.key)}
+                  plans={group.plans}
                   trialHref={signupUrl(group.key)}
+                  offerLive={offerLive}
                   ctaLabel={`Start free trial — ${verticalLabel}`}
                 />
               </Container>
@@ -94,4 +100,16 @@ export default async function PricingPage() {
       </main>
     </>
   )
+}
+
+/** Visible industries that sell the same plan set as `key` (e.g. fitness → home-services plans). */
+function groupMembers(key: VerticalKey, visible: readonly MarketingVertical[]): MarketingVertical[] {
+  const planKey = marketingPlansForVertical(key)[0]?.key
+  return visible.filter((v) => marketingPlansForVertical(v.key)[0]?.key === planKey)
+}
+
+/** "Home Services, Fitness & gyms and Healthcare". */
+function listLabels(verticals: readonly MarketingVertical[]): string {
+  const labels = verticals.map((v) => v.label)
+  return labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}` : (labels[0] ?? '')
 }

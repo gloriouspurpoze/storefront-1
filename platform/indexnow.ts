@@ -8,11 +8,14 @@
 import { MARKETING_VERTICALS } from '@profixer/marketing-data'
 import { PLATFORM_CMS_TENANT_ID, PLATFORM_SITE_URL, siteUrl } from './config'
 import { platformBlogPosts } from './cms'
+import { PLATFORM_SITE_CONTENT_TAG } from './siteContent'
 
 export const INDEXNOW_KEY = /^[A-Za-z0-9-]{8,128}$/.test(process.env.INDEXNOW_KEY?.trim() ?? '') ? process.env.INDEXNOW_KEY!.trim() : ''
 
 /** True when a revalidated tag belongs to the marketing site's own CMS content. Pure — exported for tests. */
 export function touchesPlatformContent(tags: readonly string[], tenantId = PLATFORM_CMS_TENANT_ID): boolean {
+  // Pricing / industries / home cards (CMS → Torq Studio website) are global, not tenant-tagged.
+  if (tags.includes(PLATFORM_SITE_CONTENT_TAG)) return true
   return Boolean(tenantId) && tags.some((t) => t === `tenant:${tenantId}` || t.startsWith(`tenant:${tenantId}:`))
 }
 

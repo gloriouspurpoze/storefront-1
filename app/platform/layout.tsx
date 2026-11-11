@@ -3,11 +3,12 @@ import type { ReactNode } from 'react'
 import { Inter } from 'next/font/google'
 import '../globals.css'
 import { PLATFORM_BRAND, PLATFORM_CONTACT_EMAIL, PLATFORM_SAME_AS, PLATFORM_SITE_URL, siteUrl } from '@/platform/config'
-import { HOME_DESCRIPTION, HOME_TITLE } from '@/platform/content/home'
+import { HOME_DESCRIPTION, HOME_META_DESCRIPTION, HOME_TITLE } from '@/platform/content/home'
 import { AttributionCapture } from '@/platform/components/AttributionLink'
 import { DemoRequestProvider } from '@/platform/components/DemoRequest'
 import { Footer } from '@/platform/components/Footer'
 import { JsonLd } from '@/platform/components/JsonLd'
+import { platformSiteContent } from '@/platform/siteContent'
 
 const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' })
 
@@ -21,8 +22,10 @@ const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-int
 export const metadata: Metadata = {
   metadataBase: new URL(PLATFORM_SITE_URL),
   title: { default: HOME_TITLE, template: `%s | ${PLATFORM_BRAND}` },
-  description: HOME_DESCRIPTION,
+  description: HOME_META_DESCRIPTION,
   applicationName: PLATFORM_BRAND,
+  // No static favicon file exists on the marketing hosts; the generated brand mark serves both.
+  icons: { icon: [{ url: '/brand-logo', type: 'image/png', sizes: '512x512' }], apple: [{ url: '/brand-logo', sizes: '512x512' }] },
   // The root layout defaults to noindex for unresolved hosts; the marketing site must be indexable.
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
   // Search Console + Bing Webmaster Tools (Bing also feeds ChatGPT search and Copilot).
@@ -58,13 +61,14 @@ const WEBSITE = {
   publisher: { '@id': siteUrl('/#organization') },
 }
 
-export default function PlatformLayout({ children }: { children: ReactNode }) {
+export default async function PlatformLayout({ children }: { children: ReactNode }) {
+  const { verticals } = await platformSiteContent()
   return (
     <html lang="en-IN" className={inter.variable}>
       <body className="min-h-screen bg-white font-tq text-tq-ink antialiased">
         <JsonLd data={[ORGANIZATION, WEBSITE]} />
         <AttributionCapture />
-        <DemoRequestProvider>
+        <DemoRequestProvider industries={verticals.map(({ key, label }) => ({ key, label }))}>
           {children}
           <Footer />
         </DemoRequestProvider>

@@ -1,21 +1,22 @@
-import { MARKETING_VERTICALS, formatPlanPriceInr, marketingPlansForVertical } from '@profixer/marketing-data'
+import { formatPlanPriceInr, type VerticalPlanDef } from '@profixer/marketing-data'
 import { PLATFORM_BRAND, siteUrl } from '@/platform/config'
 import { HOME_DESCRIPTION, HOME_FAQ } from '@/platform/content/home'
 import { pageFaqs, platformBlogPosts } from '@/platform/cms'
 import { textResponse } from '@/platform/llms'
+import { platformSiteContent } from '@/platform/siteContent'
 
 export const revalidate = 3600
 
 /** "from ₹499/month" — the cheapest priced plan for an industry. */
-function startingPrice(key: (typeof MARKETING_VERTICALS)[number]['key']): string {
-  const priced = marketingPlansForVertical(key).filter((p) => p.priceMonthlyInr != null)
+function startingPrice(plans: readonly VerticalPlanDef[]): string {
+  const priced = plans.filter((p) => p.priceMonthlyInr != null)
   const cheapest = priced.sort((a, b) => (a.priceMonthlyInr ?? 0) - (b.priceMonthlyInr ?? 0))[0]
   return cheapest ? ` From ${formatPlanPriceInr(cheapest)}/month.` : ''
 }
 
 /** torqstudio.com/llms.txt — a plain-text map of the site for AI assistants (llmstxt.org format). */
 export async function GET() {
-  const [posts, faqs] = await Promise.all([platformBlogPosts(50), pageFaqs('home', HOME_FAQ)])
+  const [posts, faqs, site] = await Promise.all([platformBlogPosts(50), pageFaqs('home', HOME_FAQ), platformSiteContent()])
   const lines = [
     `# ${PLATFORM_BRAND}`,
     '',
@@ -28,8 +29,8 @@ export async function GET() {
     `- [Pricing](${siteUrl('/pricing')}): monthly plans in INR, 14-day free trial, no credit card`,
     '',
     '## Industries',
-    ...MARKETING_VERTICALS.map(
-      (v) => `- [${PLATFORM_BRAND} for ${v.label}](${siteUrl(`/${v.marketingSlug}`)}): ${v.description}${startingPrice(v.key)}`,
+    ...site.verticals.map(
+      (v) => `- [${PLATFORM_BRAND} for ${v.label}](${siteUrl(`/${v.marketingSlug}`)}): ${v.description}${startingPrice(site.plans(v.key))}`,
     ),
     '',
     '## FAQ',

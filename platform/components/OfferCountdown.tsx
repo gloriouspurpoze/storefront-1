@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { Flame } from 'lucide-react'
-import { LAUNCH_OFFER } from '../content/offer'
+import type { ResolvedLaunchOffer } from '@profixer/marketing-data'
 
-const END_MS = Date.parse(LAUNCH_OFFER.endsAt)
-const END_LABEL = new Date(END_MS).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })
-
-/** Launch-offer banner with a live countdown; hides itself once the fixed deadline passes. */
-export function OfferCountdown() {
+/** Launch-offer banner with a live countdown; hides itself once the fixed deadline passes. Copy and deadline come from admin (CMS → Torq Studio website → Pricing). */
+export function OfferCountdown({ offer }: { offer: ResolvedLaunchOffer }) {
+  const END_MS = Date.parse(offer.endsAt)
+  const END_LABEL = new Date(END_MS).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })
+  const END_TIME = new Date(END_MS).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
   const [remaining, setRemaining] = useState<number | null>(null)
   useEffect(() => {
     const tick = () => setRemaining(END_MS - Date.now())
     tick()
     const id = window.setInterval(tick, 1000)
     return () => window.clearInterval(id)
-  }, [])
+  }, [END_MS])
   if (remaining !== null && remaining <= 0) return null
 
   const s = Math.max(0, Math.floor((remaining ?? 0) / 1000))
@@ -30,9 +30,9 @@ export function OfferCountdown() {
       <div>
         <p className="inline-flex items-center gap-2 text-sm font-semibold text-tq-ink">
           <Flame className="h-4 w-4 text-amber-500" aria-hidden />
-          {LAUNCH_OFFER.label}: 50% off every plan
+          {offer.label}: {offer.headline}
         </p>
-        <p className="mt-0.5 text-sm text-tq-muted">Lock in launch pricing — offer ends {END_LABEL}, 11:59 PM IST.</p>
+        <p className="mt-0.5 text-sm text-tq-muted">Lock in launch pricing — offer ends {END_LABEL}, {END_TIME.toUpperCase()} IST.</p>
       </div>
       {remaining !== null ? (
         <div className="flex gap-2" role="timer" aria-label={`Offer ends ${END_LABEL}`}>

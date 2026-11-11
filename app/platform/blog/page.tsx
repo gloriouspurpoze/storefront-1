@@ -1,6 +1,7 @@
-import { PLATFORM_BRAND } from '@/platform/config'
+import { PLATFORM_BRAND, siteUrl } from '@/platform/config'
 import { platformBlogPosts, platformSeoOverride } from '@/platform/cms'
 import { pageMetadata } from '@/platform/seo'
+import { JsonLd } from '@/platform/components/JsonLd'
 import { Header } from '@/platform/components/Header'
 import { Container, SectionTitle } from '@/platform/components/Section'
 
@@ -22,6 +23,34 @@ export default async function BlogIndexPage() {
   const posts = await platformBlogPosts()
   return (
     <>
+      <JsonLd
+        data={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Blog',
+            '@id': siteUrl('/blog#blog'),
+            name: `${PLATFORM_BRAND} blog`,
+            url: siteUrl('/blog'),
+            inLanguage: 'en-IN',
+            publisher: { '@id': siteUrl('/#organization') },
+            blogPost: posts.map((post) => ({
+              '@type': 'BlogPosting',
+              headline: post.title,
+              url: siteUrl(`/blog/${post.slug}`),
+              datePublished: post.date,
+              ...(post.description ? { description: post.description } : {}),
+            })),
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: PLATFORM_BRAND, item: siteUrl('/') },
+              { '@type': 'ListItem', position: 2, name: 'Blog', item: siteUrl('/blog') },
+            ],
+          },
+        ]}
+      />
       <Header />
       <main>
         <Container className="py-16 sm:py-24">

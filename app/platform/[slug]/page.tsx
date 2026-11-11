@@ -2,13 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Fragment, type ReactNode } from 'react'
 import { ArrowRight, BadgeCheck, BellRing, Check, ListChecks, Rocket, Share2, type LucideIcon } from 'lucide-react'
-import {
-  MARKETING_VERTICALS,
-  getVerticalLandingContent,
-  marketingPlansForVertical,
-  marketingVerticalBySlug,
-  type MarketingVertical,
-} from '@profixer/marketing-data'
+import { MARKETING_VERTICALS, launchOfferLive, type MarketingVertical, type PlatformSiteContent } from '@profixer/marketing-data'
+import { platformSiteContent } from '@/platform/siteContent'
 import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
 import { pageFaqs, pageTestimonials, platformCmsPage, platformSeoOverride, sanitizeCmsHtml } from '@/platform/cms'
 import { pageMetadata, truncate } from '@/platform/seo'
@@ -44,9 +39,11 @@ function industryTitle(v: MarketingVertical): string {
 
 export async function generateMetadata({ params }: RouteParams): Promise<Metadata> {
   const { slug } = await params
-  const vertical = marketingVerticalBySlug(slug)
+  const site = await platformSiteContent()
+  // A hidden industry resolves to null → CMS page lookup → 404.
+  const vertical = site.verticalBySlug(slug)
   if (vertical) {
-    const content = getVerticalLandingContent(vertical.key)
+    const content = site.landing(vertical.key)
     return pageMetadata({
       title: industryTitle(vertical),
       description: truncate(content.subtitle),
@@ -68,12 +65,13 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
 
 export default async function PlatformSlugPage({ params }: RouteParams) {
   const { slug } = await params
-  const vertical = marketingVerticalBySlug(slug)
+  const site = await platformSiteContent()
+  const vertical = site.verticalBySlug(slug)
   if (vertical) {
-    const content = getVerticalLandingContent(vertical.key)
+    const content = site.landing(vertical.key)
     const page = `industry:${vertical.key}` as const
     const [faqs, testimonials] = await Promise.all([pageFaqs(page, content.faq), pageTestimonials(page)])
-    return <IndustryPage vertical={vertical} faqs={faqs} testimonials={testimonials} />
+    return <IndustryPage site={site} vertical={vertical} faqs={faqs} testimonials={testimonials} />
   }
 
   const page = await platformCmsPage(slug)
@@ -116,16 +114,18 @@ function breadcrumbs(items: { name: string; path: string }[]): Record<string, un
  * the placeholder testimonials and outcome stats in the shared copy are deliberately not rendered.
  */
 function IndustryPage({
+  site,
   vertical,
   faqs,
   testimonials,
 }: {
+  site: PlatformSiteContent
   vertical: MarketingVertical
   faqs: FaqItem[]
   testimonials: StorefrontCmsTestimonial[]
 }) {
-  const content = getVerticalLandingContent(vertical.key)
-  const plans = marketingPlansForVertical(vertical.key)
+  const content = site.landing(vertical.key)
+  const plans = site.plans(vertical.key)
   const trialHref = signupUrl(vertical.key)
   const label = vertical.label.toLowerCase()
   const preview = previewFor(vertical.key)
@@ -247,7 +247,7 @@ function IndustryPage({
               title={`Plans built for ${label} — not your commission.`}
               subtitle="Start with a 14-day free trial; upgrade when you're ready. Prices in INR."
             />
-            <PlanCards plans={plans} trialHref={trialHref} ctaLabel={content.ctaLabel} />
+            <PlanCards plans={plans} trialHref={trialHref} offerLive={launchOfferLive(site.launchOffer)} ctaLabel={content.ctaLabel} />
             <p className="mt-8 text-center text-sm text-tq-muted">
               Not a {label} business?{' '}
               <a href="/#industries" className="font-medium text-tq-primary hover:underline">

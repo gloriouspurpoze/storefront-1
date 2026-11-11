@@ -1,8 +1,9 @@
 import { ArrowRight } from 'lucide-react'
-import { MARKETING_VERTICALS, marketingPlansForVertical } from '@profixer/marketing-data'
+import { launchOfferLive } from '@profixer/marketing-data'
 import { PLATFORM_BRAND, signupUrl, siteUrl } from '@/platform/config'
-import { FEATURES, GUARANTEES, HOME_DESCRIPTION, HOME_FAQ, HOME_TITLE, STEPS, TRUST_PILLARS } from '@/platform/content/home'
-import { launchOfferLive } from '@/platform/content/offer'
+import { HOME_FAQ, HOME_META_DESCRIPTION, HOME_TITLE } from '@/platform/content/home'
+import { platformSiteContent } from '@/platform/siteContent'
+import { HOME_ICONS } from '@/platform/components/icons'
 import { pageMetadata } from '@/platform/seo'
 import { pageFaqs, pageTestimonials, platformSeoOverride } from '@/platform/cms'
 import { AttributionLink } from '@/platform/components/AttributionLink'
@@ -24,7 +25,7 @@ export async function generateMetadata() {
   return pageMetadata({
     title: HOME_TITLE,
     absoluteTitle: true,
-    description: HOME_DESCRIPTION,
+    description: HOME_META_DESCRIPTION,
     path: '/',
     ogTitle: 'Run your entire business from one workspace',
     eyebrow: 'Bookings · CRM · Storefront · Billing',
@@ -33,8 +34,10 @@ export async function generateMetadata() {
 }
 
 export default async function PlatformHomePage() {
-  const [faqs, testimonials] = await Promise.all([pageFaqs('home', HOME_FAQ), pageTestimonials('home')])
-  const plans = marketingPlansForVertical('home_services').slice(0, 3)
+  const [faqs, testimonials, site] = await Promise.all([pageFaqs('home', HOME_FAQ), pageTestimonials('home'), platformSiteContent()])
+  const plans = site.plans('home_services').slice(0, 3)
+  const { features, steps, trustPillars, guarantees } = site.home
+  const offerLive = launchOfferLive(site.launchOffer)
   const trialHref = signupUrl()
 
   return (
@@ -83,7 +86,7 @@ export default async function PlatformHomePage() {
           <Container>
             <h2 className="text-center text-sm font-medium text-tq-muted">Ready-made for your industry</h2>
             <ul className="mt-5 flex flex-wrap justify-center gap-2">
-              {MARKETING_VERTICALS.map((v) => (
+              {site.verticals.map((v) => (
                 <li key={v.key}>
                   <a
                     href={`/${v.marketingSlug}`}
@@ -106,7 +109,9 @@ export default async function PlatformHomePage() {
               subtitle="Stop juggling spreadsheets, WhatsApp and disconnected apps."
             />
             <div className="mt-14 grid gap-4 md:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, title, body }) => (
+              {features.map(({ icon, title, body }) => {
+                const Icon = HOME_ICONS[icon]
+                return (
                 <div key={title} className="rounded-2xl border border-tq-line bg-white p-6">
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-tq-primary/10 text-tq-primary">
                     <Icon className="h-5 w-5" aria-hidden />
@@ -114,7 +119,8 @@ export default async function PlatformHomePage() {
                   <h3 className="mt-4 font-semibold">{title}</h3>
                   <p className="mt-1.5 text-sm text-tq-muted">{body}</p>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </Container>
         </section>
@@ -122,9 +128,9 @@ export default async function PlatformHomePage() {
         {/* How it works */}
         <section className="bg-tq-wash py-24">
           <Container>
-            <SectionTitle eyebrow="Get started" title="Live in three steps." />
+            <SectionTitle eyebrow="Get started" title={stepsTitle(steps.length)} />
             <ol className="mt-14 grid gap-6 md:grid-cols-3">
-              {STEPS.map((s, i) => (
+              {steps.map((s, i) => (
                 <li key={s.title} className="rounded-2xl border border-tq-line bg-white p-6">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-tq-ink text-sm font-semibold text-white">{i + 1}</span>
                   <h3 className="mt-4 font-semibold">{s.title}</h3>
@@ -144,7 +150,9 @@ export default async function PlatformHomePage() {
               subtitle="You're putting your customers, payments and team on this. Here's what you can count on."
             />
             <div className="mt-14 grid gap-4 md:grid-cols-3">
-              {TRUST_PILLARS.map(({ icon: Icon, title, body }) => (
+              {trustPillars.map(({ icon, title, body }) => {
+                const Icon = HOME_ICONS[icon]
+                return (
                 <div key={title} className="rounded-2xl border border-tq-line bg-white p-6">
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-tq-success">
                     <Icon className="h-5 w-5" aria-hidden />
@@ -152,10 +160,13 @@ export default async function PlatformHomePage() {
                   <h3 className="mt-4 font-semibold">{title}</h3>
                   <p className="mt-1.5 text-sm text-tq-muted">{body}</p>
                 </div>
-              ))}
+                )
+              })}
             </div>
             <ul className="mt-6 grid gap-4 rounded-2xl bg-tq-ink p-6 text-white sm:grid-cols-2 sm:p-8 lg:grid-cols-4">
-              {GUARANTEES.map(({ icon: Icon, title, body }) => (
+              {guarantees.map(({ icon, title, body }) => {
+                const Icon = HOME_ICONS[icon]
+                return (
                 <li key={title} className="flex items-start gap-3">
                   <Icon className="mt-0.5 h-5 w-5 shrink-0 text-tq-primary-bright" aria-hidden />
                   <div>
@@ -163,7 +174,8 @@ export default async function PlatformHomePage() {
                     <p className="mt-0.5 text-sm text-white/70">{body}</p>
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           </Container>
         </section>
@@ -174,8 +186,8 @@ export default async function PlatformHomePage() {
         <section className="bg-tq-wash py-24" id="pricing">
           <Container>
             <SectionTitle eyebrow="Pricing" title="Simple plans that grow with you." subtitle="Every plan starts with a 14-day free trial. Prices in INR." />
-            {launchOfferLive() ? <OfferCountdown /> : null}
-            <PlanCards plans={plans} trialHref={trialHref} />
+            {offerLive && site.launchOffer ? <OfferCountdown offer={site.launchOffer} /> : null}
+            <PlanCards plans={plans} trialHref={trialHref} offerLive={offerLive} />
             <p className="mt-8 text-center text-sm text-tq-muted">
               Restaurants, salons and retail have their own plans —{' '}
               <a href="/pricing" className="font-medium text-tq-primary hover:underline">
@@ -198,4 +210,11 @@ export default async function PlatformHomePage() {
       </main>
     </>
   )
+}
+
+const STEP_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six']
+
+/** "Live in three steps." — follows however many steps admin lists. */
+function stepsTitle(count: number): string {
+  return STEP_WORDS[count] ? `Live in ${STEP_WORDS[count]} step${count === 1 ? '' : 's'}.` : 'Live in a few steps.'
 }
