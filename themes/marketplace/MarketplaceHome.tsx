@@ -32,7 +32,21 @@ const BUYER_STEPS = [
  * Marketplace homepage (`marketplace-classic` + classic fallback). Block order and on/off come
  * from the API's `effectiveSections` (Studio), resolved against the theme's designed order.
  */
-export async function MarketplaceHome({ tenant, cfg, addonsSlot }: { tenant: ResolvedTenant; cfg: StorefrontConfig | null; addonsSlot?: React.ReactNode }) {
+export async function MarketplaceHome({
+  tenant,
+  cfg,
+  addonsSlot,
+  heroSlot,
+  carouselSlot,
+}: {
+  tenant: ResolvedTenant
+  cfg: StorefrontConfig | null
+  addonsSlot?: React.ReactNode
+  /** Admin hero carousel; replaces the search hero while hero slides are live. */
+  heroSlot?: React.ReactNode
+  /** Admin offers strip + promo slides, rendered right after the hero. */
+  carouselSlot?: React.ReactNode
+}) {
   const tagline = cfg?.branding?.tagline || cfg?.content?.heroSubcopy || 'Independent makers, one marketplace.'
   const themeTenant = toThemeTenant(tenant, tagline)
   const order = homepageSectionOrder(cfg, themeSectionDefaults(cfg?.themeKey, 'marketplace'))
@@ -157,10 +171,23 @@ export async function MarketplaceHome({ tenant, cfg, addonsSlot }: { tenant: Res
     faq: flagOn(cfg, 'showFaq') && faqItems.length > 0 ? <FaqSection items={faqItems} /> : null,
   }
 
+  // Admin carousels: hero slides replace the search hero (Studio's hero toggle still wins); offers follow it.
+  const ownHero = blocks.hero
+  const heroRendered = Boolean(ownHero) && on('hero')
+  if (ownHero) {
+    blocks.hero = (
+      <>
+        {heroSlot ?? ownHero}
+        {carouselSlot}
+      </>
+    )
+  }
+
   return (
     <MarketplaceShell tenantId={tenant.id}>
       <SiteHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} categories={categories} />
       <main>
+        {heroRendered ? null : carouselSlot}
         {order.map((t) => (blocks[t] ? <div key={t}>{blocks[t]}</div> : null))}
         {addonsSlot}
       </main>

@@ -111,6 +111,11 @@ export function resolveAnnouncement(
   }
 }
 
+/** sessionStorage key that remembers a dismissed pop-up for this tenant (server- and client-safe). */
+export function popupStorageKey(tenantId: string): string {
+  return `sf-storefront-popup:${tenantId}`
+}
+
 export function pickPopupBanner(banners: StorefrontBanner[], now: Date = new Date()): StorefrontBanner | null {
   const active = filterActiveBanners(banners, now)
   return active[0] ?? null

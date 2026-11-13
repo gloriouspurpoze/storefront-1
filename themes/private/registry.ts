@@ -18,11 +18,15 @@ export type PrivateLayoutRenderArgs = {
   footerLinks?: StorefrontNavLink[]
   /** Paid add-on homepage blocks, rendered above the theme footer. */
   addonsSlot?: ReactNode
+  /** Admin hero carousel (replaces the theme hero while slides are live). */
+  heroSlot?: ReactNode
+  /** Admin offers strip + promo slides, rendered after the hero. */
+  carouselSlot?: ReactNode
 }
 
 type PrivateLayoutComponentProps = Pick<
   PrivateLayoutRenderArgs,
-  'tenant' | 'config' | 'products' | 'menu' | 'navLinks' | 'footerLinks' | 'addonsSlot'
+  'tenant' | 'config' | 'products' | 'menu' | 'navLinks' | 'footerLinks' | 'addonsSlot' | 'heroSlot' | 'carouselSlot'
 >
 
 export type PrivateLayoutEntry = {
@@ -61,5 +65,7 @@ export function renderPrivateLayout(
     navLinks: args.navLinks,
     footerLinks: args.footerLinks,
     addonsSlot: args.addonsSlot,
+    heroSlot: args.heroSlot,
+    carouselSlot: args.carouselSlot,
   })
 }

@@ -103,6 +103,6 @@ export function PopupBanner({
   )
 }
 
-export function popupStorageKey(tenantId: string): string {
-  return `sf-storefront-popup:${tenantId}`
-}
+// popupStorageKey lives in lib/storefrontContent: this module is 'use client', so server
+// components (theme-kit factories, StoreOffers) cannot call functions exported from here.
+export { popupStorageKey } from '@/lib/storefrontContent'

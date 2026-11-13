@@ -30,7 +30,7 @@ export async function SiteFooter({
   ])
   const help = [...HELP_LINKS, ...addonFooterLinks(cfg, 'retail')]
   const columns = cmsLinks.length
-    ? [...splitFooterLinks(cmsLinks, ['Shop', 'Explore']), { title: 'Help', links: help }]
+    ? [...splitFooterLinks(cmsLinks, ['Company', 'More']), { title: 'Help', links: help }]
     : [
         { title: 'Shop', links: SHOP_LINKS },
         { title: 'Help', links: help },

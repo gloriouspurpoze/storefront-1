@@ -334,6 +334,65 @@
   color: var(--tp-cta-contrast);
 }
 
+/*
+ * Footer: a dark tint of the brand colour rather than the brand colour itself, so
+ * white text clears WCAG AA for any tenant palette (mid-tone brand blues made
+ * --tp-cta-contrast resolve to navy, which then faded into the background) and the
+ * footer reads as its own band below the final CTA.
+ */
+.tp-footer {
+  --tp-footer-bg: color-mix(in srgb, var(--tp-cta) 18%, #0a0f1a);
+  background: var(--tp-footer-bg);
+  color: rgba(255, 255, 255, 0.82);
+}
+.tp-footer__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.25rem 1.5rem;
+}
+.tp-footer__brand {
+  grid-column: 1 / -1;
+}
+@media (min-width: 1024px) {
+  .tp-footer__grid {
+    grid-template-columns: minmax(0, 1.4fr) repeat(var(--tp-footer-cols, 2), minmax(0, 1fr));
+    gap: 2.5rem;
+  }
+  .tp-footer__brand {
+    grid-column: auto;
+  }
+}
+.tp-footer__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+.tp-footer__muted {
+  color: rgba(255, 255, 255, 0.72);
+}
+.tp-footer__faint {
+  color: rgba(255, 255, 255, 0.55);
+}
+.tp-footer__link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+.tp-footer__link:hover {
+  color: #ffffff;
+}
+.tp-footer__link:focus-visible {
+  outline: 2px solid var(--tp-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.tp-footer__bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+}
+
 .tp-photo-fallback {
   background: linear-gradient(
     135deg,

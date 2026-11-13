@@ -2,10 +2,10 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { AnnouncementBar } from '@/components/content/AnnouncementBar'
 import { OffersStrip } from '@/components/content/OffersStrip'
-import { PopupBanner, popupStorageKey } from '@/components/content/PopupBanner'
+import { PopupBanner } from '@/components/content/PopupBanner'
 import { PromoBlock } from '@/components/content/PromoBlock'
 import type { ResolvedAnnouncement } from '@/lib/storefrontContent'
-import { getBannerImageUrl, getSlideImageUrl } from '@/lib/storefrontContent'
+import { getBannerImageUrl, getSlideImageUrl, popupStorageKey } from '@/lib/storefrontContent'
 import type { StorefrontBanner, StorefrontSlider } from '@/lib/storefront-api'
 
 /** Theme-skinned announcement marquee — `classPrefix` becomes `{prefix}-announcement*`. */

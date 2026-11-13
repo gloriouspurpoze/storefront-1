@@ -12,6 +12,10 @@ type HomeServicesLayoutProps = {
   footerLinks?: StorefrontNavLink[]
   /** Paid add-on homepage blocks (AMC / loyalty / B2B), rendered above the theme footer. */
   addonsSlot?: ReactNode
+  /** Admin hero carousel; replaces the theme hero while slides are live (see components/content/HomeCarousels). */
+  heroSlot?: ReactNode
+  /** Admin offers strip + promo slides, rendered right after the hero. */
+  carouselSlot?: ReactNode
   services?: PublicService[]
   faqs?: StorefrontCmsFaq[]
   testimonials?: StorefrontCmsTestimonial[]
@@ -28,6 +32,8 @@ const router = createLayoutRouter<HomeServicesLayoutProps, 'trade-pro'>({
         navLinks={p.navLinks}
         footerLinks={p.footerLinks}
         addonsSlot={p.addonsSlot}
+        heroSlot={p.heroSlot}
+        carouselSlot={p.carouselSlot}
         services={p.services ?? []}
         faqs={p.faqs ?? []}
         testimonials={p.testimonials ?? []}

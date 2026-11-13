@@ -15,6 +15,8 @@ import { ProductRail } from '@/components/sections/ProductRail'
 import { toThemeTenant } from '@/themes/retail/types'
 import { isRetailLayoutTheme } from '@/themes/retail/retailLayoutRouter'
 import { ProductDetailView } from '@/components/ProductDetailView'
+import { PlacementPromo } from '@/components/content/HomeCarousels'
+import { loadPlacementSlides } from '@/lib/homeCarousels'
 import {
   buildProductBreadcrumbJsonLd,
   buildProductJsonLd,
@@ -84,12 +86,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
   if (marketplace) return <MarketplaceProductPage tenant={marketplace} slug={slug} />
   const tenant = await loadRetailTenant()
   const themeTenant = toThemeTenant(tenant, tenant.fallbackTagline)
-  const [config, product, headerNavLinks, footerNavLinks, faqs] = await Promise.all([
+  const [config, product, headerNavLinks, footerNavLinks, faqs, promoSlides] = await Promise.all([
     fetchStorefrontConfig(tenant.id),
     fetchProductBySlug(tenant.id, slug),
     fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
     fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
     fetchStorefrontFaqs(tenant.id),
+    loadPlacementSlides(tenant.id, 'product_page', slug),
   ])
   if (!product) notFound()
 
@@ -127,6 +130,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         navLinks={headerNavLinks}
         faqs={faqs}
         categories={categories}
+        promoSlot={<PlacementPromo slides={promoSlides} label="product_page" />}
       />
       {!isLayout && related.length > 1 ? (
         <ProductRail eyebrow="Keep exploring" title="You may also like" products={related} />

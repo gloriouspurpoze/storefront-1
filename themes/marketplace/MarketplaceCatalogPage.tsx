@@ -5,6 +5,8 @@ import { fetchStorefrontCategories, fetchStorefrontConfig } from '@/lib/storefro
 import { fetchSellers, searchMarketplace } from '@/lib/marketplace-api'
 import { SiteChrome } from '@/components/chrome/SiteChrome'
 import { PageHeader } from '@/ui'
+import { PlacementPromo } from '@/components/content/HomeCarousels'
+import { loadPlacementSlides } from '@/lib/homeCarousels'
 import { MarketplaceCatalog } from './MarketplaceCatalog'
 import { SellerCard } from './SellerCard'
 import { toListingQuery, type CatalogQuery } from './catalogQuery'
@@ -26,11 +28,12 @@ export async function MarketplaceCatalogPage({
   categorySlug?: string
 }) {
   const effective: CatalogQuery = categorySlug ? { ...query, category: categorySlug } : query
-  const [config, categories, page, sellerHits] = await Promise.all([
+  const [config, categories, page, sellerHits, promoSlides] = await Promise.all([
     fetchStorefrontConfig(tenant.id),
     fetchStorefrontCategories(tenant.id),
     searchMarketplace(tenant.id, toListingQuery(effective)),
     mode === 'search' && query.q ? fetchSellers(tenant.id, { q: query.q, limit: 4 }) : null,
+    mode === 'category' && categorySlug ? loadPlacementSlides(tenant.id, 'store_category', categorySlug) : [],
   ])
   const category = categorySlug ? categories.find((c) => c.slug === categorySlug) : undefined
   if (mode === 'category' && !category && page.pagination.total === 0) notFound()
@@ -53,6 +56,7 @@ export async function MarketplaceCatalogPage({
           {mode === 'all' ? <p className="sf-page-head__sub">Every product from every seller on the marketplace.</p> : null}
         </PageHeader>
         <div className="sf-container">
+        <PlacementPromo slides={promoSlides} label="store_category" />
         {mode === 'search' && !query.q ? (
           <form action="/search" role="search" className="mk-hero__search" style={{ maxWidth: 560, marginBottom: '2rem' }}>
             <input type="search" name="q" placeholder="Search products and sellers…" aria-label="Search" autoFocus />

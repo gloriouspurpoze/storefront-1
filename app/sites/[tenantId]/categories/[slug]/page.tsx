@@ -29,6 +29,8 @@ import { marketplaceTenantOrNull } from '@/themes/marketplace/loadThemeTenant'
 import { MarketplaceCatalogPage } from '@/themes/marketplace/MarketplaceCatalogPage'
 import { parseCatalogQuery } from '@/themes/marketplace/catalogQuery'
 import { seoOverridable } from '@/lib/tenant-seo'
+import { PlacementPromo } from '@/components/content/HomeCarousels'
+import { loadPlacementSlides } from '@/lib/homeCarousels'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,6 +115,7 @@ export default async function CategorySlugPage({ params, searchParams }: PagePro
     cmsFooterNav,
     headerNavLinks,
     footerNavLinks,
+    promoSlides,
   ] = await Promise.all([
     fetchStorefrontConfig(tenant.id),
     fetchProducts(tenant.id, 80),
@@ -122,7 +125,9 @@ export default async function CategorySlugPage({ params, searchParams }: PagePro
     fetchStorefrontMenuLinks(tenant.id, 'footer'),
     fetchStorefrontNavLinks(tenant.id, 'header', 'retail'),
     fetchStorefrontNavLinks(tenant.id, 'footer', 'retail'),
+    loadPlacementSlides(tenant.id, 'store_category', slug),
   ])
+  const promoSlot = <PlacementPromo slides={promoSlides} label="store_category" />
 
   const categoryMarketing = normalizeCategoryMarketingRecord(categoryMarketingRaw)
   const marketing = categoryMarketingForSlug(categoryMarketing, slug)
@@ -159,6 +164,7 @@ export default async function CategorySlugPage({ params, searchParams }: PagePro
           config={config}
           navLinks={cmsHeaderNav}
           footerLinks={cmsFooterNav}
+          promoSlot={promoSlot}
         />
       </RetailShell>
     )
@@ -182,6 +188,7 @@ export default async function CategorySlugPage({ params, searchParams }: PagePro
           <CategoryMarketingBlocks config={marketing} />
         </div>
       ) : null}
+      <div className="sf-container">{promoSlot}</div>
       <div className="sf-container">
         {filtered.length === 0 ? (
           <p className="sf-product-empty">No products in this category yet.</p>

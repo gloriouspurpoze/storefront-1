@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { getOrderingAvailabilityFromConfig } from '@/lib/orderingHours'
+import { dedupeFooterColumns, splitFooterLinks } from '@/lib/footerLinks'
 import type { ThemeTenant } from '../types'
 import { ClockIcon, MapPinIcon, PhoneIcon } from './icons'
 import './trade-pro.css'
@@ -58,7 +59,9 @@ export function TradeProFooter({
   const email = branding?.contactEmail?.trim() || undefined
   const address = branding?.address?.trim() || undefined
   const tagline = (branding?.tagline || tenant.tagline)?.trim() || undefined
-  const links = navLinks?.length ? navLinks : DEFAULT_LINKS
+  const linkColumns = dedupeFooterColumns(
+    splitFooterLinks(navLinks?.length ? navLinks : DEFAULT_LINKS, ['Explore', 'More']),
+  )
 
   const hoursText =
     hours?.trim() || getOrderingAvailabilityFromConfig(config).slotsNote || undefined
@@ -80,9 +83,15 @@ export function TradeProFooter({
   const hasCredentials = Boolean(hoursText || license || insurance)
 
   return (
-    <footer className="tp-ink-band">
-      <div className="tp-container grid gap-10 py-12 sm:grid-cols-2 sm:py-16 lg:grid-cols-4 lg:py-20">
-        <div>
+    <footer className="tp-footer">
+      <div
+        className="tp-container tp-footer__grid py-10 sm:py-12 lg:py-14"
+        style={{
+          ['--tp-footer-cols' as string]:
+            linkColumns.length + Number(hasContact) + Number(hasCredentials) || 1,
+        }}
+      >
+        <div className="tp-footer__brand">
           <div className="flex items-center gap-2.5">
             {tenant.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -98,22 +107,22 @@ export function TradeProFooter({
                 {tenant.name.charAt(0).toUpperCase()}
               </span>
             )}
-            <span className="text-base font-semibold tracking-tight text-[var(--tp-cta-contrast)]">
+            <span className="text-base font-semibold tracking-tight text-white">
               {tenant.name}
             </span>
           </div>
           {tagline ? (
-            <p className="mt-3 max-w-xs text-sm text-[var(--tp-cta-contrast)]/70">{tagline}</p>
+            <p className="tp-footer__muted mt-3 max-w-xs text-sm leading-6">{tagline}</p>
           ) : null}
           {hasSocials ? (
-            <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-1.5 text-sm text-[var(--tp-cta-contrast)]/75">
+            <ul className="mt-4 flex flex-wrap gap-x-3 gap-y-1.5 text-sm">
               {whatsappLink ? (
                 <li>
                   <a
                     href={whatsappLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition hover:text-[var(--tp-cta-contrast)]"
+                    className="tp-footer__link"
                   >
                     WhatsApp
                   </a>
@@ -125,7 +134,7 @@ export function TradeProFooter({
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition hover:text-[var(--tp-cta-contrast)]"
+                    className="tp-footer__link"
                   >
                     {link.label}
                   </a>
@@ -135,32 +144,32 @@ export function TradeProFooter({
           ) : null}
         </div>
 
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--tp-cta-contrast)]/45">
-            Explore
-          </p>
-          <ul className="mt-3 space-y-2.5 text-sm text-[var(--tp-cta-contrast)]/80">
-            {links.map((link) => (
-              <li key={`${link.href}-${link.label}`}>
-                <Link href={link.href} className="transition hover:text-[var(--tp-cta-contrast)]">
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {linkColumns.map((col) => (
+          <nav key={col.title} aria-label={col.title}>
+            <p className="tp-footer__title">{col.title}</p>
+            <ul className="mt-3 space-y-2.5 text-sm">
+              {col.links.map((link) => (
+                <li key={`${link.href}-${link.label}`}>
+                  <Link href={link.href} className="tp-footer__link">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
 
         {hasContact ? (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--tp-cta-contrast)]/45">
+            <p className="tp-footer__title">
               Contact
             </p>
-            <ul className="mt-3 space-y-2.5 text-sm text-[var(--tp-cta-contrast)]/80">
+            <ul className="mt-3 space-y-2.5 text-sm">
               {phone ? (
                 <li>
                   <a
                     href={`tel:${phone}`}
-                    className="flex items-center gap-2 transition hover:text-[var(--tp-cta-contrast)]"
+                    className="tp-footer__link flex items-center gap-2"
                   >
                     <PhoneIcon className="h-4 w-4 shrink-0" /> {phone}
                   </a>
@@ -170,7 +179,7 @@ export function TradeProFooter({
                 <li>
                   <a
                     href={`mailto:${email}`}
-                    className="transition hover:text-[var(--tp-cta-contrast)]"
+                    className="tp-footer__link"
                   >
                     {email}
                   </a>
@@ -182,7 +191,7 @@ export function TradeProFooter({
                     href={mapsHref(address)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-start gap-2 text-[var(--tp-cta-contrast)]/65 transition hover:text-[var(--tp-cta-contrast)]"
+                    className="tp-footer__link flex items-start gap-2"
                   >
                     <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>{address}</span>
@@ -195,10 +204,10 @@ export function TradeProFooter({
 
         {hasCredentials ? (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--tp-cta-contrast)]/45">
+            <p className="tp-footer__title">
               Hours &amp; credentials
             </p>
-            <ul className="mt-3 space-y-2.5 text-sm text-[var(--tp-cta-contrast)]/65">
+            <ul className="tp-footer__muted mt-3 space-y-2.5 text-sm">
               {hoursText ? (
                 <li className="flex items-start gap-2">
                   <ClockIcon className="mt-0.5 h-4 w-4 shrink-0 opacity-70" />
@@ -207,12 +216,12 @@ export function TradeProFooter({
               ) : null}
               {license ? (
                 <li>
-                  <span className="opacity-50">License</span> · {license}
+                  <span className="tp-footer__faint">License</span> · {license}
                 </li>
               ) : null}
               {insurance ? (
                 <li>
-                  <span className="opacity-50">Insurance</span> · {insurance}
+                  <span className="tp-footer__faint">Insurance</span> · {insurance}
                 </li>
               ) : null}
             </ul>
@@ -220,34 +229,17 @@ export function TradeProFooter({
         ) : null}
       </div>
 
-      <div className="border-t border-white/10">
-        <div className="tp-container flex flex-col gap-3 py-4 text-xs text-[var(--tp-cta-contrast)]/45 sm:flex-row sm:items-center sm:justify-between">
+      <div className="tp-footer__bottom">
+        <div className="tp-container flex flex-col gap-2 py-4 text-xs sm:flex-row sm:items-center sm:justify-between">
           <span>
             © {year} {tenant.name}. All rights reserved.
           </span>
-          <nav className="flex flex-wrap items-center gap-x-3 gap-y-1" aria-label="Legal">
-            <Link href="/privacy" className="transition hover:text-[var(--tp-cta-contrast)]/80">
-              Privacy
-            </Link>
-            <span aria-hidden className="opacity-30">
-              ·
-            </span>
-            <Link href="/terms" className="transition hover:text-[var(--tp-cta-contrast)]/80">
-              Terms
-            </Link>
-            <span aria-hidden className="opacity-30">
-              ·
-            </span>
-            <span>
-              Powered by{' '}
-              <a
-                href="https://torqstudio.com"
-                className="underline-offset-4 transition hover:underline hover:text-[var(--tp-cta-contrast)]/80"
-              >
-                Torq Studio
-              </a>
-            </span>
-          </nav>
+          <span>
+            Powered by{' '}
+            <a href="https://torqstudio.com" className="tp-footer__link underline-offset-4 hover:underline">
+              Torq Studio
+            </a>
+          </span>
         </div>
       </div>
     </footer>

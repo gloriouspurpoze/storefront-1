@@ -17,7 +17,8 @@ import { showPreferredDateOfDelivery } from '@/lib/templateSettings'
 import { isMenuItemInStock } from '@/lib/storefront-api'
 import { productHasVariants, formatListPrice } from '@/lib/productVariants'
 import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
-import { StoreFooter } from '@/components/chrome/StoreFooter'
+import { StoreFooter, splitFooterLinks } from '@/components/chrome/StoreFooter'
+import { restaurantFooterLinks } from '../footerLinks'
 import { IconBag, IconCheck } from '@/ui'
 import { StoreStatusBadge } from '@/components/StoreStatusBadge'
 import { MenuItemDetailModal } from '@/components/MenuItemDetailModal'
@@ -42,6 +43,8 @@ export function MenuFastMinimalPage({
   navLinks,
   footerLinks,
   addonsSlot,
+  heroSlot,
+  carouselSlot,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
@@ -51,6 +54,10 @@ export function MenuFastMinimalPage({
   footerLinks?: StorefrontNavLink[]
   /** Paid add-on homepage blocks, rendered above the footer. */
   addonsSlot?: ReactNode
+  /** Admin hero carousel — minimal has no hero of its own, so it sits above the intro. */
+  heroSlot?: ReactNode
+  /** Admin offers strip + promo slides. */
+  carouselSlot?: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const tagline = config?.branding?.tagline || tenant.tagline
@@ -213,6 +220,9 @@ export function MenuFastMinimalPage({
         onCartClick={() => document.getElementById('mf-order')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
       />
 
+      {heroSlot}
+      {carouselSlot}
+
       <div className="mf-min-shell sf-container">
         <header className="mf-min-intro">
           <div className="mf-min-logo">
@@ -292,8 +302,7 @@ export function MenuFastMinimalPage({
         tagline={tagline}
         logoUrl={logoUrl}
         config={config}
-        columns={footerLinks?.length ? [{ title: 'Explore', links: footerLinks }] : []}
-        bottomNote={<>Powered by Profixer</>}
+        columns={splitFooterLinks(restaurantFooterLinks(footerLinks), ['Explore', 'More'])}
       />
     </div>
   )

@@ -1,0 +1,173 @@
+/*
+ * Shared skin for admin carousel slides (offers strip, inline promo, page promos) on
+ * themes without their own carousel UI. Neutral surfaces + the layout's --brand-primary
+ * accent; plain `.sfo-*` classes so themes / tenant customCss can restyle.
+ */
+
+.sfo-carousels {
+  padding-block: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+}
+.sfo-wrap {
+  width: 100%;
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-inline: 16px;
+  display: grid;
+  gap: 1.25rem;
+}
+@media (min-width: 768px) {
+  .sfo-wrap {
+    padding-inline: 24px;
+  }
+}
+.sfo-placement {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1.25rem;
+}
+
+/* ── Offers strip: one full-width card per view, scroll-snap + dots ─────────── */
+.sfo-offers {
+  position: relative;
+  min-width: 0;
+}
+.sfo-offers-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  border-radius: 16px;
+}
+.sfo-offers-track::-webkit-scrollbar {
+  display: none;
+}
+.sfo-offers-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  min-width: 0;
+}
+.sfo-offers-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 0.75rem;
+}
+.sfo-offers-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.2);
+  cursor: pointer;
+  transition: width 160ms ease, background-color 160ms ease;
+}
+.sfo-offers-dot--active {
+  width: 22px;
+  background: var(--brand-primary, #0f172a);
+}
+.sfo-offers-dot:focus-visible {
+  outline: 2px solid var(--brand-primary, #0f172a);
+  outline-offset: 2px;
+}
+
+/* ── Cards (offer + promo share the media/copy layout) ─────────────────────── */
+.sfo-offer-card,
+.sfo-promo-card {
+  display: grid;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0f172a;
+  text-decoration: none;
+}
+a.sfo-offer-card:hover,
+a.sfo-promo-card:hover {
+  border-color: color-mix(in srgb, var(--brand-primary, #0f172a) 40%, transparent);
+}
+a.sfo-offer-card:focus-visible,
+a.sfo-promo-card:focus-visible {
+  outline: 2px solid var(--brand-primary, #0f172a);
+  outline-offset: 2px;
+}
+@media (min-width: 640px) {
+  .sfo-offer-card {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
+  }
+}
+.sfo-offer-media img,
+.sfo-promo-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfo-offer-media img {
+  aspect-ratio: 16 / 9;
+  max-height: 320px;
+}
+.sfo-promo-media img {
+  aspect-ratio: 16 / 9;
+  max-height: 220px;
+}
+.sfo-offer-copy,
+.sfo-promo-copy {
+  display: grid;
+  gap: 0.35rem;
+  align-content: center;
+  padding: 1.1rem 1.25rem 1.3rem;
+}
+@media (min-width: 640px) {
+  .sfo-offer-copy {
+    padding: 1.5rem 2rem;
+  }
+}
+.sfo-offer-title,
+.sfo-promo-title {
+  margin: 0;
+  font-size: clamp(1.1rem, 1rem + 0.5vw, 1.4rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.sfo-offer-sub,
+.sfo-promo-sub {
+  margin: 0;
+  /* Darkened brand tint: light brand colours (pale blue, yellow) stay legible on white. */
+  color: color-mix(in srgb, var(--brand-primary, #0f172a) 60%, #0f172a);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sfo-offer-desc,
+.sfo-promo-desc {
+  margin: 0;
+  color: #475569;
+  font-size: 0.925rem;
+  line-height: 1.5;
+}
+.sfo-offer-cta,
+.sfo-promo-cta {
+  justify-self: start;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 9999px;
+  background: var(--brand-primary, #0f172a);
+  color: var(--brand-primary-contrast, #ffffff);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ── Inline promo: 1-up on phones, 2-up from tablet ────────────────────────── */
+.sfo-promo-list {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .sfo-promo-list {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  }
+}

@@ -7,8 +7,9 @@ import {
   fetchProducts,
   fetchServices,
   fetchStorefrontCategories,
-  fetchStorefrontSliders,
 } from '@/lib/storefront-api'
+import { loadHomeCarousels } from '@/lib/homeCarousels'
+import { homeCarouselSlots } from '@/components/content/HomeCarousels'
 import {
   fetchStorefrontCmsChrome,
   fetchStorefrontFaqs,
@@ -86,10 +87,21 @@ export async function HomePageSections({
   const on = (type: string) => homepageSectionOn(cfg, sectionDefaults, type)
   const order = homepageSectionOrder(cfg, sectionDefaults)
   // Paid add-on blocks (AMC / loyalty / B2B) — rendered above the footer in every theme.
-  const addonsSlot = await loadStorefrontAddonBlocks(tenant.id, cfg)
+  // Admin carousels (Marketing → Coupons & banners → Carousels): hero / offers / promo slides.
+  const [addonsSlot, carousels] = await Promise.all([
+    loadStorefrontAddonBlocks(tenant.id, cfg),
+    loadHomeCarousels(tenant.id, cfg?.themeKey),
+  ])
+  // heroSlot replaces a theme's built-in hero while hero slides are live; carouselSlot = offers + promo.
+  const { heroSlot, carouselSlot } = homeCarouselSlots(carousels)
+  const heroOn = flagOn(cfg, 'showHero') && on('hero')
+  // Offers sit right after the hero; first on the page when the hero section is switched off.
+  const leadingCarousel = heroOn && order.includes('hero') ? null : carouselSlot
 
   if (vertical === 'marketplace') {
-    return <MarketplaceHome tenant={tenant} cfg={cfg} addonsSlot={addonsSlot} />
+    return (
+      <MarketplaceHome tenant={tenant} cfg={cfg} addonsSlot={addonsSlot} heroSlot={heroSlot} carouselSlot={carouselSlot} />
+    )
   }
 
   if (vertical === 'home_services') {
@@ -121,6 +133,8 @@ export async function HomePageSections({
           faqs={faqs}
           testimonials={testimonials}
           addonsSlot={addonsSlot}
+          heroSlot={heroSlot}
+          carouselSlot={carouselSlot}
         />
       )
     }
@@ -134,7 +148,12 @@ export async function HomePageSections({
     const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
 
     const blocks: Record<string, React.ReactNode> = {
-      hero: flagOn(cfg, 'showHero') && on('hero') ? <HsHero tenant={themeTenant} /> : null,
+      hero: heroOn ? (
+        <>
+          {heroSlot ?? <HsHero tenant={themeTenant} />}
+          {carouselSlot}
+        </>
+      ) : null,
       trust:
         flagOn(cfg, 'showTestimonials') && on('trust') ? (
           <Testimonials testimonials={testimonials} title="What customers say" />
@@ -156,6 +175,7 @@ export async function HomePageSections({
       <>
         <HsHeader tenant={themeTenant} navLinks={headerNavLinks} />
         <main>
+          {leadingCarousel}
           {order.map((t) => (blocks[t] ? <div key={t}>{blocks[t]}</div> : null))}
           {addonsSlot}
         </main>
@@ -188,24 +208,23 @@ export async function HomePageSections({
           navLinks={navLinks}
           footerLinks={footerLinks}
           addonsSlot={addonsSlot}
+          heroSlot={heroSlot}
+          carouselSlot={carouselSlot}
         />
       )
     }
     // ──────────────────────────────────────────────────────────────────────────
 
-    const [menu, chrome, sliders] = await Promise.all([
+    const [menu, chrome] = await Promise.all([
       flagOn(cfg, 'showMenu') && on('menu')
         ? fetchMenu(tenant.id)
         : Promise.resolve([]),
       fetchStorefrontCmsChrome(tenant.id, vertical),
-      flagOn(cfg, 'showHero') && on('hero')
-        ? fetchStorefrontSliders(tenant.id, { placement: 'home_page_hero' })
-        : Promise.resolve([]),
     ])
     const preview = menu.slice(0, 2)
     const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
     const reservationsOn = flagOn(cfg, 'showReservations') && on('reservations')
-    const heroSlides = buildHeroSlides(sliders, cfg, {
+    const heroSlides = buildHeroSlides(carousels.hero, cfg, {
       eyebrow: 'Welcome',
       title: tenant.name,
       subtitle: themeTenant.tagline,
@@ -219,9 +238,15 @@ export async function HomePageSections({
       <RestaurantShell tenantId={tenant.id}>
         <RestHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} />
         <main>
+          {leadingCarousel}
           {order.map((t) => {
-            if (t === 'hero' && flagOn(cfg, 'showHero') && on('hero'))
-              return <HeroCarousel key={t} slides={heroSlides} />
+            if (t === 'hero' && heroOn)
+              return (
+                <React.Fragment key={t}>
+                  <HeroCarousel slides={heroSlides} />
+                  {carouselSlot}
+                </React.Fragment>
+              )
             if (t === 'menu' && preview.length > 0)
               return (
                 <section key={t} className="sf-section sf-container">
@@ -288,21 +313,20 @@ export async function HomePageSections({
           navLinks={navLinks}
           footerLinks={footerLinks}
           addonsSlot={addonsSlot}
+          heroSlot={heroSlot}
+          carouselSlot={carouselSlot}
         />
       )
     }
 
     const showProducts = flagOn(cfg, 'showProducts') && on('products')
-    const [products, categories, sliders, chrome] = await Promise.all([
+    const [products, categories, chrome] = await Promise.all([
       showProducts ? fetchProducts(tenant.id, 24) : Promise.resolve([]),
       fetchStorefrontCategories(tenant.id),
-      flagOn(cfg, 'showHero') && on('hero')
-        ? fetchStorefrontSliders(tenant.id, { placement: 'home_page_hero' })
-        : Promise.resolve([]),
       fetchStorefrontCmsChrome(tenant.id, vertical),
     ])
     const { headerNavLinks, footerNavLinks, faqs, testimonials } = chrome
-    const heroSlides = buildHeroSlides(sliders, cfg, {
+    const heroSlides = buildHeroSlides(carousels.hero, cfg, {
       eyebrow: 'New arrivals',
       title: tenant.name,
       subtitle: themeTenant.tagline,
@@ -315,11 +339,13 @@ export async function HomePageSections({
       <RetailShell tenantId={tenant.id}>
         <RetailHeader tenant={themeTenant} config={cfg} navLinks={headerNavLinks} categories={categories} />
         <main>
+          {leadingCarousel}
           {order.map((t) => {
-            if (t === 'hero' && flagOn(cfg, 'showHero') && on('hero'))
+            if (t === 'hero' && heroOn)
               return (
                 <React.Fragment key={t}>
                   <HeroCarousel slides={heroSlides} />
+                  {carouselSlot}
                   <UspStrip
                     items={[
                       { icon: <IconShield />, title: 'Secure checkout', text: 'Safe, encrypted payments' },

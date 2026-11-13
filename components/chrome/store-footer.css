@@ -7,11 +7,17 @@
 }
 .sf-footer__top {
   display: grid;
-  gap: 2.5rem 2rem;
-  padding-block: clamp(2.5rem, 2rem + 2vw, 4rem);
+  /* Phones + tablets: brand on its own row, link columns two-up. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.25rem 1.5rem;
+  padding-block: clamp(2.5rem, 2rem + 2vw, 3.5rem);
 }
-@media (min-width: 640px) { .sf-footer__top { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1024px) { .sf-footer__top { grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); } }
+.sf-footer__brand { grid-column: 1 / -1; }
+/* One row on desktop however many link columns the theme passes (set inline as --sf-footer-cols). */
+@media (min-width: 1024px) {
+  .sf-footer__top { grid-template-columns: minmax(0, 1.5fr) repeat(var(--sf-footer-cols, 3), minmax(0, 1fr)); }
+  .sf-footer__brand { grid-column: auto; }
+}
 
 .sf-footer__name { margin: 0; font-family: var(--sf-font-display); font-size: var(--sf-text-xl); font-weight: 600; }
 .sf-footer__logo { height: 44px; width: auto; max-width: 180px; object-fit: contain; }

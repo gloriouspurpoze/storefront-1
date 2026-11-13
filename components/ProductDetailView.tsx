@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { SiteHeaderClient as SiteHeader } from '@/themes/retail/SiteHeaderClient'
@@ -54,6 +55,7 @@ export function ProductDetailView({
   navLinks,
   faqs,
   categories,
+  promoSlot,
 }: {
   product: PublicProduct
   tenant: ThemeTenant
@@ -63,6 +65,8 @@ export function ProductDetailView({
   faqs?: StorefrontCmsFaq[] | null
   /** Header mega-menu categories (default theme only). */
   categories?: StorefrontProductCategory[]
+  /** Admin "Product Page Promo" carousel slides for this product (server-rendered). */
+  promoSlot?: ReactNode
 }) {
   const wishlistEnabled = useRegisterWishlistAddon(config)
   const isSoftStudio = themeKey === 'soft-studio'
@@ -156,6 +160,7 @@ export function ProductDetailView({
           />
         </div>
       </div>
+      {promoSlot}
       <StorefrontFaqsSection
         faqs={faqs}
         fallbackItems={config?.content?.faqItems}

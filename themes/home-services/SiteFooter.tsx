@@ -30,7 +30,7 @@ export async function SiteFooter({
   ])
   const links = withoutBookingLinks(cmsLinks.length ? cmsLinks : DEFAULT_LINKS, booking)
   const columns = [
-    ...splitFooterLinks(links, ['Services', 'Company']),
+    ...splitFooterLinks(links, ['Company', 'More']),
     { title: 'Support', links: [{ href: '/contact', label: 'Get help' }, { href: '/account', label: 'My account' }, ...addonFooterLinks(cfg, 'home_services')] },
   ]
 

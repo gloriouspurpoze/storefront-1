@@ -29,7 +29,7 @@ export async function SiteFooter({
     navLinks ?? fetchStorefrontNavLinks(tenant.id, 'footer', 'restaurant'),
   ])
   const links = cmsLinks.length ? cmsLinks : DEFAULT_LINKS
-  const columns = [...splitFooterLinks(links, ['Order', 'Explore']), { title: 'Visit', links: [...VISIT_LINKS, ...addonFooterLinks(cfg, 'restaurant')] }]
+  const columns = [...splitFooterLinks(links, cmsLinks.length ? ['Explore', 'More'] : ['Order']), { title: 'Visit', links: [...VISIT_LINKS, ...addonFooterLinks(cfg, 'restaurant')] }]
 
   return (
     <StoreFooter

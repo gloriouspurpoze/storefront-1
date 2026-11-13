@@ -10,6 +10,8 @@ import {
   type StorefrontConfig,
 } from '@/lib/storefront-api'
 import { PreviewBanner } from '@/components/PreviewBanner'
+import { ThemeOverrideBanner } from '@/components/ThemeOverrideBanner'
+import { StoreOffers } from '@/components/content/StoreOffers'
 import { assertRouteTenant } from '@/lib/load-tenant'
 import type { ResolvedTenant } from '@/lib/types'
 import { contrastTextOn, colorsTooSimilar } from '@/lib/brandContrast'
@@ -219,6 +221,9 @@ export default async function TenantLayout({
       data-theme={cfg?.themeKey ?? 'classic'}
     >
       {preview.active ? <PreviewBanner expired={!cfg?.isPreview} /> : null}
+      {cfg?.themeOverride ? <ThemeOverrideBanner themeKey={cfg.themeOverride} verticalKey={tenant.verticalKey} /> : null}
+      {/* Admin Marketing → Coupons & banners: announcement bar + pop-up for every theme. */}
+      <StoreOffers tenantId={tenant.id} config={cfg} />
       {jsonLd.map((block, i) => (
         <JsonLd key={`jsonld-${i}`} id={`jsonld-${i}`} data={block} />
       ))}

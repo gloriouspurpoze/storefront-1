@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { CategoryMarketingBlocks } from '@/components/CategoryMarketingBlocks'
@@ -25,6 +26,7 @@ export function LuxeEssenceCategoryPage({
   config,
   navLinks,
   footerLinks,
+  promoSlot,
 }: {
   categoryName: string
   categorySlug: string
@@ -35,6 +37,8 @@ export function LuxeEssenceCategoryPage({
   config: StorefrontConfig | null
   navLinks?: StorefrontNavLink[]
   footerLinks?: StorefrontNavLink[]
+  /** Admin "Store Category (Aisle)" carousel slides for this aisle (server-rendered). */
+  promoSlot?: ReactNode
 }) {
   const { addToCart, qtyFor, totalQtyForProduct, authReady, toast } = useLuxeEssenceAddToCart()
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
@@ -97,6 +101,8 @@ export function LuxeEssenceCategoryPage({
       {marketingWithoutTitle ? (
         <CategoryMarketingBlocks config={marketingWithoutTitle} className="le-cat-marketing" />
       ) : null}
+
+      {promoSlot}
 
 
       <LuxeEssenceToast message={toast} />

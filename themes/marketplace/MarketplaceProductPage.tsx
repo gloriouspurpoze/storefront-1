@@ -10,6 +10,8 @@ import { SiteChrome } from '@/components/chrome/SiteChrome'
 import { Accordion, Breadcrumb, IconShield, IconTruck, Rating } from '@/ui'
 import { MarketplaceProductMain } from './MarketplaceBuyBox'
 import { ReviewsSection } from './ReviewsSection'
+import { PlacementPromo } from '@/components/content/HomeCarousels'
+import { loadPlacementSlides } from '@/lib/homeCarousels'
 import { SoldByCard } from './SoldByCard'
 import { ListingRail } from './ListingRail'
 import '@/components/commerce/pdp.css'
@@ -25,7 +27,11 @@ function Description({ text }: { text: string }) {
 
 /** Marketplace PDP: gallery, listing-keyed buy box, "Sold by", and more from the same seller. */
 export async function MarketplaceProductPage({ tenant, slug }: { tenant: ResolvedTenant; slug: string }) {
-  const [config, product] = await Promise.all([fetchStorefrontConfig(tenant.id), fetchProductBySlug(tenant.id, slug)])
+  const [config, product, promoSlides] = await Promise.all([
+    fetchStorefrontConfig(tenant.id),
+    fetchProductBySlug(tenant.id, slug),
+    loadPlacementSlides(tenant.id, 'product_page', slug),
+  ])
   if (!product) notFound()
 
   const store = product.sellerSlug ? await fetchSellerStore(tenant.id, product.sellerSlug, { limit: 9 }) : null
@@ -99,6 +105,7 @@ export async function MarketplaceProductPage({ tenant, slug }: { tenant: Resolve
             </>
           }
         />
+        <PlacementPromo slides={promoSlides} label="product_page" />
         <ReviewsSection tenantId={tenant.id} scope="product" slug={product.slug} />
       </main>
       {seller ? (

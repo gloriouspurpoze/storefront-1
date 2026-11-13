@@ -27,6 +27,8 @@ export function TradeProPage({
   faqs,
   testimonials,
   addonsSlot,
+  heroSlot,
+  carouselSlot,
 }: {
   tenant: ThemeTenant
   config: StorefrontConfig | null
@@ -36,6 +38,10 @@ export function TradeProPage({
   faqs: StorefrontCmsFaq[]
   testimonials: StorefrontCmsTestimonial[]
   addonsSlot?: ReactNode
+  /** Admin hero carousel; replaces TradeProHero while hero slides are live. */
+  heroSlot?: ReactNode
+  /** Admin offers strip + promo slides, rendered right after the hero. */
+  carouselSlot?: ReactNode
 }) {
   const headline = config?.content?.heroHeadline || `${tenant.name}, done right the first time.`
   const subcopy = config?.content?.heroSubcopy || tenant.tagline
@@ -47,17 +53,24 @@ export function TradeProPage({
   const rating = avgRating != null && reviews > 0 ? avgRating : undefined
   const reviewCount = reviews > 0 ? reviews : undefined
 
+  const sectionOrder = homepageSectionOrder(config, TRADE_PRO_SECTIONS)
+
   const blocks: Record<(typeof TRADE_PRO_SECTIONS)[number], ReactNode> = {
     hero: (
-      <TradeProHero
-        headline={headline}
-        subcopy={subcopy}
-        services={services}
-        rating={rating}
-        reviewCount={reviewCount}
-        ctaLabel={ctaLabel}
-        phone={phone}
-      />
+      <>
+        {heroSlot ?? (
+          <TradeProHero
+            headline={headline}
+            subcopy={subcopy}
+            services={services}
+            rating={rating}
+            reviewCount={reviewCount}
+            ctaLabel={ctaLabel}
+            phone={phone}
+          />
+        )}
+        {carouselSlot}
+      </>
     ),
     stats: <TradeProStatsBar />,
     services: (
@@ -86,7 +99,9 @@ export function TradeProPage({
       />
 
       <main>
-        {homepageSectionOrder(config, TRADE_PRO_SECTIONS).map((type) => (
+        {/* Hero switched off in Studio: offers still lead the page. */}
+        {sectionOrder.includes('hero') ? null : carouselSlot}
+        {sectionOrder.map((type) => (
           <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
         ))}
 

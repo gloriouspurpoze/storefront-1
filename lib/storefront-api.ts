@@ -13,6 +13,7 @@ import { env } from './env'
 import { filterOwnedByTenant } from './storefrontContent'
 import { withTenantId } from './tenant-headers'
 import { PREVIEW_COOKIE, parsePreviewCookie, type PreviewParams } from './storefrontPreview'
+import { THEME_OVERRIDE_HEADER, applyThemeOverride, isThemeOverrideEnabled, parseThemeKey } from './themeOverride'
 
 export interface PublicService {
   id: string
@@ -537,6 +538,8 @@ export interface StorefrontConfig {
   effectiveSections?: Array<{ type: string; enabled: boolean }>
   /** Set by fetchStorefrontConfig when this is a draft-preview overlay (never from the API). */
   isPreview?: boolean
+  /** Set by fetchStorefrontConfig when a dev/QA `?theme=` override replaced `themeKey` (never from the API). */
+  themeOverride?: string
   content?: StorefrontContent
   templateSettings?: StorefrontTemplateSettings
   branding: {
@@ -609,6 +612,17 @@ async function readPreviewCookie(): Promise<PreviewParams | null> {
   }
 }
 
+/** Dev/QA theme override forwarded by middleware (see lib/themeOverride.ts); null when disabled. */
+async function readThemeOverride(): Promise<string | null> {
+  if (typeof window !== 'undefined' || !isThemeOverrideEnabled()) return null
+  try {
+    const { headers } = await import('next/headers')
+    return parseThemeKey((await headers()).get(THEME_OVERRIDE_HEADER))
+  } catch {
+    return null
+  }
+}
+
 /** Whether the current request carries a well-formed draft-preview cookie. */
 export async function getStorefrontPreviewState(): Promise<{ active: boolean }> {
   return { active: (await readPreviewCookie()) !== null }
@@ -628,6 +642,11 @@ function normaliseConfig(raw: RawConfigResponse | null): StorefrontConfig | null
 }
 
 export async function fetchStorefrontConfig(tenantId: string): Promise<StorefrontConfig | null> {
+  const cfg = await fetchStorefrontConfigRaw(tenantId)
+  return cfg ? applyThemeOverride(cfg, await readThemeOverride()) : cfg
+}
+
+async function fetchStorefrontConfigRaw(tenantId: string): Promise<StorefrontConfig | null> {
   // Backend returns { tenant, config } since the config endpoint was enhanced to
   // include tenant identity. Unwrap `config` and normalise required sub-objects so
   // callers never have to guard against missing `branding` / `seo` objects.

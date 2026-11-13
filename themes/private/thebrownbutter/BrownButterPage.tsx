@@ -307,6 +307,8 @@ export function BrownButterPage({
   navLinks,
   footerLinks: _footerLinks,
   addonsSlot,
+  heroSlot,
+  carouselSlot,
   sectionCopy = {},
 }: {
   tenant: ThemeTenant
@@ -317,6 +319,10 @@ export function BrownButterPage({
   footerLinks?: { href: string; label: string }[]
   /** Paid add-on homepage blocks, rendered above the footer. */
   addonsSlot?: ReactNode
+  /** Admin hero carousel: replaces the logo/title block, below the open/closed status card (which stays). */
+  heroSlot?: ReactNode
+  /** Admin offers strip + promo slides, rendered after the hero. */
+  carouselSlot?: ReactNode
   /** Intro + FAQs per menu section (category slug) from admin → SEO → Categories. */
   sectionCopy?: Record<string, { intro: string; faqs: Array<{ question: string; answer: string }> }>
 }) {
@@ -1064,7 +1070,7 @@ export function BrownButterPage({
         contactPhone={contactPhone}
         layout="wide"
       >
-        <section className="hero">
+        <section className={heroSlot ? 'hero hero--carousel' : 'hero'}>
           <div className="status-card">
             <div className="status-left">
               <div className={`status-indicator${storeOpen ? '' : ' status-indicator--closed'}`} />
@@ -1080,20 +1086,28 @@ export function BrownButterPage({
             </div>
           </div>
 
-          <div className="hero-img-ring">
-            <BbImage src={logoUrl} alt={`${siteName} logo`} className="hero-logo-img" />
-          </div>
-          <h1 className="hero-title">{siteName}</h1>
-          <p className="hero-sub">
-            Fresh baked · <strong>{heroLocation}</strong>
-          </p>
+          {heroSlot ? null : (
+            <>
+              <div className="hero-img-ring">
+                <BbImage src={logoUrl} alt={`${siteName} logo`} className="hero-logo-img" />
+              </div>
+              <h1 className="hero-title">{siteName}</h1>
+              <p className="hero-sub">
+                Fresh baked · <strong>{heroLocation}</strong>
+              </p>
 
-          <div className="trust-badges">
-            <span className="trust-badge">🧈 Small-batch</span>
-            <span className="trust-badge">⭐ Baked fresh daily</span>
-            <span className="trust-badge">🎁 Custom orders</span>
-          </div>
+              <div className="trust-badges">
+                <span className="trust-badge">🧈 Small-batch</span>
+                <span className="trust-badge">⭐ Baked fresh daily</span>
+                <span className="trust-badge">🎁 Custom orders</span>
+              </div>
+            </>
+          )}
         </section>
+
+        {/* Admin hero carousel gets the full content width (the hero grid would squeeze it). */}
+        {heroSlot ? <div className="bb-hero-carousel">{heroSlot}</div> : null}
+        {carouselSlot}
 
         {categoryTabs.length > 1 && (
           <div className="cat-nav-wrap">

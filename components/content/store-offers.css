@@ -1,0 +1,134 @@
+/*
+ * Shared skin for the announcement bar + pop-up rendered by <StoreOffers> on every theme
+ * without its own offer UI. Brand-driven via the layout's --brand-primary / -contrast
+ * tokens so it fits any tenant palette; plain CSS so theme and tenant customCss can
+ * restyle `.sfo-*` if needed.
+ */
+
+.sfo-announcement {
+  position: relative;
+  z-index: 40;
+  background: var(--brand-primary, #0f172a);
+  color: var(--brand-primary-contrast, #ffffff);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.sfo-announcement-inner {
+  padding: 0.5rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.sfo-announcement-title {
+  font-weight: 600;
+}
+.sfo-announcement-desc {
+  opacity: 0.85;
+}
+.sfo-announcement-cta {
+  flex-shrink: 0;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 9999px;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sfo-announcement-cta:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.sfo-announcement-cta:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.sfo-popup-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+.sfo-popup-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+}
+.sfo-popup-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 400px);
+  max-height: min(88vh, 560px);
+  overflow: auto;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.sfo-popup-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: #475569;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+  cursor: pointer;
+}
+.sfo-popup-close:hover {
+  color: #0f172a;
+}
+.sfo-popup-close:focus-visible {
+  outline: 2px solid var(--brand-primary, #0f172a);
+  outline-offset: 2px;
+}
+.sfo-popup-media img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+}
+.sfo-popup-body {
+  padding: 1.1rem 1.25rem 1.3rem;
+}
+.sfo-popup-title {
+  margin: 0;
+  padding-right: 2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.sfo-popup-desc {
+  margin: 0.5rem 0 0;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.sfo-popup-cta {
+  display: inline-flex;
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 9999px;
+  background: var(--brand-primary, #0f172a);
+  color: var(--brand-primary-contrast, #ffffff);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.sfo-popup-cta:hover {
+  filter: brightness(0.95);
+}
+.sfo-popup-cta:focus-visible {
+  outline: 2px solid var(--brand-primary, #0f172a);
+  outline-offset: 2px;
+}

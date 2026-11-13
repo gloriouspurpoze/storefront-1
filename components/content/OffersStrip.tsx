@@ -37,7 +37,13 @@ export function OffersStrip<T>({
     const track = trackRef.current
     if (!track) return
     const slide = track.children.item(index) as HTMLElement | null
-    slide?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    // Scroll the track only. `scrollIntoView` also scrolls the page vertically, so every
+    // auto-advance tick yanked the window down to the strip wherever the shopper was reading.
+    if (slide) {
+      const delta = slide.getBoundingClientRect().left - track.getBoundingClientRect().left
+      const left = track.scrollLeft + delta - (track.clientWidth - slide.clientWidth) / 2
+      track.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
+    }
     setActiveIndex(index)
   }, [])
 

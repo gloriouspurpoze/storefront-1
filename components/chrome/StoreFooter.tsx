@@ -5,8 +5,10 @@ import { STOREFRONT_ADDON_FLAGS, isAddonActive } from '@/lib/storefrontAddons'
 import { IconMail, IconMapPin, IconPhone } from '@/ui'
 import './store-footer.css'
 
-export type FooterLink = { href: string; label: string }
-export type FooterColumn = { title: string; links: FooterLink[] }
+import { dedupeFooterColumns, type FooterColumn, type FooterLink } from '@/lib/footerLinks'
+
+export type { FooterColumn, FooterLink }
+export { dedupeFooterColumns, isLegalFooterLink, splitFooterLinks } from '@/lib/footerLinks'
 
 const SOCIAL_LABELS: Record<string, string> = {
   instagram: 'Instagram',
@@ -52,11 +54,14 @@ export function StoreFooter({
       return [key, v]
     })
     .filter(([, url]) => /^https?:\/\//.test(url))
-  const cols = columns.filter((c) => c.links.length > 0)
+  const cols = dedupeFooterColumns(columns)
 
   return (
     <footer className="sf-footer">
-      <div className="sf-footer__top sf-container">
+      <div
+        className="sf-footer__top sf-container"
+        style={{ ['--sf-footer-cols' as string]: Math.max(1, cols.length) }}
+      >
         <div className="sf-footer__brand">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -129,14 +134,6 @@ export function StoreFooter({
       </div>
     </footer>
   )
-}
-
-/** Split a flat CMS link list into up to `max` titled columns. */
-export function splitFooterLinks(links: FooterLink[], titles: string[]): FooterColumn[] {
-  if (!links.length) return []
-  const n = Math.min(titles.length, Math.max(1, Math.ceil(links.length / 4)))
-  const per = Math.ceil(links.length / n)
-  return titles.slice(0, n).map((title, i) => ({ title, links: links.slice(i * per, (i + 1) * per) }))
 }
 
 /**

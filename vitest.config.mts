@@ -1,10 +1,11 @@
 import { fileURLToPath } from 'node:url'
+import { defineConfig } from 'vitest/config'
 
 /**
  * Mirrors the tsconfig path aliases so tests can import app modules.
- * Plain object (no `vitest/config` import): vitest is run via `npx vitest`, not a devDependency.
+ * Run with `npm test` (vitest is a devDependency; CI runs it on every storefront PR).
  */
-export default {
+export default defineConfig({
   test: {
     // Some older tests use Jest-style globals (describe/it without imports).
     globals: true,
@@ -17,4 +18,4 @@ export default {
       '@': fileURLToPath(new URL('.', import.meta.url)),
     },
   },
-}
+})

@@ -3,6 +3,7 @@ import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { ThemeTenant } from '../types'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { IconMail, IconMapPin, IconPhone } from '@/ui'
+import { restaurantFooterLinks } from '../footerLinks'
 
 export function SaffronFooter({
   tenant,
@@ -11,16 +12,17 @@ export function SaffronFooter({
 }: {
   tenant: ThemeTenant
   config?: StorefrontConfig | null
-  /** CMS footer links when present; otherwise no page-link column (contact-only). */
+  /** CMS footer links when present; otherwise About / Contact / Delivery policy. */
   footerLinks?: StorefrontNavLink[]
 }) {
   const branding = config?.branding ?? {}
   const year = new Date().getFullYear()
   const siteName = branding.siteName || tenant.name
-  const pageLinks = footerLinks?.length ? footerLinks : null
+  const pageLinks = restaurantFooterLinks(footerLinks)
 
   return (
     <footer
+      className="saffron-footer"
       style={{
         background: 'var(--ink, #1A1714)',
         color: 'rgba(250,248,243,0.7)',
@@ -127,7 +129,11 @@ export function SaffronFooter({
           textAlign: 'center',
         }}
       >
-        © {year} {siteName}. All rights reserved. Powered by Profixer.
+        © {year} {siteName}. All rights reserved. Powered by{' '}
+        <a href="https://torqstudio.com" style={{ color: 'var(--cream, #FAF8F3)', textDecoration: 'none' }}>
+          Torq Studio
+        </a>
+        .
       </div>
     </footer>
   )

@@ -4829,3 +4829,45 @@ a.sticky-cart {
     padding: 36px 40px;
   }
 }
+
+/* Admin hero carousel (heroSlot): status card stays on its own, the carousel takes the
+   brand-banner card styling instead of being squeezed into the hero grid. */
+.hero.hero--carousel {
+  padding-bottom: 16px;
+}
+.bb-hero-carousel {
+  margin: 0 16px;
+  overflow: hidden;
+  border-radius: 24px;
+  box-shadow: 0 12px 40px rgba(126, 200, 227, 0.14);
+}
+.bb-hero-carousel .sf-hero__content,
+.bb-hero-carousel .sf-hero__controls {
+  padding-inline: 24px;
+}
+/* Brown Butter resets shared .sf-btn padding; restore it for the slide CTA. */
+.bb-hero-carousel .sf-hero__actions .sf-btn {
+  padding-inline: 1.4rem;
+}
+@media (min-width: 960px) {
+  .bb-store-wrap--wide .hero.hero--carousel {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+  .bb-store-wrap--wide .hero.hero--carousel .status-card {
+    max-width: 380px;
+  }
+  .bb-hero-carousel {
+    margin-top: 16px;
+    border-radius: 32px;
+  }
+  .bb-hero-carousel .sf-hero__content,
+  .bb-hero-carousel .sf-hero__controls {
+    padding-inline: 48px;
+  }
+}

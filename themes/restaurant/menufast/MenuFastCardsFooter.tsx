@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
+import { restaurantFooterLinks } from '../footerLinks'
 
 const SOCIAL_LABELS: Record<string, string> = {
   instagram: 'Instagram',
@@ -12,11 +13,6 @@ const SOCIAL_LABELS: Record<string, string> = {
   linkedin: 'LinkedIn',
 }
 
-const DEFAULT_PAGE_LINKS: StorefrontNavLink[] = [
-  { href: '/about', label: 'About' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Contact' },
-]
 
 function whatsAppHref(phone: string): string | null {
   const digits = phone.replace(/\D/g, '')
@@ -35,7 +31,7 @@ export function MenuFastCardsFooter({
   footerLinks,
 }: {
   config: StorefrontConfig | null
-  /** CMS footer menu links (empty → About/Blog/Contact fallback). */
+  /** CMS footer menu links (empty → About / Contact / Delivery policy). */
   footerLinks?: StorefrontNavLink[]
 }) {
   const branding = config?.branding
@@ -44,7 +40,7 @@ export function MenuFastCardsFooter({
   const whatsapp = branding?.socials?.whatsapp?.trim()
   const whatsappLink = whatsapp ? whatsAppHref(whatsapp) : null
   const address = branding?.address?.trim()
-  const pageLinks = footerLinks?.length ? footerLinks : DEFAULT_PAGE_LINKS
+  const pageLinks = restaurantFooterLinks(footerLinks)
 
   const socialLinks = Object.entries(branding?.socials ?? {})
     .filter(([key, value]) => key !== 'whatsapp' && Boolean(value?.trim()))
@@ -106,7 +102,9 @@ export function MenuFastCardsFooter({
         </nav>
       ) : null}
       {hasAddress ? <p className="mf-cards-shell-footer-address">{address}</p> : null}
-      <p className="mf-powered">Powered by Profixer</p>
+      <p className="mf-powered">
+        Powered by <a href="https://torqstudio.com">Torq Studio</a>
+      </p>
     </footer>
   )
 }

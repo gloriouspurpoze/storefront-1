@@ -175,12 +175,9 @@ interface CartContentProps {
   subtotal: number
   deliveryFee: number
   tax: number
-  discount: number
   total: number
   deliveryMode: DeliveryMode
   enabledDeliveryModes: DeliveryMode[]
-  promoCode: string
-  promoApplied: boolean
   instructions: string
   showPreferredDate: boolean
   deliveryDetails: DeliveryDetailsValue
@@ -188,8 +185,6 @@ interface CartContentProps {
   onAdd: (item: PublicMenuItem, variantId?: string) => void
   onRemove: (itemId: string, variantId?: string) => void
   onClear: () => void
-  onPromoChange: (val: string) => void
-  onApplyPromo: () => void
   onDeliveryModeChange: (mode: DeliveryMode) => void
   onInstructionsChange: (val: string) => void
   tenant: ThemeTenant
@@ -202,12 +197,9 @@ function CartContent({
   subtotal,
   deliveryFee,
   tax,
-  discount,
   total,
   deliveryMode,
   enabledDeliveryModes,
-  promoCode,
-  promoApplied,
   instructions,
   showPreferredDate,
   deliveryDetails,
@@ -215,8 +207,6 @@ function CartContent({
   onAdd,
   onRemove,
   onClear,
-  onPromoChange,
-  onApplyPromo,
   onDeliveryModeChange,
   onInstructionsChange,
   tenant,
@@ -529,13 +519,6 @@ function CartContent({
               value={deliveryFee === 0 ? 'Free' : formatMenuPrice(deliveryFee, currency)}
             />
             {tax > 0 ? <BillRow label="Taxes" value={formatMenuPrice(tax, currency)} /> : null}
-            {promoApplied && (
-              <BillRow
-                label="Promo discount"
-                value={`-${formatMenuPrice(discount, currency)}`}
-                accent
-              />
-            )}
             <div
               style={{
                 display: 'flex',
@@ -613,6 +596,8 @@ export function SaffronMenuPage({
   navLinks,
   footerLinks,
   addonsSlot,
+  heroSlot,
+  carouselSlot,
 }: {
   initialCategories: PublicMenuCategory[]
   tenant: ThemeTenant
@@ -621,6 +606,10 @@ export function SaffronMenuPage({
   footerLinks?: { href: string; label: string }[]
   /** Paid add-on homepage blocks, rendered above the footer. */
   addonsSlot?: ReactNode
+  /** Admin hero carousel; replaces the theme hero while hero slides are live. */
+  heroSlot?: ReactNode
+  /** Admin offers strip + promo slides, rendered right after the hero. */
+  carouselSlot?: ReactNode
 }) {
   const { entries, itemCount, subtotal, addItem, removeItem, clearCart, qtyFor } =
     useMenuCart(initialCategories)
@@ -629,8 +618,6 @@ export function SaffronMenuPage({
   const [modalVariantId, setModalVariantId] = useState<string | undefined>()
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [promoCode, setPromoCode] = useState('')
-  const [promoApplied, setPromoApplied] = useState(false)
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('delivery')
   const [mobileCartOpen, setMobileCartOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -706,35 +693,21 @@ export function SaffronMenuPage({
 
   const handleClearCart = useCallback(() => {
     clearCart()
-    setPromoApplied(false)
-    setPromoCode('')
   }, [clearCart])
-
-  const applyPromo = useCallback(() => {
-    const val = promoCode.trim().toUpperCase()
-    if (['FIRST50', 'SAVE10'].includes(val)) {
-      setPromoApplied(true)
-      showToast('Promo applied! 10% off')
-    } else if (!val) {
-      showToast('Enter a promo code')
-    } else {
-      showToast('Invalid promo code')
-    }
-  }, [promoCode, showToast])
 
   const cartEntries = entries
 
   const totalCartCount = itemCount
 
   const currency = cartEntries[0]?.item.currency ?? 'INR'
-  // Same math as the server charge (tenant fees + tax settings). No client-only discounts:
-  // there is no coupon API, so a UI discount would show less than Razorpay / COD collects.
+  // Same math as the server charge (tenant fees + tax settings). No client-side discounts or
+  // promo codes until the storefront checkout API applies coupons server-side — a UI-only
+  // discount would show less than Razorpay / COD actually collects.
   const {
     shippingInr: deliveryFee,
     taxInr: tax,
     totalInr: total,
   } = storefrontCheckoutTotals(deliveryMode, subtotal, config)
-  const discount = 0
 
   // Filtered categories for display
   const filteredCategories = useMemo(() => {
@@ -761,12 +734,9 @@ export function SaffronMenuPage({
     subtotal,
     deliveryFee,
     tax,
-    discount,
     total,
     deliveryMode,
     enabledDeliveryModes,
-    promoCode,
-    promoApplied,
     instructions,
     showPreferredDate,
     deliveryDetails,
@@ -774,8 +744,6 @@ export function SaffronMenuPage({
     onAdd: addToCart,
     onRemove: removeFromCart,
     onClear: handleClearCart,
-    onPromoChange: setPromoCode,
-    onApplyPromo: applyPromo,
     onDeliveryModeChange: setDeliveryMode,
     onInstructionsChange: setInstructions,
     tenant,
@@ -792,7 +760,12 @@ export function SaffronMenuPage({
 
   const blocks: Record<(typeof SAFFRON_SECTIONS)[number], ReactNode> = {
     // Dark hero banner (offers strip is embedded in the hero)
-    hero: <SaffronHero tenant={tenant} config={config} offers={offers} />,
+    hero: (
+      <>
+        {heroSlot ?? <SaffronHero tenant={tenant} config={config} offers={offers} />}
+        {carouselSlot}
+      </>
+    ),
     // Two-column layout: menu + cart — one unit (category tabs, search, item grid, desktop cart)
     menu: (
       <div
@@ -1055,6 +1028,7 @@ export function SaffronMenuPage({
         onMenuOpen={() => setMenuOpen(true)}
       />
 
+      {homepageSectionOrder(config, SAFFRON_SECTIONS).includes('hero') ? null : carouselSlot}
       {homepageSectionOrder(config, SAFFRON_SECTIONS).map((type) => (
         <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
       ))}
@@ -1324,6 +1298,10 @@ export function SaffronMenuPage({
           }
           .saffron-hero {
             grid-template-columns: 1fr !important;
+          }
+          /* Keep the footer clear of the fixed "View Cart" bar. */
+          .saffron-footer {
+            padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
           }
           .saffron-hero-offers {
             align-items: flex-start !important;

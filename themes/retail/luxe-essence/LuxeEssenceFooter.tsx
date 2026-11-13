@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { StorefrontConfig } from '@/lib/storefront-api'
+import { isLegalFooterLink } from '@/lib/footerLinks'
 
 const SOCIAL_LABELS: Record<string, string> = {
   instagram: 'Instagram',
@@ -51,7 +52,12 @@ export function LuxeEssenceFooter({
   const address = branding?.address?.trim()
   const whatsapp = branding?.socials?.whatsapp?.trim()
   const whatsappLink = whatsapp ? whatsAppHref(whatsapp) : null
-  const shopLinks = footerLinks?.length ? footerLinks : DEFAULT_SHOP_LINKS
+  // CMS menus mix site pages with terms/privacy; policies belong under Help, not "Shop".
+  const cmsLinks = footerLinks?.length ? footerLinks : null
+  const shopLinks = cmsLinks ? cmsLinks.filter((l) => !isLegalFooterLink(l)) : DEFAULT_SHOP_LINKS
+  const policyLinks = (cmsLinks ?? []).filter(
+    (l) => isLegalFooterLink(l) && !/shipping-policy\/?$/.test(l.href),
+  )
 
   const socialLinks = Object.entries(branding?.socials ?? {})
     .filter(([key, value]) => key !== 'whatsapp' && Boolean(value?.trim()))
@@ -73,7 +79,7 @@ export function LuxeEssenceFooter({
         </div>
 
         <div>
-          <div className="le-footer-col-title">Shop</div>
+          <div className="le-footer-col-title">{cmsLinks ? 'Explore' : 'Shop'}</div>
           <ul className="le-footer-links">
             {shopLinks.map((link) => (
               <li key={`${link.href}-${link.label}`}>
@@ -111,6 +117,11 @@ export function LuxeEssenceFooter({
             <li>
               <Link href="/shipping-policy">Shipping policy</Link>
             </li>
+            {policyLinks.map((link) => (
+              <li key={`${link.href}-${link.label}`}>
+                <Link href={link.href}>{link.label}</Link>
+              </li>
+            ))}
             {phone ? (
               <li>
                 <a href={`tel:${phone.replace(/\s/g, '')}`}>{phone}</a>

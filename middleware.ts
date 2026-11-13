@@ -2,6 +2,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { resolveTenant } from './lib/tenant-resolver'
 import { primaryRedirectUrl } from './lib/primaryDomainRedirect'
 import { PREVIEW_COOKIE } from './lib/storefrontPreview'
+import {
+  THEME_OVERRIDE_COOKIE,
+  THEME_OVERRIDE_HEADER,
+  THEME_OVERRIDE_MAX_AGE_SECONDS,
+  THEME_OVERRIDE_PARAM,
+  decideThemeOverride,
+  isThemeOverrideEnabled,
+} from './lib/themeOverride'
 import { PLATFORM_SITE_URL, hostWithoutPort, isLocalPlatformHost, isPlatformHost } from './platform/config'
 
 /**
@@ -111,7 +119,29 @@ export async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone()
   url.pathname = `/sites/${tenant.id}${pathname === '/' ? '' : pathname}`
 
-  const res = NextResponse.rewrite(url)
+  // Never trust a client-sent override header; only this middleware may set it.
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.delete(THEME_OVERRIDE_HEADER)
+  const theme = isThemeOverrideEnabled()
+    ? decideThemeOverride({
+        param: req.nextUrl.searchParams.get(THEME_OVERRIDE_PARAM),
+        cookie: req.cookies.get(THEME_OVERRIDE_COOKIE)?.value,
+        verticalKey: tenant.verticalKey,
+      })
+    : ({ action: 'none' } as const)
+  if (theme.action === 'set') requestHeaders.set(THEME_OVERRIDE_HEADER, theme.themeKey)
+
+  const res = NextResponse.rewrite(url, { request: { headers: requestHeaders } })
+  if (theme.action === 'set' && theme.persist) {
+    res.cookies.set(THEME_OVERRIDE_COOKIE, theme.themeKey, {
+      path: '/',
+      sameSite: 'lax',
+      maxAge: THEME_OVERRIDE_MAX_AGE_SECONDS,
+    })
+  } else if (theme.action === 'clear') {
+    res.cookies.delete(THEME_OVERRIDE_COOKIE)
+  }
+  if (theme.action === 'set') res.headers.set('Cache-Control', 'private, no-store')
   res.headers.set('x-storefront-resolved', tenant.matchedBy)
   res.headers.set('x-tenant-id', tenant.id)
   res.headers.set('x-tenant-slug', tenant.slug)

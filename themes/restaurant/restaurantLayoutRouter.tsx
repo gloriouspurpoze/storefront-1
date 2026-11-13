@@ -17,6 +17,10 @@ type RestaurantLayoutProps = {
   footerLinks?: StorefrontNavLink[]
   /** Paid add-on homepage blocks (AMC / loyalty / B2B), rendered above the theme footer. */
   addonsSlot?: ReactNode
+  /** Admin hero carousel; replaces the theme hero while slides are live (see components/content/HomeCarousels). */
+  heroSlot?: ReactNode
+  /** Admin offers strip + promo slides, rendered right after the hero. */
+  carouselSlot?: ReactNode
 }
 
 const router = createLayoutRouter<RestaurantLayoutProps, 'saffron' | 'menufast-minimal' | 'menufast-cards'>({
@@ -32,6 +36,8 @@ const router = createLayoutRouter<RestaurantLayoutProps, 'saffron' | 'menufast-m
           navLinks={p.navLinks}
           footerLinks={p.footerLinks}
           addonsSlot={p.addonsSlot}
+          heroSlot={p.heroSlot}
+          carouselSlot={p.carouselSlot}
         />
       </SaffronLayout>
     ),
@@ -43,6 +49,8 @@ const router = createLayoutRouter<RestaurantLayoutProps, 'saffron' | 'menufast-m
         navLinks={p.navLinks}
         footerLinks={p.footerLinks}
         addonsSlot={p.addonsSlot}
+        heroSlot={p.heroSlot}
+        carouselSlot={p.carouselSlot}
       />
     ),
     'menufast-cards': (p) => (

@@ -17,7 +17,7 @@ import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@
 import { formatMoney, useCart } from '../cart'
 import type { ThemeTenant } from '../types'
 import { StandardStorefrontNav } from '@/components/StandardStorefrontNav'
-import { StoreFooter } from '@/components/chrome/StoreFooter'
+import { StoreFooter, splitFooterLinks } from '@/components/chrome/StoreFooter'
 import { ProductCard } from '@/components/commerce/ProductCard'
 import { useCartDrawerState } from '@/components/commerce/cartDrawerBus'
 import { IconBag, IconCheck, IconClose, IconStar, IconTruck } from '@/ui'
@@ -60,6 +60,8 @@ export function SoftStudioPage({
   navLinks,
   footerLinks,
   addonsSlot,
+  heroSlot,
+  carouselSlot,
 }: {
   products: PublicProduct[]
   tenant: ThemeTenant
@@ -68,6 +70,10 @@ export function SoftStudioPage({
   footerLinks?: StorefrontNavLink[]
   /** Paid add-on homepage blocks, rendered above the footer. */
   addonsSlot?: ReactNode
+  /** Admin hero carousel; replaces the theme hero while hero slides are live. */
+  heroSlot?: ReactNode
+  /** Admin offers strip + promo slides, rendered right after the hero. */
+  carouselSlot?: ReactNode
 }) {
   const siteName = config?.branding?.siteName || tenant.name
   const wishlistOn = useRegisterWishlistAddon(config)
@@ -201,6 +207,8 @@ export function SoftStudioPage({
 
   const blocks: Record<(typeof SOFT_STUDIO_SECTIONS)[number], ReactNode> = {
     hero: (
+      <>
+        {heroSlot ?? (
       <div className="ss-hero">
         <div className="ss-hero-text">
           <p className="ss-hero-eyebrow">Curated for you</p>
@@ -263,6 +271,9 @@ export function SoftStudioPage({
           </div>
         </div>
       </div>
+        )}
+        {carouselSlot}
+      </>
     ),
     highlights: (
       <div className="ss-strip">
@@ -309,6 +320,7 @@ export function SoftStudioPage({
         }}
       />
 
+      {homepageSectionOrder(config, SOFT_STUDIO_SECTIONS).includes('hero') ? null : carouselSlot}
       {homepageSectionOrder(config, SOFT_STUDIO_SECTIONS).map((type) => (
         <Fragment key={type}>{blocks[type as keyof typeof blocks]}</Fragment>
       ))}
@@ -321,7 +333,9 @@ export function SoftStudioPage({
         logoUrl={config?.branding?.logoUrl}
         config={config}
         columns={[
-          { title: 'Shop', links: footerLinks?.length ? footerLinks : DEFAULT_FOOTER_SHOP_LINKS },
+          ...(footerLinks?.length
+            ? splitFooterLinks(footerLinks, ['Company', 'More'])
+            : [{ title: 'Shop', links: DEFAULT_FOOTER_SHOP_LINKS }]),
           { title: 'Help', links: [{ href: '/orders/track', label: 'Track order' }, { href: '/shipping-policy', label: 'Shipping policy' }, { href: '/account', label: 'My account' }] },
         ]}
       />
