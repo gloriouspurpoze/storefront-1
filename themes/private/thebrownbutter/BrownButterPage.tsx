@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { fetchProducts, submitLead } from '@/lib/storefront-api'
+import { PaymentMethodPicker, useStorefrontPaymentMethod } from '@/components/PaymentMethodPicker'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import { validateShippingAddress } from '@/lib/storefrontShippingAddress'
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
@@ -415,6 +416,7 @@ export function BrownButterPage({
   const [view, setView] = useState<'menu' | 'success' | 'enquiry_success'>('menu')
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const pay = useStorefrontPaymentMethod(config)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [noItemWarn, setNoItemWarn] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
@@ -690,6 +692,7 @@ export function BrownButterPage({
         deliveryDetails: deliveryDetailsForCheckout,
         fulfillmentMode: toApiFulfillmentMode(delivery),
         accessToken,
+        paymentMethod: pay.method,
       })
       setOrderNumber(result.orderNumber)
       setView('success')
@@ -1023,6 +1026,8 @@ export function BrownButterPage({
               </div>
             </div>
 
+            {!isShipEnquiry && <PaymentMethodPicker methods={pay.methods} value={pay.method} onChange={pay.setMethod} />}
+
             {noItemWarn && <p className="no-item-warn show">Please select at least one item 🍪</p>}
             {checkoutError && <p className="no-item-warn show">{checkoutError}</p>}
 
@@ -1034,7 +1039,9 @@ export function BrownButterPage({
                     : 'Processing…'
                   : isShipEnquiry
                     ? 'Send enquiry'
-                    : 'Place order & pay'}
+                    : pay.method === 'razorpay'
+                      ? 'Place order & pay'
+                      : pay.submitLabel}
               </span>
               <span>→</span>
             </button>

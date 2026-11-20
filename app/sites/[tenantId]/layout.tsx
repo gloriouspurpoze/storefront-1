@@ -120,6 +120,7 @@ function brandStyle(tenant: ResolvedTenant, cfg: StorefrontConfig | null): React
   }
   const brandContrast = contrastTextOn(brand)
   const secondaryContrast = contrastTextOn(secondary)
+  const accentContrast = contrastTextOn(accent)
   return {
     ['--site-brand' as never]: brand,
     ['--site-accent' as never]: accent,
@@ -128,6 +129,7 @@ function brandStyle(tenant: ResolvedTenant, cfg: StorefrontConfig | null): React
     ['--brand-secondary' as never]: secondary,
     ['--brand-primary-contrast' as never]: brandContrast,
     ['--brand-secondary-contrast' as never]: secondaryContrast,
+    ['--brand-accent-contrast' as never]: accentContrast,
   }
 }
 

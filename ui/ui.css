@@ -4,6 +4,7 @@
  * All values come from `--sf-*` tokens in themes/shared/tokens.css.
  */
 @import '../themes/shared/tokens.css';
+@import '../themes/shared/classic-branding.css';
 
 /* ── Layout helpers ── */
 .sf-container {

@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
+import { PaymentMethodPicker, useStorefrontPaymentMethod } from '@/components/PaymentMethodPicker'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import {
   formatDeliveryNotes,
@@ -45,6 +46,7 @@ export function RestaurantCheckoutClient({
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetailsValue>({})
   const { requestCheckout, modal } = useShippingPolicyCheckoutGate(config)
+  const pay = useStorefrontPaymentMethod(config)
   const showPreferredTime = showPreferredTimeOfDelivery(config, config?.themeKey ?? 'classic')
   const {
     accessToken,
@@ -114,6 +116,7 @@ export function RestaurantCheckoutClient({
         notes: formatDeliveryNotes(deliveryDetails),
         deliveryDetails,
         accessToken,
+        paymentMethod: pay.method,
       })
       clear()
       setStatus({ kind: 'success', orderNumber: result.orderNumber, email: trimmedEmail })
@@ -282,6 +285,7 @@ export function RestaurantCheckoutClient({
               inputMode="tel"
             />
           </div>
+          <PaymentMethodPicker methods={pay.methods} value={pay.method} onChange={pay.setMethod} />
           {status.kind === 'error' && (
             <p className="mt-3 text-sm text-red-600">{status.message}</p>
           )}
@@ -294,7 +298,9 @@ export function RestaurantCheckoutClient({
           >
             {status.kind === 'processing'
               ? 'Processing…'
-              : `Pay · ${formatMoney(subtotal, currency)} (${itemCount} items)`}
+              : pay.method === 'razorpay'
+                ? `Pay · ${formatMoney(subtotal, currency)} (${itemCount} items)`
+                : `${pay.submitLabel} · ${formatMoney(subtotal, currency)}`}
           </button>
         </div>
       </form>

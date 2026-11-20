@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { StorefrontNavLink } from '@/lib/cms-content'
 import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
+import { PaymentMethodPicker, useStorefrontPaymentMethod } from '@/components/PaymentMethodPicker'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import {
   formatDeliveryNotes,
@@ -98,6 +99,7 @@ export function SoftStudioPage({
   const [policyAcknowledged, setPolicyAcknowledged] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const pay = useStorefrontPaymentMethod(config)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
@@ -186,6 +188,7 @@ export function SoftStudioPage({
         notes: formatDeliveryNotes(deliveryDetails),
         deliveryDetails,
         accessToken,
+        paymentMethod: pay.method,
       })
       clear()
       setOrderNumber(result.orderNumber)
@@ -517,6 +520,8 @@ export function SoftStudioPage({
                 />
               </div>
 
+              <PaymentMethodPicker methods={pay.methods} value={pay.method} onChange={pay.setMethod} />
+
               {checkoutError && <p className="ss-checkout-error">{checkoutError}</p>}
 
               <button
@@ -525,7 +530,7 @@ export function SoftStudioPage({
                 disabled={checkoutLoading || !lines.length}
                 onClick={() => void onPlaceOrder()}
               >
-                {checkoutLoading ? 'Processing…' : 'Pay & place order'}
+                {checkoutLoading ? 'Processing…' : pay.submitLabel}
               </button>
               <button type="button" className="ss-back-to-cart" onClick={closeCheckout}>
                 ← Back to Cart

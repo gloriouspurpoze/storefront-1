@@ -25,6 +25,10 @@
   --sf-brand-hover: color-mix(in srgb, var(--sf-brand) 85%, #000);
   --sf-brand-soft: color-mix(in srgb, var(--sf-brand) 10%, #fff);
   --sf-accent: var(--site-accent, var(--sf-brand));
+  --sf-accent-contrast: var(--brand-accent-contrast, #fff);
+  --sf-secondary: var(--site-secondary, var(--sf-brand));
+  --sf-secondary-contrast: var(--brand-secondary-contrast, #fff);
+  --sf-secondary-soft: color-mix(in srgb, var(--sf-secondary) 10%, #fff);
 
   --sf-bg: #fff;
   --sf-surface: #fff;

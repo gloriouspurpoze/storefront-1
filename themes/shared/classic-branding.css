@@ -1,0 +1,68 @@
+/**
+ * Classic theme branding roles (scoped to `.theme-classic`).
+ *   primary   → main CTAs, focus, active states (already via --sf-brand)
+ *   secondary → supporting UI: badges, secondary buttons, chips, footer, promo panels
+ *   accent    → highlights: hover states, link hovers, counters, underlines, rings
+ * Values come from branding.secondaryColor / accentColor (layout.tsx), each
+ * falling back to primary when unset.
+ */
+.theme-classic {
+  --sf-ring: color-mix(in srgb, var(--sf-accent) 45%, transparent);
+}
+
+/* Badges */
+.theme-classic .sf-badge { background: var(--sf-secondary); color: var(--sf-secondary-contrast); }
+.theme-classic .sf-badge--new { background: var(--sf-accent); color: var(--sf-accent-contrast); }
+.theme-classic .sf-badge--sale { background: var(--sf-sale); color: #fff; }
+.theme-classic .sf-badge--soldout { background: #6b6b6b; color: #fff; }
+.theme-classic .sf-badge--soft { background: var(--sf-secondary-soft); color: var(--sf-secondary); }
+.theme-classic .sf-badge--success { background: var(--sf-success-soft); color: var(--sf-success); }
+
+/* Buttons: secondary = outlined in the secondary colour; hover fills */
+.theme-classic .sf-btn--secondary { --_fg: var(--sf-secondary); --_bd: var(--sf-secondary); }
+.theme-classic .sf-btn--secondary:hover {
+  --_bg: var(--sf-secondary);
+  --_fg: var(--sf-secondary-contrast);
+  --_bd: var(--sf-secondary);
+}
+.theme-classic .sf-btn--ghost:hover { --_bg: var(--sf-secondary-soft); --_fg: var(--sf-secondary); }
+.theme-classic .sf-btn--link { --_fg: var(--sf-accent); }
+
+/* Chips / tabs */
+.theme-classic .sf-tab:hover { border-color: var(--sf-secondary); color: var(--sf-secondary); }
+.theme-classic .sf-tab[aria-selected='true'],
+.theme-classic .sf-tab[aria-current='page'],
+.theme-classic .sf-tab[aria-current='true'] {
+  background: var(--sf-secondary);
+  border-color: var(--sf-secondary);
+  color: var(--sf-secondary-contrast);
+}
+.theme-classic .sf-carousel__dot[aria-current='true'] { background: var(--sf-accent); }
+
+/* Header: accent underline, cart count, promo panel */
+.theme-classic .sf-header__nav-link::after { background: var(--sf-accent); height: 2px; }
+.theme-classic .sf-header__nav-link:hover { color: var(--sf-accent); }
+.theme-classic .sf-icon-btn__count { background: var(--sf-accent); color: var(--sf-accent-contrast); }
+.theme-classic .sf-mega__list a:hover { color: var(--sf-accent); }
+.theme-classic .sf-mega__promo { background: var(--sf-secondary-soft); }
+
+/* Links & breadcrumbs */
+.theme-classic .sf-breadcrumb a:hover { color: var(--sf-accent); }
+.theme-classic .sf-filters__links a:hover,
+.theme-classic .sf-filters__links a[aria-current='page'] { color: var(--sf-accent); }
+
+/* Footer: secondary top rule, accent link hovers, secondary social hover */
+.theme-classic .sf-footer { border-top: 3px solid var(--sf-secondary); }
+.theme-classic .sf-footer__col a:hover,
+.theme-classic .sf-footer__contact a:hover { color: var(--sf-accent); }
+.theme-classic .sf-footer__socials a:hover { background: var(--sf-secondary); color: var(--sf-secondary-contrast); }
+
+/* Sections: USP icons use secondary, quotes avatar accent */
+.theme-classic .sf-usp__icon { background: var(--sf-secondary-soft); color: var(--sf-secondary); }
+.theme-classic .sf-quote__avatar { background: color-mix(in srgb, var(--sf-accent) 14%, #fff); color: var(--sf-accent); }
+
+/* Form focus uses accent */
+.theme-classic .sf-input:focus,
+.theme-classic .sf-select:focus,
+.theme-classic .sf-search-page__form:focus-within,
+.theme-classic .sf-header__searchbar:focus-within { border-color: var(--sf-accent); }

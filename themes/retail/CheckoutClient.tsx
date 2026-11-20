@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
+import { PaymentMethodPicker, useStorefrontPaymentMethod } from '@/components/PaymentMethodPicker'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
 import { resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
 import { hasShippableDeliveryDetails } from '@/lib/storefrontShippingAddress'
@@ -80,6 +81,7 @@ export function CheckoutClient({
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const { requestCheckout, modal } = useShippingPolicyCheckoutGate(config, themeKey)
+  const pay = useStorefrontPaymentMethod(config)
   const showPreferredTime = showPreferredTimeOfDelivery(config, config?.themeKey ?? themeKey ?? 'classic')
   const orderingHours = useMemo(() => getOrderingHoursFromConfig(config), [config])
   const orderingAvailability = useMemo(() => getOrderingAvailabilityFromConfig(config), [config])
@@ -162,6 +164,7 @@ export function CheckoutClient({
         notes: formatDeliveryNotes(deliveryDetails),
         deliveryDetails,
         accessToken,
+        paymentMethod: pay.method,
       })
       clear()
       setStatus({
@@ -320,6 +323,8 @@ export function CheckoutClient({
               variant="plain"
             />
 
+            <PaymentMethodPicker methods={pay.methods} value={pay.method} onChange={pay.setMethod} />
+
             {status.kind === 'error' ? <p className="sf-checkout-error">{status.message}</p> : null}
 
             <button
@@ -328,7 +333,7 @@ export function CheckoutClient({
               className="sf-cart-cta-primary sf-cart-cta-block sf-checkout-pay-btn"
               aria-busy={status.kind === 'processing'}
             >
-              {status.kind === 'processing' ? 'Processing…' : `Pay ${formatMoney(subtotal, currency)}`}
+              {status.kind === 'processing' ? 'Processing…' : pay.method === 'razorpay' ? `Pay ${formatMoney(subtotal, currency)}` : pay.submitLabel}
             </button>
             <p className="sf-cart-trust">{trustCopy}</p>
           </form>
