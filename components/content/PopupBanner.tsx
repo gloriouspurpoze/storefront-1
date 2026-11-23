@@ -68,6 +68,17 @@ export function PopupBanner({
     setOpen(false)
   }, [storageKey])
 
+  // The popup lives in the site layout, so following its offer link (client-side navigation) would
+  // otherwise leave it open on the next page. Closing is deferred one tick so the click still
+  // reaches the link and navigation proceeds; it counts as dismissed for this session.
+  const onContentClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      const target = e.target as HTMLElement | null
+      if (target?.closest('a[href], [data-popup-dismiss]')) window.setTimeout(dismiss, 0)
+    },
+    [dismiss],
+  )
+
   const onBackdropClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.target === e.currentTarget) dismiss()
@@ -96,7 +107,9 @@ export function PopupBanner({
         >
           <IconClose size={18} />
         </button>
-        <div id={titleId}>{children}</div>
+        <div id={titleId} onClick={onContentClick}>
+          {children}
+        </div>
       </div>
     </div>,
     document.body,

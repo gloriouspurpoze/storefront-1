@@ -9,4 +9,6 @@ export type LuxeEssenceStorefrontContent = {
   offers: StorefrontSlider[]
   promo: StorefrontSlider[]
   popup: StorefrontBanner | null
+  /** Coupon code advertised in the popup (tap to copy). */
+  popupOfferCode?: string
 }

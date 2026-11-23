@@ -6,6 +6,8 @@ import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { PaymentMethodPicker, useStorefrontPaymentMethod } from '@/components/PaymentMethodPicker'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
+import { CouponInput } from '@/components/commerce/CouponInput'
+import { useCheckoutDiscount } from '@/lib/useCheckoutDiscount'
 import { resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
 import { hasShippableDeliveryDetails } from '@/lib/storefrontShippingAddress'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
@@ -112,6 +114,17 @@ export function CheckoutClient({
     })
   }, [isReady, prefillDelivery])
 
+  const discount = useCheckoutDiscount({
+    tenantId: tenant.id,
+    lines: useMemo(
+      () => lines.map((l) => ({ productId: l.productId, quantity: l.quantity, variantId: l.variantId })),
+      [lines],
+    ),
+    email: email || prefillEmail || undefined,
+  })
+  const discountInr = discount.preview?.discountInr ?? 0
+  const payable = Math.max(0, subtotal - discountInr)
+
   const processPayment = async () => {
     const contact = resolveCheckoutContactForSubmit({
       formEmail: email,
@@ -165,6 +178,7 @@ export function CheckoutClient({
         deliveryDetails,
         accessToken,
         paymentMethod: pay.method,
+        couponCode: discount.applied,
       })
       clear()
       setStatus({
@@ -333,7 +347,7 @@ export function CheckoutClient({
               className="sf-cart-cta-primary sf-cart-cta-block sf-checkout-pay-btn"
               aria-busy={status.kind === 'processing'}
             >
-              {status.kind === 'processing' ? 'Processing…' : pay.method === 'razorpay' ? `Pay ${formatMoney(subtotal, currency)}` : pay.submitLabel}
+              {status.kind === 'processing' ? 'Processing…' : pay.method === 'razorpay' ? `Pay ${formatMoney(payable, currency)}` : pay.submitLabel}
             </button>
             <p className="sf-cart-trust">{trustCopy}</p>
           </form>
@@ -348,6 +362,12 @@ export function CheckoutClient({
                 <li key={cartLineKey(line.productId, line.variantId)} className="sf-checkout-summary-line">
                   <span>
                     {line.name} ×{line.quantity}
+                    {discount.preview?.freeUnits?.[line.productId] ? (
+                      <em className="sf-coupon-free">
+                        {' '}
+                        ({discount.preview.freeUnits[line.productId]} free)
+                      </em>
+                    ) : null}
                   </span>
                   <span>{formatMoney(line.price * line.quantity, line.currency)}</span>
                 </li>
@@ -357,6 +377,21 @@ export function CheckoutClient({
               <span>Subtotal</span>
               <span>{formatMoney(subtotal, currency)}</span>
             </div>
+            <CouponInput
+              applied={discount.applied}
+              preview={discount.preview}
+              error={discount.error}
+              loading={discount.loading}
+              onApply={discount.apply}
+              onRemove={discount.remove}
+              formatMoney={(n) => formatMoney(n, currency)}
+            />
+            {discountInr > 0 ? (
+              <div className="sf-cart-summary-row">
+                <span>Discount</span>
+                <span>−{formatMoney(discountInr, currency)}</span>
+              </div>
+            ) : null}
             <p className="sf-cart-summary-note">Shipping calculated after payment confirmation.</p>
             <Link href="/cart" className="sf-cart-cta-secondary">
               Edit cart

@@ -41,6 +41,8 @@ export async function runStorefrontCheckout(input: {
   fulfillmentMode?: string
   accessToken?: string
   paymentMethod?: StorefrontPaymentMethod
+  /** Coupon the shopper applied; the server re-validates it. */
+  couponCode?: string
 }): Promise<StorefrontCheckoutSuccess> {
   if (!input.lines.length) {
     throw new Error('Your cart is empty.')
@@ -73,6 +75,7 @@ export async function runStorefrontCheckout(input: {
       paymentMethod: method as StorefrontOfflinePaymentMethod,
       shippingAddress,
       fulfillmentMode,
+      couponCode: input.couponCode,
       accessToken: input.accessToken,
     })
     return {
@@ -89,6 +92,7 @@ export async function runStorefrontCheckout(input: {
     customerName: input.customer.name,
     notes: input.notes,
     fulfillmentMode,
+    couponCode: input.couponCode,
     accessToken: input.accessToken,
   })
 

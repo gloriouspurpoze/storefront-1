@@ -225,7 +225,7 @@ export default async function TenantLayout({
       {preview.active ? <PreviewBanner expired={!cfg?.isPreview} /> : null}
       {cfg?.themeOverride ? <ThemeOverrideBanner themeKey={cfg.themeOverride} verticalKey={tenant.verticalKey} /> : null}
       {/* Admin Marketing → Coupons & banners: announcement bar + pop-up for every theme. */}
-      <StoreOffers tenantId={tenant.id} config={cfg} />
+      <StoreOffers tenantId={tenant.id} config={cfg} verticalKey={tenant.verticalKey} />
       {jsonLd.map((block, i) => (
         <JsonLd key={`jsonld-${i}`} id={`jsonld-${i}`} data={block} />
       ))}

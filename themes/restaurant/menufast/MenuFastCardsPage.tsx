@@ -165,7 +165,7 @@ export function MenuFastCardsPage({
     )
   }
 
-  const { announcement, hero, offers, promo, popup } = content
+  const { announcement, hero, offers, promo, popup, popupOfferCode } = content
 
   // Homepage blocks inside the scroll body. The sticky toolbar/search/category nav and the
   // brand strip stay fixed above them; announcement, popup, footer and cart are not blocks.
@@ -199,7 +199,7 @@ export function MenuFastCardsPage({
 
   return (
     <div className="mf-root theme-menufast-cards">
-      {popup ? <MenuFastCardsPopupBanner banner={popup} tenantId={tenant.id} /> : null}
+      {popup ? <MenuFastCardsPopupBanner banner={popup} tenantId={tenant.id} offerCode={popupOfferCode} /> : null}
       <MenuFastCardsMenuDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}

@@ -98,6 +98,8 @@ export function storefrontTaxAmountInr(
 }
 
 export interface StorefrontCheckoutTotals {
+  /** Offer + coupon savings already taken off the items total. */
+  discountInr: number
   shippingInr: number
   taxInr: number
   /** What the customer is charged — equals the server's Razorpay amount / Order total. */
@@ -113,13 +115,19 @@ export function storefrontCheckoutTotals(
   mode: StorefrontDeliveryMode | 'local' | 'takeaway' | string,
   itemsTotalInr: number,
   config: StorefrontConfig | null | undefined,
+  /** Server-confirmed discount (see previewCheckoutDiscount). Omit for no discount. */
+  discount?: { discountInr: number; freeShipping?: boolean } | null,
 ): StorefrontCheckoutTotals {
   const subtotal = Math.max(0, Number(itemsTotalInr) || 0)
   const policy = getShippingPolicyFromConfig(config)
-  const shippingInr = storefrontShippingAmountInr(mode, subtotal, config)
-  const taxInr = storefrontTaxAmountInr(subtotal, config)
-  const totalInr = Math.round((subtotal + shippingInr + taxInr) * 100) / 100
+  const discountInr = Math.min(subtotal, Math.max(0, Number(discount?.discountInr) || 0))
+  // Shipping and tax follow the discounted amount, mirroring the backend.
+  const payable = subtotal - discountInr
+  const shippingInr = discount?.freeShipping ? 0 : storefrontShippingAmountInr(mode, payable, config)
+  const taxInr = storefrontTaxAmountInr(payable, config)
+  const totalInr = Math.round((payable + shippingInr + taxInr) * 100) / 100
   return {
+    discountInr,
     shippingInr,
     taxInr,
     totalInr,

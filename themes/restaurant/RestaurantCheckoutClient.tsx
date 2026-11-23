@@ -1,12 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
 import { PaymentMethodPicker, useStorefrontPaymentMethod } from '@/components/PaymentMethodPicker'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
+import { CouponInput } from '@/components/commerce/CouponInput'
+import { useCheckoutDiscount } from '@/lib/useCheckoutDiscount'
 import {
   formatDeliveryNotes,
   showPreferredTimeOfDelivery,
@@ -58,6 +60,12 @@ export function RestaurantCheckoutClient({
   } = useCheckoutCustomerPrefill()
   const { isAuthenticated, guestCheckoutAllowed } = useAccountAuth()
   const [email, setEmail] = useState('')
+  const discount = useCheckoutDiscount({
+    tenantId: tenant.id,
+    lines: useMemo(() => lines.map((l) => ({ productId: l.productId, quantity: l.quantity })), [lines]),
+    email: email || prefillEmail || undefined,
+  })
+  const payable = Math.max(0, subtotal - discount.discountInr)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
 
@@ -117,6 +125,7 @@ export function RestaurantCheckoutClient({
         deliveryDetails,
         accessToken,
         paymentMethod: pay.method,
+        couponCode: discount.applied,
       })
       clear()
       setStatus({ kind: 'success', orderNumber: result.orderNumber, email: trimmedEmail })
@@ -234,8 +243,23 @@ export function RestaurantCheckoutClient({
               </li>
             ))}
           </ul>
+          <CouponInput
+            applied={discount.applied}
+            preview={discount.preview}
+            error={discount.error}
+            loading={discount.loading}
+            onApply={discount.apply}
+            onRemove={discount.remove}
+            formatMoney={(n) => formatMoney(n, currency)}
+          />
+          {discount.discountInr > 0 ? (
+            <p className="mt-2 flex justify-between text-sm text-green-700">
+              <span>Discount</span>
+              <span>−{formatMoney(discount.discountInr, currency)}</span>
+            </p>
+          ) : null}
           <p className="mt-4 text-right text-lg font-semibold text-stone-900">
-            Total: {formatMoney(subtotal, currency)}
+            Total: {formatMoney(payable, currency)}
           </p>
         </div>
 
@@ -299,8 +323,8 @@ export function RestaurantCheckoutClient({
             {status.kind === 'processing'
               ? 'Processing…'
               : pay.method === 'razorpay'
-                ? `Pay · ${formatMoney(subtotal, currency)} (${itemCount} items)`
-                : `${pay.submitLabel} · ${formatMoney(subtotal, currency)}`}
+                ? `Pay · ${formatMoney(payable, currency)} (${itemCount} items)`
+                : `${pay.submitLabel} · ${formatMoney(payable, currency)}`}
           </button>
         </div>
       </form>

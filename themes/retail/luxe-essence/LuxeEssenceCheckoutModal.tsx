@@ -7,6 +7,8 @@ import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { SignedInCheckoutNote } from '@/components/CheckoutContactNote'
 import { RequireStorefrontAuth } from '@/components/account/RequireStorefrontAuth'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
+import { CouponInput } from '@/components/commerce/CouponInput'
+import { useCheckoutDiscount } from '@/lib/useCheckoutDiscount'
 import { resolveCheckoutContactForSubmit } from '@/lib/storefrontCustomerContact'
 import { hasShippableDeliveryDetails } from '@/lib/storefrontShippingAddress'
 import { useCheckoutCustomerPrefill } from '@/lib/useCheckoutCustomerPrefill'
@@ -108,6 +110,21 @@ export function LuxeEssenceCheckoutModal({
     isReady,
   } = useCheckoutCustomerPrefill()
 
+  // Only price while the modal is open; an empty cart skips the request.
+  const discountLines = useMemo(
+    () =>
+      open
+        ? lines.map((l) => ({ productId: l.productId, quantity: l.quantity, variantId: l.variantId }))
+        : [],
+    [open, lines],
+  )
+  const discount = useCheckoutDiscount({
+    tenantId: tenant.id,
+    lines: discountLines,
+    email: email || prefillEmail || undefined,
+  })
+  const payable = Math.max(0, subtotal - discount.discountInr)
+
   useEffect(() => {
     if (!paymentMethods.includes(paymentMethod)) {
       setPaymentMethod(paymentMethods[0] ?? 'razorpay')
@@ -191,6 +208,7 @@ export function LuxeEssenceCheckoutModal({
         deliveryDetails,
         accessToken,
         paymentMethod,
+        couponCode: discount.applied,
       })
       onClearCart()
       setOrderNumber(result.orderNumber)
@@ -249,6 +267,9 @@ export function LuxeEssenceCheckoutModal({
                   <div key={cartLineKey(line.productId, line.variantId)} className="le-order-line">
                     <span>
                       {line.name} ×{line.quantity}
+                      {discount.preview?.freeUnits?.[line.productId] ? (
+                        <em className="sf-coupon-free"> ({discount.preview.freeUnits[line.productId]} free)</em>
+                      ) : null}
                     </span>
                     <span>{formatMoney(line.price * line.quantity, line.currency)}</span>
                   </div>
@@ -257,13 +278,30 @@ export function LuxeEssenceCheckoutModal({
                   <span>Subtotal</span>
                   <span>{formatMoney(subtotal, currency)}</span>
                 </div>
+                <CouponInput
+                  applied={discount.applied}
+                  preview={discount.preview}
+                  error={discount.error}
+                  loading={discount.loading}
+                  onApply={discount.apply}
+                  onRemove={discount.remove}
+                  formatMoney={(n) => formatMoney(n, currency)}
+                />
+                {discount.discountInr > 0 ? (
+                  <div className="le-order-line">
+                    <span>Discount</span>
+                    <span>−{formatMoney(discount.discountInr, currency)}</span>
+                  </div>
+                ) : null}
                 <div className="le-order-line le-order-line--shipping">
                   <span>Shipping</span>
-                  <span className="le-cart-shipping-label">{shippingLabel}</span>
+                  <span className="le-cart-shipping-label">
+                    {discount.preview?.freeShipping ? 'Free' : shippingLabel}
+                  </span>
                 </div>
                 <div className="le-order-line total">
                   <span>Total due now</span>
-                  <span>{formatMoney(subtotal, currency)}</span>
+                  <span>{formatMoney(payable, currency)}</span>
                 </div>
               </div>
 

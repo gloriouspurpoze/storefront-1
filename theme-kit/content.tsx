@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { AnnouncementBar } from '@/components/content/AnnouncementBar'
 import { OffersStrip } from '@/components/content/OffersStrip'
 import { PopupBanner } from '@/components/content/PopupBanner'
+import { OfferCode } from '@/components/content/OfferCode'
 import { PromoBlock } from '@/components/content/PromoBlock'
 import type { ResolvedAnnouncement } from '@/lib/storefrontContent'
 import { getBannerImageUrl, getSlideImageUrl, popupStorageKey } from '@/lib/storefrontContent'
@@ -121,9 +122,12 @@ export function createThemedPopupBanner(classPrefix: string) {
   return function ThemedPopupBanner({
     banner,
     tenantId,
+    offerCode,
   }: {
     banner: StorefrontBanner
     tenantId: string
+    /** Coupon code to advertise with a tap-to-copy chip. */
+    offerCode?: string
   }) {
     const imageUrl = getBannerImageUrl(banner)
     const description = banner.description?.trim()
@@ -149,6 +153,7 @@ export function createThemedPopupBanner(classPrefix: string) {
         <div className={`${classPrefix}-popup-body`}>
           <h2 className={`${classPrefix}-popup-title`}>{banner.title}</h2>
           {description ? <p className={`${classPrefix}-popup-desc`}>{description}</p> : null}
+          {offerCode ? <OfferCode code={offerCode} className={`${classPrefix}-popup-code`} /> : null}
           {ctaText && ctaUrl
             ? themedLink(ctaUrl, `${classPrefix}-popup-cta`, ctaText, cta?.openInNewTab)
             : null}

@@ -8,6 +8,7 @@ import type {
 import {
   fetchStorefrontAnnouncement,
   fetchStorefrontBanners,
+  fetchStorefrontOffers,
   fetchStorefrontSliders,
 } from '@/lib/storefront-api'
 import {
@@ -17,6 +18,7 @@ import {
   resolveHomeSliderBuckets,
 } from '@/lib/storefrontContent'
 import { isOfferMarqueeEnabled } from '@/lib/storefrontPaymentMethods'
+import { resolveOfferPopup } from '@/lib/storefrontOffers'
 import type { ThemeTenant } from '../types'
 import type { LuxeEssenceStorefrontContent } from './luxeEssenceContentTypes'
 import { LuxeEssencePage } from './LuxeEssencePage'
@@ -29,7 +31,7 @@ export async function loadLuxeEssenceStorefrontContent(
 ): Promise<LuxeEssenceStorefrontContent> {
   const marqueeOn = isOfferMarqueeEnabled(config)
 
-  const [offersRaw, promoRaw, heroRaw, seasonalRaw, announcementRaw, popupsRaw] =
+  const [offersRaw, promoRaw, heroRaw, seasonalRaw, announcementRaw, popupsRaw, offersList] =
     await Promise.all([
       fetchStorefrontSliders(tenantId, { placement: 'offers' }),
       fetchStorefrontSliders(tenantId, { placement: 'promo' }),
@@ -37,7 +39,9 @@ export async function loadLuxeEssenceStorefrontContent(
       fetchStorefrontSliders(tenantId, { placement: 'seasonal' }),
       marqueeOn ? fetchStorefrontAnnouncement(tenantId) : Promise.resolve(null),
       fetchStorefrontBanners(tenantId, { bannerType: 'popup' }),
+      fetchStorefrontOffers(tenantId).catch(() => []),
     ])
+  const { popup, offerCode } = resolveOfferPopup(pickPopupBanner(popupsRaw), offersList)
 
   const { hero, offers } = resolveHomeSliderBuckets({
     offers: offersRaw,
@@ -50,7 +54,8 @@ export async function loadLuxeEssenceStorefrontContent(
     hero,
     offers,
     promo: filterActiveSliders(promoRaw),
-    popup: pickPopupBanner(popupsRaw),
+    popup,
+    popupOfferCode: offerCode,
   }
 }
 

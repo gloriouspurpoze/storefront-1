@@ -9,6 +9,8 @@ import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { fetchProducts, submitLead } from '@/lib/storefront-api'
 import { PaymentMethodPicker, useStorefrontPaymentMethod } from '@/components/PaymentMethodPicker'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
+import { CouponInput } from '@/components/commerce/CouponInput'
+import { useCheckoutDiscount } from '@/lib/useCheckoutDiscount'
 import { validateShippingAddress } from '@/lib/storefrontShippingAddress'
 import type { DeliveryDetailsValue } from '@/lib/templateSettings'
 import {
@@ -513,15 +515,31 @@ export function BrownButterPage({
     }
   }, [showCartBar, sheetOpen])
 
+  // Ship-to-Mumbai is an enquiry (no payment), so only price pickup/delivery carts.
+  const discount = useCheckoutDiscount({
+    tenantId: tenant.id,
+    lines: useMemo(
+      () =>
+        delivery === 'ship'
+          ? []
+          : entries.map((e) => ({ productId: e.id, quantity: e.qty, variantId: e.variantId })),
+      [delivery, entries],
+    ),
+    email: email || prefillEmail || undefined,
+    fulfillmentMode: toApiFulfillmentMode(delivery),
+  })
+  const discountedSubtotal = Math.max(0, subtotal - discount.discountInr)
+
   const deliveryFee = useMemo(() => {
     // Mumbai / courier ship is enquiry-only for now — never charge in checkout UI.
     if (delivery === 'ship') return 0
-    return storefrontShippingAmountInr(delivery, subtotal, config)
-  }, [delivery, subtotal, config])
+    if (discount.preview?.freeShipping) return 0
+    return storefrontShippingAmountInr(delivery, discountedSubtotal, config)
+  }, [delivery, discountedSubtotal, config, discount.preview?.freeShipping])
 
   // Tax only when the store charges it on top (prices exclude tax) — matches the server charge.
-  const taxInr = storefrontTaxAmountInr(subtotal, config)
-  const total = subtotal + deliveryFee + taxInr
+  const taxInr = storefrontTaxAmountInr(discountedSubtotal, config)
+  const total = discountedSubtotal + deliveryFee + taxInr
   const isShipEnquiry = delivery === 'ship'
 
   const openSheet = useCallback(() => {
@@ -693,6 +711,7 @@ export function BrownButterPage({
         fulfillmentMode: toApiFulfillmentMode(delivery),
         accessToken,
         paymentMethod: pay.method,
+        couponCode: discount.applied,
       })
       setOrderNumber(result.orderNumber)
       setView('success')
@@ -959,6 +978,23 @@ export function BrownButterPage({
                   <span>{formatInr(e.price * e.qty)}</span>
                 </div>
               ))}
+              {!isShipEnquiry && (
+                <CouponInput
+                  applied={discount.applied}
+                  preview={discount.preview}
+                  error={discount.error}
+                  loading={discount.loading}
+                  onApply={discount.apply}
+                  onRemove={discount.remove}
+                  formatMoney={formatInr}
+                />
+              )}
+              {discount.discountInr > 0 && !isShipEnquiry && (
+                <div className="cart-row shipping">
+                  <span>Discount</span>
+                  <span>−{formatInr(discount.discountInr)}</span>
+                </div>
+              )}
               {deliveryFee > 0 && (
                 <div className="cart-row shipping">
                   <span>Delivery</span>

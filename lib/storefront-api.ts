@@ -393,6 +393,7 @@ export async function createCheckoutOrder(input: {
   customerName?: string
   notes?: string
   fulfillmentMode?: 'pickup' | 'delivery' | 'ship' | 'local' | 'takeaway' | 'shipping' | 'courier'
+  couponCode?: string
   accessToken?: string
 }): Promise<CheckoutOrderResult> {
   const headers: Record<string, string> = {
@@ -410,6 +411,7 @@ export async function createCheckoutOrder(input: {
       customerName: input.customerName,
       notes: input.notes,
       fulfillmentMode: input.fulfillmentMode,
+      couponCode: input.couponCode || undefined,
     }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutOrderResult> | null
@@ -431,6 +433,7 @@ export async function placeCheckoutOrder(input: {
   paymentMethod: StorefrontOfflinePaymentMethod
   shippingAddress?: StorefrontShippingAddressPayload
   fulfillmentMode?: 'pickup' | 'delivery' | 'ship' | 'local' | 'takeaway' | 'shipping' | 'courier'
+  couponCode?: string
   accessToken?: string
 }): Promise<CheckoutVerifyResult> {
   const headers: Record<string, string> = {
@@ -451,11 +454,83 @@ export async function placeCheckoutOrder(input: {
       paymentMethod: input.paymentMethod,
       shippingAddress: input.shippingAddress,
       fulfillmentMode: input.fulfillmentMode,
+      couponCode: input.couponCode || undefined,
     }),
   })
   const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutVerifyResult> | null
   if (!res.ok || !json?.success || !json.data) {
     throw new Error(json?.message || `Order placement failed (${res.status})`)
+  }
+  return json.data
+}
+
+// ——— Offers, coupons and discount preview ———
+
+export interface StorefrontOffer {
+  id: string
+  name: string
+  description?: string
+  applicationType: 'auto' | 'code'
+  /** Present only when the store chose to advertise this code. */
+  code?: string
+  discountType: 'percentage' | 'fixed' | 'free_shipping' | 'buy_one_get_one' | 'bundle'
+  discountValue: number
+  maxDiscount?: number
+  minOrderAmount: number
+  bogo?: { buyQty: number; getQty: number }
+  spendTiers: Array<{ minSpend: number; discountType: 'percentage' | 'fixed'; discountValue: number }>
+  validUntil?: string
+  featured: boolean
+  image?: string
+}
+
+export async function fetchStorefrontOffers(tenantId: string): Promise<StorefrontOffer[]> {
+  const data = await getJson<StorefrontOffer[]>('/public/storefront/offers', tenantId, {
+    revalidate: 60,
+    tags: [`tenant:${tenantId}`, `tenant:${tenantId}:offers`],
+  })
+  return Array.isArray(data) ? data : []
+}
+
+export interface CheckoutDiscountPreview {
+  itemsTotalInr: number
+  discountInr: number
+  shippingInr: number
+  taxInr: number
+  totalInr: number
+  freeShipping: boolean
+  /** Free units per productId (buy X get Y). */
+  freeUnits: Record<string, number>
+  couponCode?: string
+  offerName?: string
+}
+
+/** Server-priced discount for the current cart. Throws with the server's reason on a bad coupon. */
+export async function previewCheckoutDiscount(input: {
+  tenantId: string
+  items: Array<{ productId: string; quantity: number; variantId?: string }>
+  couponCode?: string
+  customerEmail?: string
+  fulfillmentMode?: string
+  signal?: AbortSignal
+}): Promise<CheckoutDiscountPreview> {
+  const res = await fetch(apiUrl('/public/storefront/checkout/discount-preview'), {
+    method: 'POST',
+    headers: withTenantId(input.tenantId, {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    }),
+    signal: input.signal,
+    body: JSON.stringify({
+      items: input.items,
+      couponCode: input.couponCode || undefined,
+      customerEmail: input.customerEmail || undefined,
+      fulfillmentMode: input.fulfillmentMode,
+    }),
+  })
+  const json = (await res.json().catch(() => null)) as ApiEnvelope<CheckoutDiscountPreview> | null
+  if (!res.ok || !json?.success || !json.data) {
+    throw new Error(json?.message || `Could not apply discount (${res.status})`)
   }
   return json.data
 }

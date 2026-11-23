@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import type { StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
+import { CouponInput } from '@/components/commerce/CouponInput'
+import { useCheckoutDiscount } from '@/lib/useCheckoutDiscount'
+import { formatMoney } from './cart'
 import { getOrderingAvailabilityFromConfig, getOrderingHoursFromConfig } from '@/lib/orderingHours'
 import { hasShippableDeliveryDetails } from '@/lib/storefrontShippingAddress'
 import {
@@ -87,6 +90,13 @@ export function MenuOrderCheckoutBlock({
     isReady,
   } = useCheckoutCustomerPrefill()
   const { isAuthenticated, guestCheckoutAllowed } = useAccountAuth()
+
+  const discount = useCheckoutDiscount({
+    tenantId: tenant.id,
+    lines,
+    email: email || prefillEmail || undefined,
+    fulfillmentMode,
+  })
 
   const shouldCollectAddress = showDeliveryDetails || isControlled
   const shouldPersistShipping =
@@ -174,6 +184,7 @@ export function MenuOrderCheckoutBlock({
           fulfillmentMode ?? (shouldPersistShipping ? 'delivery' : 'pickup'),
         accessToken,
         paymentMethod,
+        couponCode: discount.applied,
       })
       onClear()
       onSuccess(result.orderNumber)
@@ -299,6 +310,20 @@ export function MenuOrderCheckoutBlock({
             autoComplete="tel"
             inputMode="tel"
           />
+          <CouponInput
+            applied={discount.applied}
+            preview={discount.preview}
+            error={discount.error}
+            loading={discount.loading}
+            onApply={discount.apply}
+            onRemove={discount.remove}
+            formatMoney={(n) => formatMoney(n, 'INR')}
+          />
+          {discount.discountInr > 0 && discount.preview ? (
+            <p style={{ fontSize: '13px', fontWeight: 600, margin: 0 }}>
+              Payable now: {formatMoney(discount.preview.totalInr, 'INR')}
+            </p>
+          ) : null}
           {error ? (
             <p className={isCards ? 'mf-cards-checkout-error' : undefined} style={isCards ? undefined : { fontSize: '12px', color: '#c62828', margin: 0 }}>
               {error}

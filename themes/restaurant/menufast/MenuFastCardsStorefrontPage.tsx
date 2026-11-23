@@ -5,6 +5,7 @@ import {
   fetchCategoryMarketing,
   fetchStorefrontAnnouncement,
   fetchStorefrontBanners,
+  fetchStorefrontOffers,
   fetchStorefrontSliders,
 } from '@/lib/storefront-api'
 import {
@@ -15,6 +16,7 @@ import {
 } from '@/lib/storefrontContent'
 import { normalizeCategoryMarketingRecord } from '@/lib/categoryMarketing'
 import { isOfferMarqueeEnabled } from '@/lib/storefrontPaymentMethods'
+import { resolveOfferPopup } from '@/lib/storefrontOffers'
 import type { ThemeTenant } from '../types'
 import type { MenuFastCardsStorefrontContent } from './menuFastCardsContentTypes'
 import { MenuFastCardsPage } from './MenuFastCardsPage'
@@ -28,7 +30,7 @@ export async function loadMenuFastCardsStorefrontContent(
 ): Promise<MenuFastCardsStorefrontContent> {
   const marqueeOn = isOfferMarqueeEnabled(config)
 
-  const [offersRaw, promoRaw, heroRaw, seasonalRaw, announcementRaw, popupsRaw] =
+  const [offersRaw, promoRaw, heroRaw, seasonalRaw, announcementRaw, popupsRaw, offersList] =
     await Promise.all([
       fetchStorefrontSliders(tenantId, { placement: 'offers' }),
       fetchStorefrontSliders(tenantId, { placement: 'promo' }),
@@ -36,7 +38,9 @@ export async function loadMenuFastCardsStorefrontContent(
       fetchStorefrontSliders(tenantId, { placement: 'seasonal' }),
       marqueeOn ? fetchStorefrontAnnouncement(tenantId) : Promise.resolve(null),
       fetchStorefrontBanners(tenantId, { bannerType: 'popup' }),
+      fetchStorefrontOffers(tenantId).catch(() => []),
     ])
+  const { popup, offerCode } = resolveOfferPopup(pickPopupBanner(popupsRaw), offersList)
 
   const { hero, offers } = resolveHomeSliderBuckets({
     offers: offersRaw,
@@ -49,7 +53,8 @@ export async function loadMenuFastCardsStorefrontContent(
     hero,
     offers,
     promo: filterActiveSliders(promoRaw),
-    popup: pickPopupBanner(popupsRaw),
+    popup,
+    popupOfferCode: offerCode,
   }
 }
 

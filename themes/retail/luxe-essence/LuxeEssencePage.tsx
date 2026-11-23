@@ -109,7 +109,7 @@ export function LuxeEssencePage({
   const selectedProduct =
     selectedProductId != null ? (products.find((p) => p.id === selectedProductId) ?? null) : null
 
-  const { announcement, hero, offers, promo, popup } = content
+  const { announcement, hero, offers, promo, popup, popupOfferCode } = content
 
   const blocks: Record<(typeof LUXE_ESSENCE_SECTIONS)[number], ReactNode> = {
     hero: (
@@ -140,7 +140,7 @@ export function LuxeEssencePage({
 
   return (
     <div className="le-root theme-luxe-essence">
-      {popup ? <LuxeEssencePopupBanner banner={popup} tenantId={tenant.id} /> : null}
+      {popup ? <LuxeEssencePopupBanner banner={popup} tenantId={tenant.id} offerCode={popupOfferCode} /> : null}
       <LuxeEssenceMenuDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}

@@ -7,6 +7,8 @@ import type { PublicProduct, StorefrontConfig } from '@/lib/storefront-api'
 import { DeliveryDetailsSection } from '@/components/DeliveryDetailsSection'
 import { PaymentMethodPicker, useStorefrontPaymentMethod } from '@/components/PaymentMethodPicker'
 import { runStorefrontCheckout } from '@/lib/runStorefrontCheckout'
+import { CouponInput } from '@/components/commerce/CouponInput'
+import { useCheckoutDiscount } from '@/lib/useCheckoutDiscount'
 import {
   formatDeliveryNotes,
   showPreferredDateOfDelivery,
@@ -106,8 +108,26 @@ export function SoftStudioPage({
   const [phone, setPhone] = useState('')
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetailsValue>({})
 
-  const ship = useMemo(() => shippingCost(subtotal), [subtotal])
-  const total = subtotal + ship
+  const discount = useCheckoutDiscount({
+    tenantId: tenant.id,
+    lines: useMemo(() => lines.map((l) => ({ productId: l.productId, quantity: l.quantity })), [lines]),
+    email: email || undefined,
+  })
+  const baseShip = useMemo(() => shippingCost(subtotal), [subtotal])
+  const ship = discount.preview?.freeShipping ? 0 : baseShip
+  const total = Math.max(0, subtotal - discount.discountInr) + ship
+  const cur = lines[0]?.currency ?? 'INR'
+  const couponBox = (
+    <CouponInput
+      applied={discount.applied}
+      preview={discount.preview}
+      error={discount.error}
+      loading={discount.loading}
+      onApply={discount.apply}
+      onRemove={discount.remove}
+      formatMoney={(n) => formatMoney(n, cur)}
+    />
+  )
   const heroProducts = products.slice(0, 4)
 
   const openCheckout = () => {
@@ -189,6 +209,7 @@ export function SoftStudioPage({
         deliveryDetails,
         accessToken,
         paymentMethod: pay.method,
+        couponCode: discount.applied,
       })
       clear()
       setOrderNumber(result.orderNumber)
@@ -418,6 +439,12 @@ export function SoftStudioPage({
                 <span>Subtotal</span>
                 <span>{formatMoney(subtotal, lines[0]?.currency ?? 'INR')}</span>
               </div>
+              {discount.discountInr > 0 ? (
+                <div className="ss-summary-row">
+                  <span>Discount</span>
+                  <span>−{formatMoney(discount.discountInr, cur)}</span>
+                </div>
+              ) : null}
               <div className="ss-summary-row">
                 <span>Shipping</span>
                 <span>{ship === 0 ? 'Free' : formatMoney(ship, lines[0]?.currency ?? 'INR')}</span>
@@ -454,6 +481,13 @@ export function SoftStudioPage({
                     <span>{formatMoney(line.price * line.quantity, line.currency)}</span>
                   </div>
                 ))}
+                {couponBox}
+                {discount.discountInr > 0 ? (
+                  <div className="ss-order-line">
+                    <span>Discount</span>
+                    <span>−{formatMoney(discount.discountInr, cur)}</span>
+                  </div>
+                ) : null}
                 <div className="ss-order-line">
                   <span>Shipping</span>
                   <span>{ship === 0 ? 'Free' : formatMoney(ship, lines[0]?.currency ?? 'INR')}</span>
